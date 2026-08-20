@@ -8,7 +8,7 @@ variables:
   app_description:
     default: "__APP_DESCRIPTION__"
   sql_warehouse_id:
-    default: "__DATABRICKS_WAREHOUSE_ID__"
+    default: ab362e9710498a08
   git_repo_url:
     default: "__GIT_REPOSITORY_URL__"
   git_branch:
@@ -48,7 +48,7 @@ targets:
   prod:
     mode: production
     workspace:
-      host: "__DATABRICKS_HOST__"
+      host: https://3070470996474403.3.gcp.databricks.com
       root_path: ${var.prod_root_path}
     resources:
       apps:
