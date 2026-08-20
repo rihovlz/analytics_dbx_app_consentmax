@@ -1,0 +1,15 @@
+.next/
+node_modules/
+out/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+.databricks/
+*.log
+playwright-report/
+test-results/
+.npm-cache/
+tsconfig.tsbuildinfo
+.DS_Store
