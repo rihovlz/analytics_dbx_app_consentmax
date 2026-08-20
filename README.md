@@ -1,5 +1,7 @@
 # Databricks App Template
 
+![Databricks App Boilerplate — de la copie du repository au déploiement](docs/assets/databricks-app-boilerplate.png)
+
 Golden path Next.js/TypeScript pour construire des Databricks Apps analytics. Il fournit un shell UI neutre, une
 configuration validée, une couche Databricks SQL centralisée, des erreurs publiques sûres, des logs structurés, des
 tests et un déploiement reproductible avec Databricks Asset Bundles.
