@@ -5,7 +5,8 @@
 1. Créer le repository via **Use this template**.
 2. Cloner, créer une branche et exécuter `npm run init-app -- <nom>`.
 3. Relire les placeholders remplacés dans `app.yaml`, `databricks.yml` et `.github/workflows/deploy.yml`.
-4. Vérifier le workspace, le warehouse, le catalog/schema, les groupes et le chemin bundle.
+4. Vérifier le workspace prérempli `https://3070470996474403.3.gcp.databricks.com`, le warehouse `team-da-poc`
+   (`ab362e9710498a08`), le catalog/schema, les groupes et le chemin bundle.
 5. Ajouter au service principal de l’app un credential Git en lecture sur le nouveau repository privé.
 6. Ouvrir une pull request et laisser la CI valider lint, types, tests et build.
 7. Fusionner dans `main`, puis déclencher le workflow `Deploy Databricks App`.
@@ -34,7 +35,7 @@ GitHub `databricks-production`, protéger ses approbateurs si nécessaire, puis 
 
 | Variable | Valeur |
 | --- | --- |
-| `DATABRICKS_HOST` | URL HTTPS du workspace |
+| `DATABRICKS_HOST` | `https://3070470996474403.3.gcp.databricks.com` par défaut |
 | `DATABRICKS_CLIENT_ID` | service principal fédéré autorisé à déployer |
 | `DATABRICKS_AUTO_DEPLOY` | `false` initialement ; `true` après validation du workflow manuel |
 

@@ -5,6 +5,9 @@ import { readFile, writeFile } from "node:fs/promises";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 
+const DEFAULT_DATABRICKS_HOST = "https://3070470996474403.3.gcp.databricks.com";
+const DEFAULT_SQL_WAREHOUSE_ID = "ab362e9710498a08";
+
 const args = process.argv.slice(2);
 const option = (name) => {
   const index = args.indexOf(`--${name}`);
@@ -35,10 +38,10 @@ function escapePlaceholderValue(value) {
 const prompts = [
   ["name", positionalName ?? option("name"), "Application name", "my-databricks-app"],
   ["description", option("description"), "Description", "Analytics Databricks App"],
-  ["warehouse", option("warehouse"), "SQL Warehouse ID", "replace-me"],
+  ["warehouse", option("warehouse"), "SQL Warehouse ID", DEFAULT_SQL_WAREHOUSE_ID],
   ["catalog", option("catalog"), "Default catalog", "replace_me"],
   ["schema", option("schema"), "Default schema", "app"],
-  ["host", option("host"), "Production workspace URL", "https://your-workspace.cloud.databricks.com"],
+  ["host", option("host"), "Production workspace URL", DEFAULT_DATABRICKS_HOST],
   ["canUseGroup", option("can-use-group"), "CAN_USE group", "users"],
   ["canManageGroup", option("can-manage-group"), "CAN_MANAGE group", "admins"],
 ];
@@ -73,6 +76,11 @@ const replacements = {
   __DATABRICKS_PROD_ROOT_PATH__: `/Workspace/Shared/.bundle/${answers.name}/prod`,
 };
 
+const prefilledReplacements = {
+  [DEFAULT_DATABRICKS_HOST]: answers.host,
+  [DEFAULT_SQL_WAREHOUSE_ID]: answers.warehouse,
+};
+
 const files = [
   "package.json",
   "package-lock.json",
@@ -85,6 +93,9 @@ for (const file of files) {
   let content = await readFile(file, "utf8");
   for (const [placeholder, rawValue] of Object.entries(replacements)) {
     content = content.replaceAll(placeholder, escapePlaceholderValue(rawValue));
+  }
+  for (const [prefilledValue, rawValue] of Object.entries(prefilledReplacements)) {
+    content = content.replaceAll(prefilledValue, escapePlaceholderValue(rawValue));
   }
   await writeFile(file, content);
 }

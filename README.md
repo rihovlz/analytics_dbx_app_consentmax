@@ -21,6 +21,21 @@ npm run dev
 
 Ouvrir <http://localhost:3000>. Le mode démo est explicite et n’effectue aucun appel distant.
 
+## Infrastructure Valiuz préremplie
+
+Le bootstrap propose les valeurs partagées déjà utilisées par l’app FRAIM :
+
+| Ressource | Valeur par défaut |
+| --- | --- |
+| Workspace Databricks | `https://3070470996474403.3.gcp.databricks.com` |
+| SQL Warehouse | `team-da-poc` (`ab362e9710498a08`) |
+| Permission du binding warehouse | `CAN_USE` |
+
+Avec `npm run init-app -- <nom>`, accepter ces deux valeurs pour cibler l’infrastructure partagée, ou utiliser
+`--host` et `--warehouse` pour les remplacer. Le catalog, le schema et les groupes d’accès restent propres à chaque
+application. `CAN_USE` sur le binding autorise l’identité de l’app à utiliser le warehouse ; les privilèges Unity
+Catalog et l’accès des utilisateurs à l’app restent à configurer séparément.
+
 ## Configuration
 
 La configuration serveur est validée au démarrage dans `src/lib/config/server-config.ts`.

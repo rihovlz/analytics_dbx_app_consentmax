@@ -15,6 +15,19 @@ Le warehouse est déclaré comme ressource `sql-warehouse` dans `databricks.yml`
 `valueFrom` dans `app.yaml`. Le service principal de l’app doit aussi disposer des privilèges Unity Catalog strictement
 nécessaires : typiquement `USE CATALOG`, `USE SCHEMA` et `SELECT` sur les objets lus.
 
+Le template préremplit l’infrastructure partagée Valiuz suivante :
+
+| Ressource | Valeur |
+| --- | --- |
+| Workspace | `https://3070470996474403.3.gcp.databricks.com` |
+| SQL Warehouse | `team-da-poc` |
+| SQL Warehouse ID | `ab362e9710498a08` |
+| Permission du binding | `CAN_USE` |
+
+`npm run init-app` propose ces valeurs par défaut et accepte `--host` ou `--warehouse` pour cibler une autre
+infrastructure. Vérifier l’ID dans le workspace avant chaque déploiement : le nom lisible du warehouse est documenté
+pour les opérateurs, mais le bundle utilise son ID stable.
+
 Ajoutez un `uc_securable` au bundle seulement si l’app doit rendre une ressource visible dans l’UI Databricks Apps.
 Les grants de données doivent rester gérés par la gouvernance de l’équipe ; ne donnez pas de privilèges larges dans le
 template.

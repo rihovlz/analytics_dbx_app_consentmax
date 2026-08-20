@@ -43,8 +43,41 @@ test("bootstrap replaces all operational placeholders and keeps JSON valid", asy
 
   const operationalFiles = files.filter((file) => file !== "scripts/init-app.mjs");
   const rendered = await Promise.all(operationalFiles.map((file) => readFile(join(root, file), "utf8")));
-  assert.doesNotMatch(rendered.join("\n"), /__[A-Z][A-Z_]+__/);
-  assert.match(rendered.join("\n"), /sample-app/);
+  const renderedText = rendered.join("\n");
+  assert.doesNotMatch(renderedText, /__[A-Z][A-Z_]+__/);
+  assert.doesNotMatch(renderedText, /3070470996474403\.3\.gcp\.databricks\.com/);
+  assert.doesNotMatch(renderedText, /ab362e9710498a08/);
+  assert.match(renderedText, /sample-app/);
+  assert.match(renderedText, /https:\/\/dbc\.example\.cloud\.databricks\.com/);
+  assert.match(renderedText, /warehouse-123/);
   JSON.parse(await readFile(join(root, "package.json"), "utf8"));
   JSON.parse(await readFile(join(root, "package-lock.json"), "utf8"));
+});
+
+test("bootstrap uses the shared Valiuz workspace and SQL warehouse defaults", async () => {
+  const root = await mkdtemp(join(tmpdir(), "databricks-app-defaults-"));
+  for (const file of files) {
+    const destination = join(root, file);
+    await mkdir(dirname(destination), { recursive: true });
+    await copyFile(file, destination);
+  }
+
+  execFileSync(
+    process.execPath,
+    [
+      "scripts/init-app.mjs",
+      "sample-app",
+      "--non-interactive",
+      "--catalog", "analytics_dev",
+      "--schema", "sample_app",
+    ],
+    { cwd: root },
+  );
+
+  const environment = await readFile(join(root, ".env.example"), "utf8");
+  const bundle = await readFile(join(root, "databricks.yml"), "utf8");
+  const renderedText = `${environment}\n${bundle}`;
+  assert.match(renderedText, /https:\/\/3070470996474403\.3\.gcp\.databricks\.com/);
+  assert.match(renderedText, /ab362e9710498a08/);
+  assert.match(bundle, /permission: CAN_USE/);
 });
