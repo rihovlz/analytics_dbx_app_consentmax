@@ -15,6 +15,8 @@ par tranches verticales testables.
   [references/bootstrap.md](references/bootstrap.md).
 - Pour cadrer le besoin, les KPI, les sources et les requêtes, lire
   [references/product-discovery.md](references/product-discovery.md).
+- Pour explorer des objets Unity Catalog et établir leur contrat sans exposer de lignes sensibles, lire
+  [references/data-discovery.md](references/data-discovery.md).
 - Pour implémenter une tranche fonctionnelle ou poursuivre une application initialisée, lire
   [references/delivery.md](references/delivery.md).
 

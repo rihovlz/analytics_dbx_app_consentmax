@@ -56,6 +56,10 @@ neutralité du repository vis-à-vis des assistants de développement.
 Utiliser `review-analytics-app-docs` avant la pull request lorsqu'une tranche modifie le comportement, la configuration,
 les routes, les sources, les droits ou l'exploitation de l'application.
 
+Utiliser `validate-analytics-kpis` lorsqu'une tranche ajoute ou modifie un KPI, un comparatif ou une conclusion
+chiffrée. Utiliser `test-analytics-app-e2e` pour un parcours utilisateur critique ou lorsqu'une interaction entre page,
+route et états UI ne peut pas être prouvée correctement par les tests unitaires.
+
 ## Boucle d'itération
 
 Après chaque tranche :

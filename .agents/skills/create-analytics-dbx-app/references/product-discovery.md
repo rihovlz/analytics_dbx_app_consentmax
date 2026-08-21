@@ -32,6 +32,9 @@ est utile, proposer d'abord des commandes en lecture seule comme `DESCRIBE TABLE
 bornée. Confirmer le workspace, le warehouse, le catalog et le schema avant de l'exécuter. Ne jamais journaliser les
 résultats métier complets.
 
+Lorsque les sources ou leur qualité restent inconnues, suivre
+[data-discovery.md](data-discovery.md) et reporter son contrat de source dans le brief avant de concevoir le SQL métier.
+
 ### Requêtes et contrats
 
 - Pour chaque vue attendue, quelle question la requête doit-elle résoudre et quels filtres viennent de l'utilisateur ?

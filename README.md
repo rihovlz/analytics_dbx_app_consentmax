@@ -27,9 +27,11 @@ Le repository fournit des workflows compatibles avec le standard ouvert Agent Sk
 
 | Skill | Usage |
 | --- | --- |
-| `create-analytics-dbx-app` | Créer le repository Valiuz, initialiser le clone et cadrer progressivement données, KPI, requêtes et fonctionnalités |
+| `create-analytics-dbx-app` | Créer le repository Valiuz, initialiser le clone, découvrir les sources Databricks et cadrer progressivement KPI, requêtes et fonctionnalités |
 | `github-engineer` | Isoler une tâche dans une branche ou un worktree, publier une pull request et nettoyer prudemment le travail fusionné |
 | `review-analytics-app-docs` | Comparer README, runbooks, manifests et workflows au code et à la configuration réels |
+| `test-analytics-app-e2e` | Planifier, écrire et diagnostiquer des parcours Playwright reproductibles en mode démo |
+| `validate-analytics-kpis` | Vérifier les contrats de données, calculs, risques statistiques et représentations des KPI |
 
 Depuis un checkout du template, demander à l'assistant d'utiliser le skill correspondant. Le bootstrap pose au maximum
 trois questions à la fois. Toute mutation GitHub ou Databricks demande une autorisation explicite.
