@@ -33,11 +33,13 @@ Databricks SQL Warehouse → Unity Catalog
 ## Configuration et runtime
 
 `parseServerConfig` accepte deux modes. `demo` est credential-free et déterministe. `databricks` échoue immédiatement
-si une variable obligatoire manque. En local, il utilise un PAT court terme. Dans Databricks Apps, la présence de
+si une variable obligatoire manque. En local, il utilise en priorité un jeton OAuth U2M éphémère fourni par un profil
+Databricks CLI ; un PAT court terme reste un fallback explicite. Dans Databricks Apps, la présence de
 `DATABRICKS_APP_NAME` force OAuth M2M avec les credentials injectés par la plateforme.
 
 `/health` reste un probe superficiel et ne réveille pas le warehouse. `/api/connection-check` teste explicitement le
-chemin Databricks. Les deux usages ont ainsi des coûts et des sémantiques distincts.
+chemin Databricks. `/api/readiness` vérifie en plus, avec l'identité runtime, un accès `SELECT` sans ligne retournée sur
+chaque source déclarée dans `config/data-access.json`. Ces usages ont ainsi des coûts et des sémantiques distincts.
 
 ## Erreurs et observabilité
 

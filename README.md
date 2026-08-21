@@ -46,8 +46,11 @@ Le bootstrap propose les valeurs partagées déjà utilisées par l’app FRAIM 
 | SQL Warehouse | `team-da-poc` (`ab362e9710498a08`) |
 | Permission du binding warehouse | `CAN_USE` |
 
+Chaque application choisit aussi un projet de données, représenté par son catalogue Unity Catalog. Les valeurs
+autorisées sont `dev-dtm-operating`, `dev-dtm-media-pm`, `dev-dtm-myvaliuz` et `dev-dtm-insight-sharing`.
+
 Avec `npm run init-app -- <nom>`, accepter ces deux valeurs pour cibler l’infrastructure partagée, ou utiliser
-`--host` et `--warehouse` pour les remplacer. Le catalog, le schema et les groupes d’accès restent propres à chaque
+`--host` et `--warehouse` pour les remplacer. Le projet/catalogue, le schema et les groupes d’accès restent propres à chaque
 application. `CAN_USE` sur le binding autorise l’identité de l’app à utiliser le warehouse ; les privilèges Unity
 Catalog et l’accès des utilisateurs à l’app restent à configurer séparément.
 
@@ -59,13 +62,20 @@ La configuration serveur est validée au démarrage dans `src/lib/config/server-
 | --- | --- | --- | --- |
 | `APP_MODE` | `demo` | `databricks` | `databricks` via `app.yaml` |
 | `DATABRICKS_HOST` | non | oui | injectée par Databricks |
-| `DATABRICKS_TOKEN` | non | oui | jamais utilisée |
+| `DATABRICKS_CONFIG_PROFILE` | non | oui, recommandé | jamais utilisée |
+| `DATABRICKS_TOKEN` | non | fallback uniquement | jamais utilisée |
 | `DATABRICKS_CLIENT_ID` / `DATABRICKS_CLIENT_SECRET` | non | non | injectées par Databricks |
 | `DATABRICKS_SQL_WAREHOUSE_ID` | non | oui | binding `valueFrom` |
-| `DATABRICKS_CATALOG` / `DATABRICKS_SCHEMA` | non | oui | `app.yaml` |
+| `DATABRICKS_CATALOG` / `DATABRICKS_SCHEMA` | non | projet autorisé + schema | `app.yaml` |
 
-Copier `.env.example` vers `.env.local`. Ne jamais committer `.env.local`, un token ou un secret client. Pour tester
-une vraie connexion locale, renseigner un token court terme puis exécuter `npm run test:databricks`.
+Les tables et vues nécessaires sont déclarées dans `config/data-access.json`. Après chaque modification, exécuter
+`npm run data:access:render` et committer le manifeste avec `resources/data-access.generated.yml`. Le bundle lie alors
+chaque source à l'app avec `SELECT`, en plus du warehouse avec `CAN_USE`.
+
+Copier `.env.example` vers `.env.local`. Pour utiliser de vraies données, configurer un profil OAuth avec
+`databricks auth login`, passer `APP_MODE` à `databricks`, puis exécuter `npm run databricks:check` et
+`npm run test:databricks`. Le premier contrôle lit les métadonnées des sources déclarées ; le second vérifie réellement
+`SELECT` sans retourner de ligne. Voir [docs/local-development.md](docs/local-development.md) pour le parcours complet.
 
 ## Commandes
 
@@ -77,8 +87,14 @@ une vraie connexion locale, renseigner un token court terme puis exécuter `npm 
 | `npm test` | tests unitaires Node |
 | `npm run build` | build standalone de production |
 | `npm run check` | toutes les validations locales |
+| `npm run data:access:render` | valide le projet et génère les bindings des sources déclarées |
+| `npm run data:access:check` | refuse un manifeste invalide ou un fichier généré obsolète |
+| `npm run databricks:check` | préflight en lecture seule du profil, warehouse, projet, schema et sources |
+| `npm run test:databricks` | smoke SQL réel sur les sources déclarées, hors CI |
 | `npm run bundle:validate` | validation du bundle Databricks |
-| `npm run deploy -- --target dev` | validate, déploie et démarre l’app |
+| `npm run app:provision -- --target prod --profile <profil>` | crée les ressources sans démarrer l'app |
+| `npm run app:smoke -- --app <app> --profile <profil>` | teste l'app déployée et ses accès SQL runtime |
+| `npm run deploy -- --target dev --profile <profil>` | valide, déploie et démarre l’app |
 
 `npm run deploy` modifie des ressources distantes. Vérifier le profil, le workspace, la target et les variables avant
 de l’exécuter.
@@ -97,6 +113,8 @@ src/lib/http/                    wrapper des routes API
 src/lib/logging/                 logs JSON et contexte de requête
 tests/                           tests unitaires sans Databricks
 scripts/                         bootstrap, packaging et déploiement
+config/                          projets autorisés et manifeste des sources de données
+resources/                       bindings Databricks générés depuis le manifeste
 docs/                            architecture et runbooks
 ```
 
@@ -118,6 +136,10 @@ Déclarer la requête courte et paramétrée dans `queries.ts`, l’exécuter de
 valider chaque ligne avec Zod. Ne pas interpoler d’entrée utilisateur dans le SQL. Pour une requête longue, utiliser
 un fichier `.sql` voisin du repository et documenter son contrat d’entrée/sortie.
 
+Avant d'utiliser une nouvelle table ou vue, l'ajouter à `config/data-access.json`. Son `fullName` doit commencer par le
+projet choisi et utiliser le format `projet.schema.objet`. L'identifiant est transmis au smoke de readiness via
+`IDENTIFIER(?)`, jamais interpolé depuis une entrée utilisateur.
+
 L’exemple `SELECT current_user()` se trouve dans `src/features/connection-check/server/`.
 
 ## Déploiement
@@ -125,23 +147,31 @@ L’exemple `SELECT current_user()` se trouve dans `src/features/connection-chec
 Le chemin recommandé est `branche → pull request → CI → merge main → déploiement Databricks`. Le bundle possède :
 
 - une target `dev` basée sur les fichiers locaux ;
-- une target `prod` Git-backed sur la branche `main` ;
+- une target `prod` Git-backed qui épingle le SHA Git exact résolu par le workflow ;
 - un binding SQL Warehouse avec permission `CAN_USE` ;
+- un binding `SELECT` par table ou vue déclarée ;
 - des permissions `CAN_USE` et `CAN_MANAGE` paramétrables.
 
-Après `init-app`, relire `databricks.yml` et `app.yaml`, puis suivre [docs/deployment.md](docs/deployment.md). La GitHub
+Après `init-app`, relire `databricks.yml`, `app.yaml` et `config/data-access.json`, puis suivre
+[docs/deployment.md](docs/deployment.md). La GitHub
 Action de déploiement utilise OIDC et des variables GitHub, sans secret Databricks committé. L’auto-déploiement reste
-désactivé tant que `DATABRICKS_AUTO_DEPLOY` n’est pas `true`.
+désactivé tant que `DATABRICKS_AUTO_DEPLOY` n’est pas `true`. Après l'état `RUNNING`, le workflow appelle `/api/health`
+et `/api/readiness` pour vérifier les accès réels du service principal de l'app.
 
 ## Troubleshooting
 
 - `INVALID_CONFIGURATION` : vérifier `APP_MODE` et les variables listées au démarrage.
+- Le profil CLI n'est pas reconnu : relancer `databricks auth login --host <workspace-url> --profile <profil>`, puis
+  `npm run databricks:check`.
 - L’app locale affiche « mode démo » : passer explicitement `APP_MODE=databricks` pour interroger le warehouse.
 - `SQL_QUERY_FAILED` : utiliser le `requestId` affiché pour retrouver le log serveur ; le SQL et les credentials ne sont
   jamais renvoyés au navigateur.
 - Le build local utilise une mauvaise version Node : exécuter `nvm use` puis `npm ci`.
 - Le déploiement Git-backed ne lit pas GitHub : ajouter un credential Git au service principal de l’app.
+- `Data project must be one of` : choisir l'un des quatre projets autorisés dans `config/data-projects.json`.
+- `Data access bundle is stale` : lancer `npm run data:access:render` et committer les deux fichiers.
+- `/api/readiness` échoue : vérifier le projet, les bindings des sources et les droits du service principal de l'app.
 - Le bundle refuse des placeholders : relancer `npm run init-app -- <nom>` puis relire les valeurs.
 
-Voir aussi [architecture](docs/architecture.md), [Databricks](docs/databricks.md), [déploiement](docs/deployment.md) et
-[AGENTS.md](AGENTS.md).
+Voir aussi [développement local](docs/local-development.md), [architecture](docs/architecture.md),
+[Databricks](docs/databricks.md), [déploiement](docs/deployment.md) et [AGENTS.md](AGENTS.md).

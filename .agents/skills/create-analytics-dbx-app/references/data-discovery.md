@@ -9,7 +9,7 @@ Lire `docs/product-brief.md`, la configuration serveur et les repositories exist
 confirmées, les hypothèses et les inconnues. Demander au maximum trois précisions à la fois, en privilégiant :
 
 1. la question métier et le grain recherché ;
-2. le workspace, le warehouse, le catalog et le schema autorisés ;
+2. le workspace, le warehouse, le projet/catalogue et le schema autorisés ;
 3. les tables ou vues candidates et leur propriétaire.
 
 Ne pas lancer une exploration distante si les fichiers locaux, la documentation de la source ou un contrat fourni
@@ -23,10 +23,13 @@ Avant tout accès distant, même en lecture seule, afficher et faire confirmer :
 Workspace : <host>
 Identité ou profil : <nom non secret>
 Warehouse : <nom ou identifiant>
-Catalog : <catalog>
+Projet/catalogue : <catalog>
 Schema : <schema>
 Objets candidats : <liste bornée>
 ```
+
+Lorsque le repository fournit `npm run databricks:check`, l'exécuter d'abord pour vérifier l'identité et le périmètre
+sans SQL. Utiliser ensuite le même profil pour toute exploration approuvée ; ne jamais extraire ou recopier son jeton.
 
 Vérifier que l'identité dispose uniquement des accès nécessaires. Une exploration ne justifie ni grant, ni SQL
 d'écriture, ni nouveau job, ni copie locale de résultats. Ne jamais afficher ou enregistrer un token.
@@ -71,11 +74,16 @@ Pour chaque objet retenu, consigner dans `docs/product-brief.md` :
 - Preuve consultée et date de vérification :
 ```
 
+Enregistrer également chaque objet confirmé dans `config/data-access.json`. Son `fullName` doit commencer par le projet
+sélectionné et sa `purpose` doit expliquer pourquoi l'app en a besoin. Exécuter `npm run data:access:render`, relire le
+binding `SELECT` généré et committer les deux fichiers ensemble. Ne pas déclarer un objet seulement exploratoire.
+
 Comparer le grain de la source au grain du KPI. Pour chaque jointure candidate, expliciter la cardinalité attendue et
 contrôler le nombre de lignes avant et après. Marquer `À confirmer` dès que la preuve est insuffisante.
 
 ## Clore la découverte
 
-Résumer les objets retenus et rejetés, les contrôles réellement exécutés, les limites de la preuve et les inconnues.
+Résumer les objets retenus et rejetés, les contrôles réellement exécutés, les bindings déclarés, les limites de la
+preuve et les inconnues.
 Proposer ensuite une seule requête métier, bornée et testable, pour la prochaine tranche. L'exploration n'est pas une
 autorisation de modifier les grants, les données ou le déploiement.

@@ -1,4 +1,5 @@
 import { checkConnection } from "../src/features/connection-check/server/service";
+import { checkReadiness } from "../src/features/readiness/server/service";
 import { getServerConfig } from "../src/lib/config/server-config";
 
 async function main(): Promise<void> {
@@ -6,8 +7,16 @@ async function main(): Promise<void> {
   if (config.mode !== "databricks") {
     throw new Error("Set APP_MODE=databricks and configure local Databricks credentials first.");
   }
-  const result = await checkConnection("cli-connection-check");
-  process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+  const connection = await checkConnection("cli-connection-check");
+  const readiness = await checkReadiness("cli-readiness-check");
+  process.stdout.write(
+    `${JSON.stringify({
+      status: readiness.status,
+      connected: connection.connected,
+      sourceCount: readiness.sourceCount,
+      checkedAt: readiness.checkedAt,
+    }, null, 2)}\n`,
+  );
 }
 
 main().catch((error: unknown) => {

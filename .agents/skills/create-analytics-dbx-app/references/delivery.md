@@ -5,10 +5,13 @@ suffisamment clairs.
 
 ## Avant de modifier
 
-1. Relire `docs/product-brief.md`, `docs/architecture.md`, `docs/databricks.md` et les instructions du repository.
+1. Relire `docs/product-brief.md`, `docs/architecture.md`, `docs/databricks.md` et les instructions du repository. Lire
+   aussi `docs/local-development.md` avant toute utilisation de vraies données.
 2. Inspecter le statut et le diff. Ne pas mélanger du travail existant avec la nouvelle tranche.
-3. Créer ou utiliser une branche de feature dédiée. Ne pas pousser sans autorisation explicite.
-4. Résumer le critère d'acceptation et les fichiers probablement concernés.
+3. Vérifier que chaque source utilisée est déclarée dans `config/data-access.json` sous le projet sélectionné et que
+   `npm run data:access:check` passe.
+4. Créer ou utiliser une branche de feature dédiée. Ne pas pousser sans autorisation explicite.
+5. Résumer le critère d'acceptation et les fichiers probablement concernés.
 
 ## Construire un chemin complet
 
@@ -69,6 +72,10 @@ Après chaque tranche :
 3. Mettre à jour le brief et ordonner le backlog selon valeur, risque et dépendances.
 4. Proposer une seule prochaine tranche, avec son critère d'acceptation.
 5. Demander un retour ciblé sur le chiffre, la requête et l'usage avant d'élargir l'interface.
+
+Pour un premier déploiement Git-backed, provisionner d'abord l'app sans la démarrer afin d'obtenir son service
+principal, puis faire configurer son credential Git en lecture. Un déploiement normal doit épingler le commit exact et
+se terminer par les contrôles authentifiés `/api/health` et `/api/readiness`.
 
 Une pull request, un déploiement, un grant ou un test d'intégration distant constitue une nouvelle mutation ou action
 distante : afficher les cibles exactes et obtenir l'autorisation correspondante juste avant de l'exécuter.

@@ -19,8 +19,8 @@ Deuxième lot :
 1. Quel niveau d'accès donner à l'équipe Analytics : `pull`, `triage`, `push`, `maintain`, `admin` ou rôle personnalisé ?
    Recommander `push` pour contribuer sans administrer le repository, sauf politique Valiuz contraire.
 2. Confirmer le nom applicatif dérivé du repository. `init-app` convertit notamment les underscores en tirets.
-3. Confirmer le catalog, le schema et les groupes Databricks `CAN_USE` / `CAN_MANAGE`. S'ils ne sont pas encore connus,
-   ne pas lancer l'initialisation avec `replace_me` : enregistrer ces points comme bloquants.
+3. Choisir le projet de données parmi `dev-dtm-operating`, `dev-dtm-media-pm`, `dev-dtm-myvaliuz` et
+   `dev-dtm-insight-sharing`, puis confirmer le schema et les groupes Databricks `CAN_USE` / `CAN_MANAGE`.
 
 Utiliser les valeurs de workspace et warehouse documentées dans le `README.md` comme recommandations, jamais comme
 faits implicites. Faire confirmer tout remplacement. Le nom complet du repository doit respecter l'expression imposée
@@ -31,6 +31,7 @@ par le skill et ne doit pas déjà exister localement ou sur GitHub.
 Vérifier au minimum :
 
 - `gh --version`, `gh auth status` et le hostname authentifié ;
+- `databricks version` et la compatibilité avec `databricks_cli_version` lorsque l'accès aux vraies données est prévu ;
 - que l'utilisateur authentifié peut voir l'organisation `valiuz` ;
 - que `valiuz/analytics_dbx_app_template` existe et que `isTemplate` vaut `true` ;
 - que le repository cible n'existe pas déjà ;
@@ -108,7 +109,7 @@ Exemple à compléter uniquement avec des valeurs confirmées :
 npm run init-app -- "${app_repo_name}" \
   --description "${app_description}" \
   --warehouse "${warehouse_id}" \
-  --catalog "${catalog_name}" \
+  --data-project "${data_project}" \
   --schema "${schema_name}" \
   --host "${workspace_url}" \
   --can-use-group "${can_use_group}" \
@@ -120,7 +121,34 @@ npm run init-app -- "${app_repo_name}" \
 Ne pas créer `.env.local` sans besoin de connexion locale. Ne jamais y placer un secret fourni dans la conversation.
 Ne pas committer, pousser ou ouvrir une pull request sans autorisation explicite.
 
-## 6. Passer au cadrage produit
+## 6. Préparer l'accès autonome aux données
+
+Lorsque le membre de l'équipe doit utiliser de vraies données, lire `docs/local-development.md` dans le nouveau clone.
+Faire confirmer le workspace, le profil local, le warehouse, le projet et le schema. Pour chaque table ou vue retenue,
+ajouter son nom `projet.schema.objet` et sa finalité dans `config/data-access.json`, puis exécuter :
+
+```bash
+npm run data:access:render
+npm run data:access:check
+```
+
+Relire les bindings `SELECT` générés avant de les committer. Privilégier ensuite OAuth U2M :
+
+```bash
+databricks auth login --host "${workspace_url}" --profile "${databricks_profile}"
+npm run databricks:check
+npm run test:databricks
+```
+
+`databricks:check` lit des métadonnées distantes ; `test:databricks` exécute un SQL en lecture seule et peut démarrer le
+warehouse. Demander un accord sur les cibles avant ces appels. Ne jamais demander au membre de copier le jeton produit
+par le CLI. Un PAT n'est qu'un fallback local dans `.env.local` et ne doit pas coexister avec le profil.
+
+Si le préflight échoue, indiquer précisément l'accès manquant parmi identité workspace, visibilité warehouse,
+`USE CATALOG`, `USE SCHEMA` ou visibilité d'une source. Ne pas proposer automatiquement un grant plus large. Le smoke
+SQL valide ensuite `SELECT` sans retourner de ligne sur chaque source déclarée.
+
+## 7. Passer au cadrage produit
 
 Dès que l'initialisation locale est saine, lire `product-discovery.md`, créer `docs/product-brief.md` et commencer par
 l'objectif métier, les utilisateurs et la décision que l'application doit faciliter.

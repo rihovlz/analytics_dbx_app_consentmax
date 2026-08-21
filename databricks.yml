@@ -2,6 +2,9 @@ bundle:
   name: "__APP_NAME__"
   databricks_cli_version: ">= 0.295.0"
 
+include:
+  - resources/*.yml
+
 variables:
   app_name:
     default: "__APP_NAME__"
@@ -11,8 +14,9 @@ variables:
     default: ab362e9710498a08
   git_repo_url:
     default: "__GIT_REPOSITORY_URL__"
-  git_branch:
-    default: main
+  git_commit:
+    description: Exact Git commit deployed by the production workflow
+    default: "0000000000000000000000000000000000000000"
   can_use_group:
     default: "__CAN_USE_GROUP__"
   can_manage_group:
@@ -26,11 +30,6 @@ resources:
       name: ${var.app_name}
       description: ${var.app_description}
       compute_size: MEDIUM
-      resources:
-        - name: sql-warehouse
-          sql_warehouse:
-            id: ${var.sql_warehouse_id}
-            permission: CAN_USE
       permissions:
         - group_name: ${var.can_manage_group}
           level: CAN_MANAGE
@@ -57,4 +56,4 @@ targets:
             provider: gitHub
             url: ${var.git_repo_url}
           git_source:
-            branch: ${var.git_branch}
+            commit: ${var.git_commit}

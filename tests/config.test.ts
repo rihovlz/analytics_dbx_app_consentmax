@@ -21,13 +21,30 @@ test("requires local credentials in databricks mode", () => {
   );
 });
 
-test("builds local PAT configuration without exposing the URL scheme to the driver", () => {
+test("builds local CLI OAuth configuration without exposing the URL scheme to the driver", () => {
+  const config = parseServerConfig({
+    APP_MODE: "databricks",
+    DATABRICKS_HOST: "https://dbc.example.cloud.databricks.com",
+    DATABRICKS_CONFIG_PROFILE: "analytics-dev",
+    DATABRICKS_SQL_WAREHOUSE_ID: "warehouse-id",
+    DATABRICKS_CATALOG: "dev-dtm-operating",
+    DATABRICKS_SCHEMA: "app_schema",
+  });
+
+  assert.equal(config.mode, "databricks");
+  if (config.mode === "databricks") {
+    assert.equal(config.host, "dbc.example.cloud.databricks.com");
+    assert.deepEqual(config.auth, { type: "oauth-u2m-cli", profile: "analytics-dev" });
+  }
+});
+
+test("keeps a local PAT as an explicit fallback", () => {
   const config = parseServerConfig({
     APP_MODE: "databricks",
     DATABRICKS_HOST: "https://dbc.example.cloud.databricks.com",
     DATABRICKS_TOKEN: "local-token",
     DATABRICKS_SQL_WAREHOUSE_ID: "warehouse-id",
-    DATABRICKS_CATALOG: "analytics-dev",
+    DATABRICKS_CATALOG: "dev-dtm-operating",
     DATABRICKS_SCHEMA: "app_schema",
   });
 
@@ -38,6 +55,38 @@ test("builds local PAT configuration without exposing the URL scheme to the driv
   }
 });
 
+test("rejects competing local authentication methods", () => {
+  assert.throws(
+    () =>
+      parseServerConfig({
+        APP_MODE: "databricks",
+        DATABRICKS_HOST: "https://dbc.example.cloud.databricks.com",
+        DATABRICKS_CONFIG_PROFILE: "analytics-dev",
+        DATABRICKS_TOKEN: "synthetic-token",
+        DATABRICKS_SQL_WAREHOUSE_ID: "warehouse-id",
+        DATABRICKS_CATALOG: "dev-dtm-operating",
+        DATABRICKS_SCHEMA: "app_schema",
+      }),
+    (error: unknown) =>
+      error instanceof ConfigurationError && error.message.includes("cannot both be set"),
+  );
+});
+
+test("requires one explicit local authentication method", () => {
+  assert.throws(
+    () =>
+      parseServerConfig({
+        APP_MODE: "databricks",
+        DATABRICKS_HOST: "https://dbc.example.cloud.databricks.com",
+        DATABRICKS_SQL_WAREHOUSE_ID: "warehouse-id",
+        DATABRICKS_CATALOG: "dev-dtm-operating",
+        DATABRICKS_SCHEMA: "app_schema",
+      }),
+    (error: unknown) =>
+      error instanceof ConfigurationError && error.message.includes("DATABRICKS_CONFIG_PROFILE or DATABRICKS_TOKEN"),
+  );
+});
+
 test("uses Databricks Apps OAuth credentials at runtime", () => {
   const config = parseServerConfig({
     APP_MODE: "databricks",
@@ -46,7 +95,7 @@ test("uses Databricks Apps OAuth credentials at runtime", () => {
     DATABRICKS_CLIENT_ID: "client-id",
     DATABRICKS_CLIENT_SECRET: "client-secret",
     DATABRICKS_SQL_WAREHOUSE_ID: "warehouse-id",
-    DATABRICKS_CATALOG: "analytics",
+    DATABRICKS_CATALOG: "dev-dtm-operating",
     DATABRICKS_SCHEMA: "app_schema",
   });
 
@@ -58,4 +107,20 @@ test("uses Databricks Apps OAuth credentials at runtime", () => {
       clientSecret: "client-secret",
     });
   }
+});
+
+test("rejects a catalog outside approved Valiuz data projects", () => {
+  assert.throws(
+    () =>
+      parseServerConfig({
+        APP_MODE: "databricks",
+        DATABRICKS_HOST: "https://dbc.example.cloud.databricks.com",
+        DATABRICKS_CONFIG_PROFILE: "analytics-dev",
+        DATABRICKS_SQL_WAREHOUSE_ID: "warehouse-id",
+        DATABRICKS_CATALOG: "unmanaged-project",
+        DATABRICKS_SCHEMA: "app_schema",
+      }),
+    (error: unknown) =>
+      error instanceof ConfigurationError && error.message.includes("Invalid application configuration"),
+  );
 });

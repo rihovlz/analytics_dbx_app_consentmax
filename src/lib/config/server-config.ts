@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { isAllowedDataProject } from "@/lib/config/data-projects";
 import { ConfigurationError } from "@/lib/errors/app-error";
 
 const identifierSchema = z
@@ -8,18 +9,31 @@ const identifierSchema = z
   .min(1)
   .regex(/^[A-Za-z0-9_-]+$/, "must contain only letters, numbers, '_' or '-'");
 
+const profileSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(128)
+  .regex(/^[A-Za-z0-9][A-Za-z0-9_.-]*$/, "must be a valid Databricks CLI profile name");
+
+const dataProjectSchema = identifierSchema.refine(
+  isAllowedDataProject,
+  "must be an approved Valiuz data project",
+);
+
 const rawConfigSchema = z.object({
   APP_MODE: z.enum(["demo", "databricks"]).default("demo"),
   APP_NAME: z.string().trim().min(1).default("Databricks App"),
   APP_DESCRIPTION: z.string().trim().default("A reusable Databricks App"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
   DATABRICKS_HOST: z.string().trim().url().optional(),
+  DATABRICKS_CONFIG_PROFILE: profileSchema.optional(),
   DATABRICKS_TOKEN: z.string().trim().optional(),
   DATABRICKS_CLIENT_ID: z.string().trim().optional(),
   DATABRICKS_CLIENT_SECRET: z.string().trim().optional(),
   DATABRICKS_APP_NAME: z.string().trim().optional(),
   DATABRICKS_SQL_WAREHOUSE_ID: z.string().trim().optional(),
-  DATABRICKS_CATALOG: identifierSchema.optional(),
+  DATABRICKS_CATALOG: dataProjectSchema.optional(),
   DATABRICKS_SCHEMA: identifierSchema.optional(),
   DATABRICKS_SQL_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(300_000).default(30_000),
 });
@@ -43,6 +57,7 @@ export type DatabricksConfig = {
   timeoutMs: number;
   auth:
     | { type: "pat"; token: string }
+    | { type: "oauth-u2m-cli"; profile: string }
     | { type: "oauth-m2m"; clientId: string; clientSecret: string };
 };
 
@@ -91,12 +106,20 @@ export function parseServerConfig(
       clientSecret: values.DATABRICKS_CLIENT_SECRET,
     };
   } else {
-    if (!values.DATABRICKS_TOKEN) {
+    if (values.DATABRICKS_CONFIG_PROFILE && values.DATABRICKS_TOKEN) {
       throw new ConfigurationError(
-        "DATABRICKS_TOKEN is required for local development when APP_MODE=databricks",
+        "DATABRICKS_CONFIG_PROFILE and DATABRICKS_TOKEN cannot both be set for local development",
       );
     }
-    auth = { type: "pat", token: values.DATABRICKS_TOKEN };
+    if (values.DATABRICKS_CONFIG_PROFILE) {
+      auth = { type: "oauth-u2m-cli", profile: values.DATABRICKS_CONFIG_PROFILE };
+    } else if (values.DATABRICKS_TOKEN) {
+      auth = { type: "pat", token: values.DATABRICKS_TOKEN };
+    } else {
+      throw new ConfigurationError(
+        "DATABRICKS_CONFIG_PROFILE or DATABRICKS_TOKEN is required for local development when APP_MODE=databricks",
+      );
+    }
   }
 
   return {

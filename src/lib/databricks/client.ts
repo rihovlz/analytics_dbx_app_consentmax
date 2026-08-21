@@ -2,6 +2,7 @@ import { DBSQLClient, type LogLevel } from "@databricks/sql";
 import type IDBSQLClient from "@databricks/sql/dist/contracts/IDBSQLClient";
 
 import type { DatabricksConfig } from "@/lib/config/server-config";
+import { getDatabricksCliToken } from "@/lib/databricks/cli-auth";
 import { DatabricksError } from "@/lib/errors/app-error";
 import { logger } from "@/lib/logging/logger";
 
@@ -25,6 +26,14 @@ export async function connectDatabricks(config: DatabricksConfig): Promise<IDBSQ
   try {
     if (config.auth.type === "pat") {
       return await client.connect({ ...common, authType: "access-token", token: config.auth.token });
+    }
+    if (config.auth.type === "oauth-u2m-cli") {
+      const profile = config.auth.profile;
+      return await client.connect({
+        ...common,
+        authType: "external-token",
+        getToken: () => getDatabricksCliToken(profile),
+      });
     }
     return await client.connect({
       ...common,

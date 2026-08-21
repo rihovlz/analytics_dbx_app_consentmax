@@ -31,13 +31,18 @@ Avoid speculative abstractions. Extract a generic helper only when two real feat
 
 ## Databricks and Data Rules
 
-- Runtime auth uses credentials injected by Databricks Apps. A local PAT is permitted only in an ignored `.env.local`.
+- Local real-data development uses a named Databricks CLI OAuth U2M profile. A PAT is a legacy fallback permitted only
+  in an ignored `.env.local`. Runtime auth uses credentials injected by Databricks Apps.
 - Never commit or log tokens, client secrets, `.env` files, query results with sensitive rows, or customer identifiers.
 - Do not interpolate user input into SQL. Use driver parameters and validate result rows with Zod.
 - Keep each query named, bounded by a timeout and row limit, and isolated in a repository.
 - Verify Unity Catalog privileges are minimal: `USE CATALOG`, `USE SCHEMA`, plus object-level access.
-- Treat `npm run deploy`, bundle deployment, app start, grants and SQL writes as remote mutations. Confirm host, target,
-  app, warehouse, catalog and schema before running them.
+- The data project is the Unity Catalog catalog and must be declared in `config/data-projects.json`. The initial Valiuz
+  allowlist is `dev-dtm-operating`, `dev-dtm-media-pm`, `dev-dtm-myvaliuz` and `dev-dtm-insight-sharing`.
+- Register every table or view in `config/data-access.json`; its qualified name must start with the selected project.
+  Run `npm run data:access:render` and review the generated `SELECT` bindings before deployment.
+- Treat `npm run deploy`, bundle deployment, app start, grants and SQL writes as remote mutations. Confirm host, profile,
+  target, app, warehouse, project, schema and declared sources before running them.
 - Do not introduce DLT, dbt, a job, secret scope or additional Databricks resource unless the feature requires it.
 
 ## Coding and Testing
@@ -77,6 +82,7 @@ A change is done only when:
 - UI, service, repository and platform boundaries remain clear;
 - configuration fails explicitly and no secret reaches browser, logs, tests or Git;
 - SQL is parameterized, named and row-validated;
+- the selected data project, declared sources and generated least-privilege bindings agree;
 - user errors are understandable while technical causes remain in structured logs;
 - behavior changes have deterministic unit tests and docs reflect operational changes;
 - lint, typecheck, unit tests and production build pass;

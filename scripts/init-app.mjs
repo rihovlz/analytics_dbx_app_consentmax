@@ -5,6 +5,9 @@ import { readFile, writeFile } from "node:fs/promises";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 
+import dataProjects from "../config/data-projects.json" with { type: "json" };
+import { renderDataAccess } from "./data-access.mjs";
+
 const DEFAULT_DATABRICKS_HOST = "https://3070470996474403.3.gcp.databricks.com";
 const DEFAULT_SQL_WAREHOUSE_ID = "ab362e9710498a08";
 
@@ -15,6 +18,11 @@ const option = (name) => {
 };
 const positionalName = args.find((arg, index) => !arg.startsWith("--") && (index === 0 || !args[index - 1].startsWith("--")));
 const nonInteractive = args.includes("--non-interactive");
+const catalogOption = option("catalog");
+const dataProjectOption = option("data-project");
+if (catalogOption && dataProjectOption && catalogOption !== dataProjectOption) {
+  throw new Error("--catalog and --data-project must use the same value when both are provided.");
+}
 
 function inferRepositoryUrl() {
   try {
@@ -39,7 +47,12 @@ const prompts = [
   ["name", positionalName ?? option("name"), "Application name", "my-databricks-app"],
   ["description", option("description"), "Description", "Analytics Databricks App"],
   ["warehouse", option("warehouse"), "SQL Warehouse ID", DEFAULT_SQL_WAREHOUSE_ID],
-  ["catalog", option("catalog"), "Default catalog", "replace_me"],
+  [
+    "catalog",
+    dataProjectOption ?? catalogOption,
+    `Data project / Unity Catalog catalog (${dataProjects.allowed.join(", ")})`,
+    dataProjects.allowed[0],
+  ],
   ["schema", option("schema"), "Default schema", "app"],
   ["host", option("host"), "Production workspace URL", DEFAULT_DATABRICKS_HOST],
   ["canUseGroup", option("can-use-group"), "CAN_USE group", "users"],
@@ -58,8 +71,11 @@ try {
 
 answers.name = slug(answers.name);
 if (!answers.name) throw new Error("Application name must contain at least one letter or number.");
-for (const key of ["catalog", "schema"]) {
-  if (!/^[A-Za-z0-9_-]+$/.test(answers[key])) throw new Error(`${key} must contain only letters, numbers, '_' or '-'.`);
+if (!dataProjects.allowed.includes(answers.catalog)) {
+  throw new Error(`Data project must be one of: ${dataProjects.allowed.join(", ")}.`);
+}
+if (!/^[A-Za-z0-9_-]+$/.test(answers.schema)) {
+  throw new Error("schema must contain only letters, numbers, '_' or '-'.");
 }
 
 const replacements = {
@@ -87,6 +103,7 @@ const files = [
   ".env.example",
   "app.yaml",
   "databricks.yml",
+  "config/data-access.json",
   ".github/workflows/deploy.yml",
 ];
 for (const file of files) {
@@ -100,4 +117,8 @@ for (const file of files) {
   await writeFile(file, content);
 }
 
-stdout.write(`Initialized ${answers.name}. Review .env.example and databricks.yml before deployment.\n`);
+await renderDataAccess({ root: process.cwd() });
+
+stdout.write(
+  `Initialized ${answers.name} with data project ${answers.catalog}. Review config/data-access.json before deployment.\n`,
+);

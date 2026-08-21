@@ -50,6 +50,9 @@ encore incomplet. Ne pas rejouer `npm run init-app` si les placeholders ont déj
   d'accès.
 - Le clone local vit dans un dossier explicite portant le nom du repository, jamais à l'intérieur d'un autre checkout
   Git.
+- Le projet de données est un catalogue Unity Catalog choisi dans `config/data-projects.json`. Les valeurs initiales
+  autorisées sont `dev-dtm-operating`, `dev-dtm-media-pm`, `dev-dtm-myvaliuz` et `dev-dtm-insight-sharing`.
+- Chaque table ou vue consommée est déclarée dans `config/data-access.json` et appartient au projet sélectionné.
 - Le contenu versionné reste neutre vis-à-vis des assistants de développement : aucun nom de produit ou de fournisseur
   d'assistant, fichier de configuration propre à un outil ou texte promotionnel ne doit entrer dans le repository.
   Le standard ouvert `.agents/skills` est autorisé.
@@ -59,7 +62,7 @@ encore incomplet. Ne pas rejouer `npm run init-app` si les placeholders ont déj
   l'ajout de l'équipe, un push, une pull request, un changement de paramètres GitHub, un grant, un SQL d'écriture ou un
   déploiement Databricks.
 - Avant une mutation distante, afficher l'hôte, l'organisation ou workspace, le repository ou app, la branche, le
-  warehouse, le catalog et le schema qui s'appliquent. N'afficher que les champs pertinents à l'opération.
+  warehouse, le projet/catalogue et le schema qui s'appliquent. N'afficher que les champs pertinents à l'opération.
 - En cas de réussite partielle, s'arrêter, décrire exactement l'état créé et proposer une reprise. Ne jamais supprimer
   automatiquement un repository ou une ressource distante pour compenser un échec.
 

@@ -23,13 +23,13 @@ message.
 
 ### Sources Databricks
 
-- Quel workspace, warehouse, catalog et schema utiliser ?
+- Quel workspace, warehouse, projet/catalogue autorisé et schema utiliser ?
 - Quelles tables ou vues sont autorisées, quel est leur grain et quelles clés permettent les jointures ?
 - Quelle fraîcheur, profondeur d'historique et qualité de données sont attendues ? Qui est propriétaire de chaque source ?
 
 Demander des noms d'objets et des contrats de colonnes, pas des exports de lignes sensibles. Si une exploration distante
 est utile, proposer d'abord des commandes en lecture seule comme `DESCRIBE TABLE`, `SHOW COLUMNS` ou une agrégation
-bornée. Confirmer le workspace, le warehouse, le catalog et le schema avant de l'exécuter. Ne jamais journaliser les
+bornée. Confirmer le workspace, le warehouse, le projet/catalogue et le schema avant de l'exécuter. Ne jamais journaliser les
 résultats métier complets.
 
 Lorsque les sources ou leur qualité restent inconnues, suivre
@@ -80,7 +80,7 @@ hypothèses. Utiliser cette structure compacte :
 ## MVP et backlog ordonné
 ```
 
-Les identifiants techniques non secrets, comme catalog, schema, table ou warehouse ID, peuvent être documentés si la
+Les identifiants techniques non secrets, comme projet/catalogue, schema, table ou warehouse ID, peuvent être documentés si la
 politique de l'équipe l'autorise. Les credentials, extraits clients et données personnelles ne le peuvent jamais.
 
 ## Définir la prochaine tranche
