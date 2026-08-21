@@ -1,0 +1,88 @@
+# Cadrage produit, données et requêtes
+
+Utiliser ce parcours après l'initialisation ou lorsqu'une application existante manque de cadrage. Le but n'est pas de
+remplir un questionnaire : il est de réduire progressivement l'incertitude jusqu'à une première tranche testable.
+
+## Poser les questions par petits lots
+
+Choisir le prochain lot selon les inconnues qui bloquent réellement l'avancement. Poser au maximum trois questions par
+message.
+
+### Résultat métier
+
+- Qui utilisera l'application et quelle décision doit-elle permettre de prendre ?
+- Quel problème actuel remplace-t-elle, et à quelle fréquence sera-t-elle consultée ?
+- Comment saura-t-on que la première version est utile ?
+
+### KPI et axes d'analyse
+
+- Quels KPI doivent être visibles en premier, avec leur définition métier exacte ?
+- Pour chaque KPI : formule, unité, grain, fuseau horaire, période, comparatif, objectif et règle d'arrondi.
+- Quelles dimensions et quels filtres sont nécessaires : entité, enseigne, magasin, canal, produit, campagne, date ou
+  autre ?
+
+### Sources Databricks
+
+- Quel workspace, warehouse, catalog et schema utiliser ?
+- Quelles tables ou vues sont autorisées, quel est leur grain et quelles clés permettent les jointures ?
+- Quelle fraîcheur, profondeur d'historique et qualité de données sont attendues ? Qui est propriétaire de chaque source ?
+
+Demander des noms d'objets et des contrats de colonnes, pas des exports de lignes sensibles. Si une exploration distante
+est utile, proposer d'abord des commandes en lecture seule comme `DESCRIBE TABLE`, `SHOW COLUMNS` ou une agrégation
+bornée. Confirmer le workspace, le warehouse, le catalog et le schema avant de l'exécuter. Ne jamais journaliser les
+résultats métier complets.
+
+### Requêtes et contrats
+
+- Pour chaque vue attendue, quelle question la requête doit-elle résoudre et quels filtres viennent de l'utilisateur ?
+- Quel est le schéma de sortie attendu, son grain, son volume maximal et son budget de latence ?
+- Que doit-il se passer pour une période vide, une valeur inconnue, un retard de données ou une source indisponible ?
+
+Avant d'écrire le SQL, consigner pour chaque requête : nom stable, objectif, objets lus, paramètres, colonnes de sortie,
+grain, limite de lignes, timeout et exemple de critère d'acceptation. Refuser toute concaténation d'entrée utilisateur.
+
+### Expérience et fonctionnalités
+
+- Quelles pages composent le parcours minimal et quelle information doit apparaître au-dessus de la ligne de flottaison ?
+- Quels composants sont utiles : cartes KPI, séries temporelles, tableaux, segmentation, drill-down, export, partage ou
+  alerte ?
+- Quels états faut-il concevoir : chargement, vide, erreur, données en retard, mobile et accessibilité clavier ?
+
+Ne pas ajouter une fonctionnalité simplement parce qu'elle est habituelle dans un dashboard. La relier à une décision
+utilisateur ou la placer dans le backlog.
+
+### Accès et exploitation
+
+- Quels groupes peuvent utiliser ou gérer l'application ? Certaines données demandent-elles un filtrage par utilisateur ?
+- Existe-t-il des données personnelles, confidentielles ou soumises à une politique de rétention ?
+- Qui valide les chiffres, le rendu fonctionnel et le passage en production ?
+
+## Maintenir `docs/product-brief.md`
+
+Créer ou mettre à jour ce fichier après chaque lot significatif, sans remplacer les décisions utilisateur par des
+hypothèses. Utiliser cette structure compacte :
+
+```markdown
+# Brief produit
+
+## Objectif et utilisateurs
+## Décisions à faciliter
+## KPI et définitions
+## Sources et propriétaires
+## Requêtes et contrats de sortie
+## Pages et fonctionnalités
+## Accès, confidentialité et exploitation
+## Critères d'acceptation
+## Hypothèses et points à confirmer
+## MVP et backlog ordonné
+```
+
+Les identifiants techniques non secrets, comme catalog, schema, table ou warehouse ID, peuvent être documentés si la
+politique de l'équipe l'autorise. Les credentials, extraits clients et données personnelles ne le peuvent jamais.
+
+## Définir la prochaine tranche
+
+Une tranche MVP doit relier un besoin utilisateur à un chemin complet : page, route, service, repository, requête ou
+fixture, contrat validé et test. Choisir la plus petite tranche qui réduit un risque important, par exemple valider un
+KPI prioritaire avec une seule source et un seul filtre. Faire confirmer ses critères d'acceptation avant de passer à
+l'implémentation.
