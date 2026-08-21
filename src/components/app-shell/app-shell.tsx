@@ -6,17 +6,34 @@ import { AppNav } from "@/components/app-shell/app-nav";
 export function AppShell({
   appName,
   appDescription,
+  supportName,
+  supportSlackUrl,
   children,
 }: {
   appName: string;
   appDescription: string;
+  supportName: string;
+  supportSlackUrl: string;
   children: ReactNode;
 }) {
   return (
     <div className="min-h-screen">
-      <AppHeader appName={appName} appDescription={appDescription} />
+      <a
+        href="#main-content"
+        className="fixed left-4 top-4 z-50 inline-flex min-h-11 -translate-y-24 items-center rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white shadow-floating transition focus:translate-y-0"
+      >
+        Aller au contenu principal
+      </a>
+      <AppHeader
+        appName={appName}
+        appDescription={appDescription}
+        supportName={supportName}
+        supportSlackUrl={supportSlackUrl}
+      />
       <AppNav />
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">{children}</main>
+      <main id="main-content" tabIndex={-1} className="mx-auto max-w-7xl px-4 py-8 outline-none sm:px-6 sm:py-10 lg:px-8">
+        {children}
+      </main>
     </div>
   );
 }

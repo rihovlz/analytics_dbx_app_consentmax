@@ -10,7 +10,28 @@ test("defaults to an explicit credential-free demo mode", () => {
     mode: "demo",
     appName: "Databricks App",
     appDescription: "A reusable Databricks App",
+    supportContact: {
+      name: "Alexis",
+      slackUrl: "https://valiuz.slack.com/team/U01C3FT98HE",
+    },
     logLevel: "info",
+  });
+});
+
+test("accepts only a Valiuz Slack support URL", () => {
+  assert.throws(
+    () => parseServerConfig({ APP_SUPPORT_SLACK_URL: "https://example.com/support" }),
+    (error: unknown) =>
+      error instanceof ConfigurationError && error.message.includes("Invalid application configuration"),
+  );
+});
+
+test("presets the direct Slack support contact used by FRAIM", () => {
+  const config = parseServerConfig({});
+
+  assert.deepEqual(config.supportContact, {
+    name: "Alexis",
+    slackUrl: "https://valiuz.slack.com/team/U01C3FT98HE",
   });
 });
 

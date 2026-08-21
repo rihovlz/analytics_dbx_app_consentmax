@@ -3,13 +3,22 @@
 @tailwind utilities;
 
 :root {
-  --canvas: #f4f7fb;
+  color-scheme: light;
+  --canvas: #f7f7f5;
   --surface: #ffffff;
-  --ink: #172033;
-  --muted: #667085;
-  --line: #dfe5ee;
-  --accent: #275efe;
-  --accent-soft: #edf2ff;
+  --ink: #212222;
+  --muted: #5f686d;
+  --line: #e1e4e3;
+  --brand: #ff9d00;
+  --brand-ink: #874600;
+  --accent: #d66d00;
+  --accent-soft: #fff6e5;
+  --negative: #ff494a;
+  --positive: #58b89c;
+  --data-purple: #835cb7;
+  --data-slate: #627c89;
+  --data-neutral: #b5bfc1;
+  --brand-gradient: linear-gradient(110deg, #f75a55 0%, #f88033 50%, #f2bb06 100%);
 }
 
 * {
@@ -21,21 +30,63 @@ html {
 }
 
 body {
+  min-height: 100vh;
   margin: 0;
   color: var(--ink);
   background:
-    radial-gradient(circle at top right, rgba(39, 94, 254, 0.08), transparent 34rem),
+    radial-gradient(circle at 88% 0%, rgba(255, 157, 0, 0.1), transparent 26rem),
+    linear-gradient(180deg, #ffffff 0, transparent 16rem),
     var(--canvas);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Outfit Variable", Outfit, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  color: var(--ink);
+  background: rgba(255, 157, 0, 0.28);
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
 }
 
 button,
-a {
+a,
+textarea,
+select,
+input {
   -webkit-tap-highlight-color: transparent;
+  font: inherit;
+}
+
+button:not(:disabled),
+a {
+  cursor: pointer;
 }
 
 button:focus-visible,
-a:focus-visible {
-  outline: 3px solid rgba(39, 94, 254, 0.35);
+a:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  outline: 3px solid rgba(255, 157, 0, 0.72);
   outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

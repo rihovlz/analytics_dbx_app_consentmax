@@ -27,6 +27,7 @@ test("readiness stays offline in demo mode", async () => {
     mode: "demo",
     appName: "Test",
     appDescription: "Test",
+    supportContact: { name: "Test", slackUrl: "https://valiuz.slack.com/" },
     logLevel: "info",
   };
 
@@ -48,6 +49,7 @@ test("readiness binds a qualified source name as an identifier parameter", async
     mode: "databricks",
     appName: "Test",
     appDescription: "Test",
+    supportContact: { name: "Test", slackUrl: "https://valiuz.slack.com/" },
     logLevel: "info",
     host: "dbc.example.cloud.databricks.com",
     warehouseId: "warehouse-id",
@@ -93,6 +95,7 @@ test("readiness rejects a manifest targeting another project", async () => {
     mode: "databricks",
     appName: "Test",
     appDescription: "Test",
+    supportContact: { name: "Test", slackUrl: "https://valiuz.slack.com/" },
     logLevel: "info",
     host: "dbc.example.cloud.databricks.com",
     warehouseId: "warehouse-id",

@@ -2,7 +2,7 @@
 
 ![Databricks App Boilerplate — de la copie du repository au déploiement](docs/assets/databricks-app-boilerplate.png)
 
-Golden path Next.js/TypeScript pour construire des Databricks Apps analytics. Il fournit un shell UI neutre, une
+Golden path Next.js/TypeScript pour construire des Databricks Apps analytics. Il fournit un shell UI Valiuz, une
 configuration validée, une couche Databricks SQL centralisée, des erreurs publiques sûres, des logs structurés, des
 tests et un déploiement reproductible avec Databricks Asset Bundles.
 
@@ -47,6 +47,26 @@ npm run feature:new -- ventes-du-jour
 Les commandes interactives demandent une information à la fois. Elles n'accèdent pas au workspace et ne déploient
 rien.
 
+## Identité Valiuz et support
+
+Le shell reprend le « V » et la palette Valiuz utilisés par l'app FRAIM. Le même SVG sert de logo dans le header et de
+favicon dans l'onglet. Le nom, la description et le contact Slack sont propres à chaque app et sont demandés par
+`init-app`. Les tokens, règles de composants et usages data visualisation issus de la charte 2026 sont résumés dans
+[le design system analytics](docs/design-system.md).
+
+Le contact reste volontairement simple : un lien HTTPS vers un profil ou un canal du workspace Valiuz. Par défaut,
+le lien ouvre directement le profil Slack d'Alexis, comme dans FRAIM. Il peut être remplacé de manière interactive ou
+avec :
+
+```bash
+npm run init-app -- <nom> \
+  --support-name "Prénom ou équipe" \
+  --support-slack-url "https://valiuz.slack.com/team/<identifiant>"
+```
+
+Ne pas coder un contact personnel en dur dans un composant métier. Modifier `APP_SUPPORT_NAME` et
+`APP_SUPPORT_SLACK_URL` via l'initialisation afin que le support reste visible et cohérent dans toutes les pages.
+
 ## Workflows d'assistance
 
 Le repository fournit des workflows compatibles avec le standard ouvert Agent Skills :
@@ -87,12 +107,18 @@ La configuration serveur est validée au démarrage dans `src/lib/config/server-
 | Variable | Local démo | Local Databricks | Databricks Apps |
 | --- | --- | --- | --- |
 | `APP_MODE` | `demo` | `databricks` | `databricks` via `app.yaml` |
+| `APP_NAME` / `APP_DESCRIPTION` | valeurs de l'app | mêmes valeurs | injectées via `app.yaml` |
+| `APP_SUPPORT_NAME` | nom du contact ou de l'équipe | même valeur | injectée via `app.yaml` |
+| `APP_SUPPORT_SLACK_URL` | URL HTTPS `valiuz.slack.com` | même valeur | injectée via `app.yaml` |
+| `LOG_LEVEL` | `info` par défaut | même valeur | `info` via `app.yaml` |
 | `DATABRICKS_HOST` | non | oui | injectée par Databricks |
 | `DATABRICKS_CONFIG_PROFILE` | non | oui, recommandé | jamais utilisée |
 | `DATABRICKS_TOKEN` | non | fallback uniquement | jamais utilisée |
 | `DATABRICKS_CLIENT_ID` / `DATABRICKS_CLIENT_SECRET` | non | non | injectées par Databricks |
+| `DATABRICKS_APP_NAME` | non | non | injectée par Databricks et active OAuth M2M |
 | `DATABRICKS_SQL_WAREHOUSE_ID` | non | oui | binding `valueFrom` |
 | `DATABRICKS_CATALOG` / `DATABRICKS_SCHEMA` | non | projet autorisé + schema | `app.yaml` |
+| `DATABRICKS_SQL_TIMEOUT_MS` | 30 s par défaut | 60 s dans `.env.example` | 30 s par défaut |
 
 Les tables et vues nécessaires sont déclarées dans `config/data-access.json`. Après chaque modification, exécuter
 `npm run data:access:render` et committer le manifeste avec `resources/data-access.generated.yml`. Le bundle lie alors
@@ -166,6 +192,7 @@ scripts/                         bootstrap, packaging et déploiement
 config/                          projets autorisés et manifeste des sources de données
 resources/                       bindings Databricks générés depuis le manifeste
 data/                            contrats et préparation optionnelle dans un mini-bundle séparé
+public/                          logo et favicon Valiuz partagés par le shell
 docs/                            architecture et runbooks
 ```
 
@@ -225,6 +252,7 @@ et `/api/readiness` pour vérifier les accès réels du service principal de l'a
 - `Data access bundle is stale` : lancer `npm run data:access:render` et committer les deux fichiers.
 - `Data preparation bundle is stale` : lancer `npm run data:prepare:render` et relire le contrat concerné.
 - `Product brief is stale` : lancer `npm run app:guide -- --non-interactive`.
+- `APP_SUPPORT_SLACK_URL` est refusée : utiliser un lien HTTPS vers `valiuz.slack.com`.
 - `/api/readiness` échoue : vérifier le projet, les bindings des sources et les droits du service principal de l'app.
 - Le bundle refuse des placeholders : relancer `npm run init-app -- <nom>` puis relire les valeurs.
 

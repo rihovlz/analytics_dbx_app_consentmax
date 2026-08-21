@@ -7,7 +7,8 @@
 3. Exécuter `npm run app:guide`, puis choisir la source avec `npm run data:init -- <nom-source>`. Garder le mode
    `direct` si une table ou vue existante convient.
 4. Créer la première tranche avec `npm run feature:new -- <slug>`, puis relire la spec, le brief, le SQL et les tests.
-5. Relire les placeholders remplacés dans `app.yaml`, `databricks.yml`, le manifeste de données et le workflow.
+5. Vérifier le nom du mainteneur et le lien Slack affichés dans le header, puis relire les placeholders remplacés dans
+   `app.yaml`, `databricks.yml`, le manifeste de données et le workflow.
 6. Vérifier le workspace prérempli `https://3070470996474403.3.gcp.databricks.com`, le warehouse `team-da-poc`
    (`ab362e9710498a08`), le projet/schema, les groupes, les sources et le chemin bundle.
 7. Lancer `npm run app:doctor` puis `npm run check`.

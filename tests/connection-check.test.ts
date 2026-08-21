@@ -11,6 +11,7 @@ test("connection check stays offline in demo mode", async () => {
     mode: "demo",
     appName: "Test",
     appDescription: "Test",
+    supportContact: { name: "Test", slackUrl: "https://valiuz.slack.com/" },
     logLevel: "info",
   };
   const result = await checkConnection(undefined, {

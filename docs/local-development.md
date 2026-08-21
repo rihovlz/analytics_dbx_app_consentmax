@@ -101,6 +101,8 @@ Vérifier dans `.env.local` :
 
 ```dotenv
 APP_MODE=databricks
+APP_SUPPORT_NAME="Prénom ou équipe"
+APP_SUPPORT_SLACK_URL="https://valiuz.slack.com/team/<identifiant>"
 DATABRICKS_HOST=https://<workspace-url>
 DATABRICKS_CONFIG_PROFILE=valiuz-analytics-dev
 DATABRICKS_SQL_WAREHOUSE_ID=<warehouse-id>

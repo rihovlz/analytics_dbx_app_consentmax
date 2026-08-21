@@ -51,6 +51,21 @@ code manuel. Le SQL généré est volontairement limité à un `count`, `sum` ou
 Ces scripts sont des outils de développement. Ils ne sont ni importés par le runtime Next.js ni exécutés au démarrage
 de l'app. `app:doctor` contrôle leur cohérence et propose une prochaine action sans corriger ou déployer automatiquement.
 
+## Shell Valiuz et contact
+
+`AppShell` compose le header, la navigation et le contenu sans connaître le métier. Le header utilise le SVG canonique
+`public/valiuz-logo-icon.svg` ; `public/favicon.svg` contient le même média et `generateMetadata` l'associe à l'onglet
+avec le nom de l'app.
+
+Le contact Slack est une configuration publique rendue côté serveur, puis passée au shell. `APP_SUPPORT_NAME` nomme le
+mainteneur ou l'équipe et `APP_SUPPORT_SLACK_URL` accepte uniquement une URL HTTPS du workspace
+`valiuz.slack.com`. Le shell ouvre ce lien dans un nouvel onglet ; il n'embarque ni token Slack ni logique métier. Le
+contact FRAIM est prérempli comme point de départ, puis remplacé par `init-app` lorsque l'équipe choisit son support.
+
+Les couleurs et la typographie sont centralisées dans `globals.css` et `tailwind.config.ts`. Le shell auto-héberge
+Outfit, conserve l'icône Valiuz à sa taille numérique minimale et réserve le gradient à une ligne ou une forme
+d'accent. Les règles applicables aux pages métier et aux graphiques sont documentées dans `docs/design-system.md`.
+
 ## Préparation data optionnelle
 
 La lecture directe reste le défaut. Lorsqu'une table dédiée est nécessaire, les contrats sous `data/contracts/`

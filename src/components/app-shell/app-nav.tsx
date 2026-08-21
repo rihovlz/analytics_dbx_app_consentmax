@@ -1,22 +1,37 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+
 const links = [
   { href: "/", label: "Accueil" },
   // feature:new inserts links above this line.
 ];
 
 export function AppNav() {
+  const pathname = usePathname();
+
   return (
-    <nav aria-label="Navigation principale" className="border-b border-line bg-surface">
-      <div className="mx-auto flex max-w-7xl gap-2 px-4 sm:px-6 lg:px-8">
-        {links.map((link) => (
-          <a
-            key={link.href}
-            href={link.href}
-            aria-current="page"
-            className="border-b-2 border-accent px-3 py-3 text-sm font-medium text-ink"
-          >
-            {link.label}
-          </a>
-        ))}
+    <nav aria-label="Navigation principale" className="sticky top-0 z-30 border-b border-line bg-surface">
+      <div className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 sm:px-6 lg:px-8">
+        {links.map((link) => {
+          const isActive = link.href === "/" ? pathname === "/" : pathname.startsWith(`${link.href}/`);
+
+          return (
+            <a
+              key={link.href}
+              href={link.href}
+              aria-current={isActive ? "page" : undefined}
+              className={`relative min-h-12 whitespace-nowrap px-3 py-3 text-sm font-medium transition-colors ${
+                isActive ? "text-ink" : "text-muted hover:text-ink"
+              }`}
+            >
+              {link.label}
+              {isActive ? (
+                <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-brand" aria-hidden="true" />
+              ) : null}
+            </a>
+          );
+        })}
       </div>
     </nav>
   );

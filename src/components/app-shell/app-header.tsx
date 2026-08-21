@@ -1,14 +1,37 @@
-export function AppHeader({ appName, appDescription }: { appName: string; appDescription: string }) {
+import Image from "next/image";
+
+import { SupportContact } from "@/components/app-shell/support-contact";
+
+export function AppHeader({
+  appName,
+  appDescription,
+  supportName,
+  supportSlackUrl,
+}: {
+  appName: string;
+  appDescription: string;
+  supportName: string;
+  supportSlackUrl: string;
+}) {
   return (
-    <header className="border-b border-line bg-surface/95 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-4 sm:px-6 lg:px-8">
-        <div aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-white">
-          <span className="text-sm font-bold">DB</span>
+    <header className="border-b border-line bg-surface">
+      <div className="h-1 [background:var(--brand-gradient)]" aria-hidden="true" />
+      <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 md:flex-row md:items-center md:justify-between md:py-5 lg:px-8">
+        <div className="flex min-w-0 items-center gap-4">
+          <Image
+            src="/valiuz-logo-icon.svg"
+            alt="Valiuz"
+            width={45}
+            height={56}
+            className="h-14 w-auto shrink-0"
+            priority
+          />
+          <div className="min-w-0">
+            <p className="truncate text-lg font-bold leading-tight tracking-tight">{appName}</p>
+            <p className="mt-1 truncate text-sm font-light text-muted">{appDescription}</p>
+          </div>
         </div>
-        <div className="min-w-0">
-          <p className="truncate text-base font-semibold">{appName}</p>
-          <p className="truncate text-sm text-muted">{appDescription}</p>
-        </div>
+        <SupportContact name={supportName} slackUrl={supportSlackUrl} />
       </div>
     </header>
   );

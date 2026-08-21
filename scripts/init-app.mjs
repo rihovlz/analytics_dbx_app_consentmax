@@ -12,6 +12,8 @@ import { renderDataPreparation } from "./data-preparation.mjs";
 
 const DEFAULT_DATABRICKS_HOST = "https://3070470996474403.3.gcp.databricks.com";
 const DEFAULT_SQL_WAREHOUSE_ID = "ab362e9710498a08";
+const DEFAULT_SUPPORT_NAME = "Alexis";
+const DEFAULT_SUPPORT_SLACK_URL = "https://valiuz.slack.com/team/U01C3FT98HE";
 
 const args = process.argv.slice(2);
 const option = (name) => {
@@ -48,6 +50,8 @@ function escapePlaceholderValue(value) {
 const prompts = [
   ["name", positionalName ?? option("name"), "Application name", "my-databricks-app"],
   ["description", option("description"), "Description", "Analytics Databricks App"],
+  ["supportName", option("support-name"), "Support contact displayed in the app", DEFAULT_SUPPORT_NAME],
+  ["supportSlackUrl", option("support-slack-url"), "Slack profile or channel URL", DEFAULT_SUPPORT_SLACK_URL],
   ["warehouse", option("warehouse"), "SQL Warehouse ID", DEFAULT_SQL_WAREHOUSE_ID],
   [
     "catalog",
@@ -79,11 +83,28 @@ if (!dataProjects.allowed.includes(answers.catalog)) {
 if (!/^[A-Za-z0-9_-]+$/.test(answers.schema)) {
   throw new Error("schema must contain only letters, numbers, '_' or '-'.");
 }
+answers.supportName = answers.supportName.trim();
+if (answers.supportName.length < 1 || answers.supportName.length > 100) {
+  throw new Error("Support contact must contain between 1 and 100 characters.");
+}
+const supportSlackUrl = new URL(answers.supportSlackUrl);
+if (
+  supportSlackUrl.protocol !== "https:"
+  || supportSlackUrl.hostname !== "valiuz.slack.com"
+  || supportSlackUrl.port !== ""
+  || supportSlackUrl.username !== ""
+  || supportSlackUrl.password !== ""
+) {
+  throw new Error("Slack support URL must use HTTPS on valiuz.slack.com.");
+}
+answers.supportSlackUrl = supportSlackUrl.href;
 
 const replacements = {
   __PACKAGE_NAME__: answers.name,
   __APP_NAME__: answers.name,
   __APP_DESCRIPTION__: answers.description,
+  __APP_SUPPORT_NAME__: answers.supportName,
+  __APP_SUPPORT_SLACK_URL__: answers.supportSlackUrl,
   __DATABRICKS_WAREHOUSE_ID__: answers.warehouse,
   __DATABRICKS_CATALOG__: answers.catalog,
   __DATABRICKS_SCHEMA__: answers.schema,

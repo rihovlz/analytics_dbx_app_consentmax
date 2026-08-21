@@ -22,6 +22,12 @@ Deuxième lot :
 3. Choisir le projet de données parmi `dev-dtm-operating`, `dev-dtm-media-pm`, `dev-dtm-myvaliuz` et
    `dev-dtm-insight-sharing`, puis confirmer le schema et les groupes Databricks `CAN_USE` / `CAN_MANAGE`.
 
+Troisième lot :
+
+1. Quel nom de mainteneur ou d'équipe afficher dans l'app ?
+2. Quel lien de profil ou de canal Slack Valiuz utiliser pour les questions, bugs et évolutions ?
+3. Confirmer le workspace et le warehouse recommandés par le README, ou les remplacements explicitement demandés.
+
 Utiliser les valeurs de workspace et warehouse documentées dans le `README.md` comme recommandations, jamais comme
 faits implicites. Faire confirmer tout remplacement. Le nom complet du repository doit respecter l'expression imposée
 par le skill et ne doit pas déjà exister localement ou sur GitHub.
@@ -110,6 +116,8 @@ Exemple à compléter uniquement avec des valeurs confirmées :
 ```bash
 npm run init-app -- "${app_repo_name}" \
   --description "${app_description}" \
+  --support-name "${support_name}" \
+  --support-slack-url "${support_slack_url}" \
   --warehouse "${warehouse_id}" \
   --data-project "${data_project}" \
   --schema "${schema_name}" \

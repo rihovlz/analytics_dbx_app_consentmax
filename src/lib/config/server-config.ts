@@ -21,10 +21,27 @@ const dataProjectSchema = identifierSchema.refine(
   "must be an approved Valiuz data project",
 );
 
+const valiuzSlackUrlSchema = z
+  .string()
+  .trim()
+  .url()
+  .refine((value) => {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:"
+      && url.hostname === "valiuz.slack.com"
+      && url.port === ""
+      && url.username === ""
+      && url.password === ""
+    );
+  }, "must be an HTTPS URL on valiuz.slack.com");
+
 const rawConfigSchema = z.object({
   APP_MODE: z.enum(["demo", "databricks"]).default("demo"),
   APP_NAME: z.string().trim().min(1).default("Databricks App"),
   APP_DESCRIPTION: z.string().trim().default("A reusable Databricks App"),
+  APP_SUPPORT_NAME: z.string().trim().min(1).max(100).default("Alexis"),
+  APP_SUPPORT_SLACK_URL: valiuzSlackUrlSchema.default("https://valiuz.slack.com/team/U01C3FT98HE"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
   DATABRICKS_HOST: z.string().trim().url().optional(),
   DATABRICKS_CONFIG_PROFILE: profileSchema.optional(),
@@ -42,6 +59,7 @@ export type DemoConfig = {
   mode: "demo";
   appName: string;
   appDescription: string;
+  supportContact: { name: string; slackUrl: string };
   logLevel: string;
 };
 
@@ -49,6 +67,7 @@ export type DatabricksConfig = {
   mode: "databricks";
   appName: string;
   appDescription: string;
+  supportContact: { name: string; slackUrl: string };
   logLevel: string;
   host: string;
   warehouseId: string;
@@ -75,6 +94,10 @@ export function parseServerConfig(
   const common = {
     appName: values.APP_NAME,
     appDescription: values.APP_DESCRIPTION,
+    supportContact: {
+      name: values.APP_SUPPORT_NAME,
+      slackUrl: values.APP_SUPPORT_SLACK_URL,
+    },
     logLevel: values.LOG_LEVEL,
   };
 

@@ -9,6 +9,10 @@ env:
     value: "__APP_NAME__"
   - name: APP_DESCRIPTION
     value: "__APP_DESCRIPTION__"
+  - name: APP_SUPPORT_NAME
+    value: "__APP_SUPPORT_NAME__"
+  - name: APP_SUPPORT_SLACK_URL
+    value: "__APP_SUPPORT_SLACK_URL__"
   - name: DATABRICKS_SQL_WAREHOUSE_ID
     valueFrom: sql-warehouse
   - name: DATABRICKS_CATALOG

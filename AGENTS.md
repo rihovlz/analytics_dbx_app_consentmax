@@ -19,7 +19,7 @@ src/app + src/components
 ```
 
 - Add a page in `src/app/<route>/page.tsx`.
-- Add shared neutral UI in `src/components`; keep business UI inside its feature.
+- Add the shared Valiuz shell and neutral UI in `src/components`; keep business UI inside its feature.
 - Add business orchestration in `src/features/<feature>/server/service.ts`.
 - Add SQL and row contracts in that feature’s `queries.ts` and `repository.ts`.
 - Add generic platform behavior only in `src/lib`; it must not contain business vocabulary, table names or KPIs.
@@ -28,6 +28,10 @@ src/app + src/components
 - Keep `/health` shallow. Put remote connectivity checks in a distinct endpoint.
 
 Avoid speculative abstractions. Extract a generic helper only when two real features share the same stable need.
+
+- Keep `public/valiuz-logo-icon.svg` and `public/favicon.svg` byte-equivalent unless the official media changes.
+- Configure the maintainer through `APP_SUPPORT_NAME` and an HTTPS `valiuz.slack.com` URL. Do not hardcode a personal
+  Slack identity inside UI components.
 
 ## Databricks and Data Rules
 
