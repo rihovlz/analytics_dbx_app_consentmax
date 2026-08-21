@@ -41,6 +41,13 @@ Avoid speculative abstractions. Extract a generic helper only when two real feat
   allowlist is `dev-dtm-operating`, `dev-dtm-media-pm`, `dev-dtm-myvaliuz` and `dev-dtm-insight-sharing`.
 - Register every table or view in `config/data-access.json`; its qualified name must start with the selected project.
   Run `npm run data:access:render` and review the generated `SELECT` bindings before deployment.
+- Keep `config/app-spec.yml` and `docs/product-brief.md` synchronized with `npm run app:guide`. Prefer
+  `npm run feature:new -- <slug>` for the first simple KPI slice, then review every generated query.
+- Use `npm run data:init -- <name>` to choose `direct`, `notebook` or `pipeline`. Default to `direct`. Notebook and
+  pipeline modes belong to the separate `data/` bundle, write with the maintainer identity, and expose only their
+  declared output to the app with `SELECT`.
+- Generated preparation schedules stay paused until a successful manual run. Do not activate a schedule or run a
+  generated SQL write without confirming workspace, profile, project, source and output.
 - Treat `npm run deploy`, bundle deployment, app start, grants and SQL writes as remote mutations. Confirm host, profile,
   target, app, warehouse, project, schema and declared sources before running them.
 - Do not introduce DLT, dbt, a job, secret scope or additional Databricks resource unless the feature requires it.
@@ -71,9 +78,10 @@ Use a feature branch and a pull request. Keep commits focused; do not commit gen
 Do not push, merge, deploy, grant permissions, dispatch workflows or change GitHub settings without explicit user
 authorization. Do not use destructive cleanup to resolve unrelated changes.
 
-For a new repository, run `npm run init-app -- <name>` once, then review every replacement. The production bundle is
-Git-backed on `main`; Git and the deployed revision must stay aligned. Keep one `app.yaml` manifest as the runtime
-source of truth.
+For a new repository, run `npm ci`, then `npm run init-app -- <name>` once and `npm run app:guide`; review every
+replacement. The production app bundle is Git-backed on `main`; Git and the deployed revision must stay aligned. Keep
+one `app.yaml` manifest as the runtime source of truth. `data/databricks.yml` is an optional preparation bundle, not a
+second app manifest.
 
 ## Definition of Done
 

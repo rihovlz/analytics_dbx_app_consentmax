@@ -89,5 +89,5 @@ if (readiness.status !== "ok" || readiness.ready !== true || !Number.isInteger(r
 }
 
 process.stdout.write(
-  `Remote smoke passed for ${app}: health ok, runtime SQL access verified on ${readiness.sourceCount} source(s).\n`,
+  `Remote smoke passed for ${app} at ${appUrl.origin}: health ok, runtime SQL access verified on ${readiness.sourceCount} source(s).\n`,
 );

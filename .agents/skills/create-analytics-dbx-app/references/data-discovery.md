@@ -53,30 +53,24 @@ client dans le brief, une fixture, un prompt ou un log.
 
 ## Établir le contrat de source
 
-Pour chaque objet retenu, consigner dans `docs/product-brief.md` :
+Pour chaque objet retenu, consigner les champs structurés avec `data:init`, puis compléter si nécessaire le contrat
+`data/contracts/<nom>.yml` avec des notes non sensibles couvrant :
 
-```markdown
-### <catalog.schema.object>
-
-- Statut : Confirmé | À confirmer | Rejeté
-- Type et propriétaire :
-- Finalité métier :
-- Grain d'une ligne :
-- Clé ou clés candidates :
-- Colonne temporelle et fuseau :
-- Fréquence et délai de rafraîchissement :
-- Profondeur d'historique :
-- Dimensions et mesures utiles :
-- Valeurs nulles, doublons ou règles de validité connus :
-- Classification des champs sensibles :
-- Jointures autorisées et cardinalités attendues :
-- Privilèges minimaux nécessaires :
-- Preuve consultée et date de vérification :
+```yaml
+notes:
+  status: Confirmé | À confirmer | Rejeté
+  type: À confirmer
+  timeColumnAndTimezone: À confirmer
+  historyDepth: À confirmer
+  knownQualityRules: À confirmer
+  sensitiveFields: À confirmer
+  allowedJoinsAndCardinalities: À confirmer
+  evidenceAndVerificationDate: À confirmer
 ```
 
-Enregistrer également chaque objet confirmé dans `config/data-access.json`. Son `fullName` doit commencer par le projet
-sélectionné et sa `purpose` doit expliquer pourquoi l'app en a besoin. Exécuter `npm run data:access:render`, relire le
-binding `SELECT` généré et committer les deux fichiers ensemble. Ne pas déclarer un objet seulement exploratoire.
+Enregistrer l'objet confirmé avec `npm run data:init -- <nom>`. Lire `data-preparation.md` pour choisir le mode : rester
+en `direct` par défaut. Le script synchronise `config/data-access.json`, le contrat et les fichiers générés. Relire le
+binding `SELECT` et ne pas déclarer un objet seulement exploratoire.
 
 Comparer le grain de la source au grain du KPI. Pour chaque jointure candidate, expliciter la cardinalité attendue et
 contrôler le nombre de lignes avant et après. Marquer `À confirmer` dès que la preuve est insuffisante.

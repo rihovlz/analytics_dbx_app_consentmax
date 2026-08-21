@@ -12,6 +12,10 @@ Le runtime Databricks Apps n'utilise ni le profil du développeur ni son jeton :
 encore une identité distincte via GitHub OIDC. Suivre [local-development.md](local-development.md) pour configurer et
 contrôler ces parcours.
 
+Une préparation notebook ou pipeline utilise l'identité du mainteneur qui exécute `data:prepare`. Cette identité peut
+lire la source et créer ou remplacer la sortie. Ces droits d'écriture ne sont jamais transmis au service principal de
+l'app, qui conserve uniquement `CAN_USE` sur le warehouse et `SELECT` sur la sortie déclarée.
+
 Le code ne journalise ni ne renvoie ces variables. N’ajouter aucune variable `NEXT_PUBLIC_*` contenant un host privé,
 un identifiant de ressource ou un credential.
 
@@ -52,6 +56,42 @@ l'identité qui déploie doit être autorisée à accorder ces droits ; ne pas �
 
 Le manifeste et `resources/data-access.generated.yml` sont versionnés ensemble. La CI exécute
 `npm run data:access:check` pour détecter une source hors projet, un doublon ou un fichier généré obsolète.
+
+## Choisir entre direct, notebook et pipeline
+
+Commencer par `direct`. Ajouter une préparation seulement si la requête interactive serait trop complexe ou lente, si
+une table doit être partagée dans plusieurs vues de l'app, ou si la fraîcheur doit être pilotée indépendamment du
+dashboard.
+
+```bash
+npm run data:init -- <nom>
+npm run data:prepare:check
+```
+
+- `direct` enregistre la table ou vue dans `config/data-access.json` et ne crée aucune ressource.
+- `notebook` génère un notebook SQL source-format et un Lakeflow Job utilisant le warehouse configuré.
+- `pipeline` génère une materialized view dans une pipeline Lakeflow serverless, orchestrée par un Job.
+
+Les contrats sont versionnés sous `data/contracts/`. Ils définissent source, sortie, colonnes explicites, grain, clés,
+propriétaire, fraîcheur et fréquence. Les starters SQL évitent `SELECT *`; les adapter et exécuter manuellement les
+contrôles agrégés sous `data/tests/` dans un notebook ou l'éditeur SQL avant la première écriture.
+
+Le mini-bundle `data/databricks.yml` est séparé du bundle applicatif pour respecter cet ordre :
+
+1. relire le contrat et le SQL ;
+2. afficher workspace, profil, projet, source et sortie sans mutation ;
+3. relancer avec `--confirm` pour déployer et exécuter la préparation ;
+4. contrôler la sortie avec `app:doctor -- --remote` ;
+5. déployer ensuite l'app et son binding `SELECT`.
+
+```bash
+npm run data:prepare -- <nom> --profile valiuz-analytics-dev
+npm run data:prepare -- <nom> --profile valiuz-analytics-dev --confirm
+```
+
+Les schedules `hourly` et `daily` restent `PAUSED`. `--activate-schedule` les passe à `UNPAUSED` lors d'un déploiement
+explicitement confirmé ; ce choix s'applique à toutes les préparations planifiées du mini-bundle. Pour une app interne
+mono-mainteneur, garder `manual` tant qu'une exécution planifiée n'apporte pas de valeur claire.
 
 ## Pattern SQL
 

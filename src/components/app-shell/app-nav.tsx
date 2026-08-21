@@ -1,4 +1,7 @@
-const links = [{ href: "/", label: "Accueil" }];
+const links = [
+  { href: "/", label: "Accueil" },
+  // feature:new inserts links above this line.
+];
 
 export function AppNav() {
   return (

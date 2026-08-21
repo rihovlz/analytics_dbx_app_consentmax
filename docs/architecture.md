@@ -41,6 +41,37 @@ Databricks CLI ; un PAT court terme reste un fallback explicite. Dans Databricks
 chemin Databricks. `/api/readiness` vérifie en plus, avec l'identité runtime, un accès `SELECT` sans ligne retournée sur
 chaque source déclarée dans `config/data-access.json`. Ces usages ont ainsi des coûts et des sémantiques distincts.
 
+## Accompagnement et génération locale
+
+`config/app-spec.yml` est la source de vérité courte du cadrage. `app:guide` la synchronise avec
+`docs/product-brief.md`, puis `feature:new` génère une première tranche verticale respectant les mêmes boundaries que le
+code manuel. Le SQL généré est volontairement limité à un `count`, `sum` ou `avg` sur une source déjà déclarée ; il doit
+être relu avant utilisation avec des données réelles.
+
+Ces scripts sont des outils de développement. Ils ne sont ni importés par le runtime Next.js ni exécutés au démarrage
+de l'app. `app:doctor` contrôle leur cohérence et propose une prochaine action sans corriger ou déployer automatiquement.
+
+## Préparation data optionnelle
+
+La lecture directe reste le défaut. Lorsqu'une table dédiée est nécessaire, les contrats sous `data/contracts/`
+pilotent un mini-bundle séparé :
+
+```text
+identité du mainteneur
+  → data/databricks.yml
+  → notebook SQL ou pipeline Lakeflow
+  → table préparée dans le projet choisi
+
+identité de l'app
+  → SQL Warehouse
+  → SELECT sur la table préparée
+```
+
+Cette séparation permet de créer la table avant que le bundle applicatif ne lui attribue `SELECT`. Elle évite aussi de
+donner des droits d'écriture au service principal de l'app. Un contrat `direct` ne génère aucune ressource. Les modes
+`notebook` et `pipeline` restent adaptés aux transformations propres à l'app ; une donnée partagée par plusieurs apps
+doit être maintenue dans un data product distinct.
+
 ## Erreurs et observabilité
 
 Les logs Pino sont des lignes JSON avec `requestId`, nom de requête, durée et nombre de lignes. Les champs courants de

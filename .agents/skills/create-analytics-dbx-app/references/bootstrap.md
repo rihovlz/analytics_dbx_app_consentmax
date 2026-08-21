@@ -95,13 +95,15 @@ l'équipe avec `gh repo view`, `git remote -v` et l'endpoint GitHub de l'équipe
 Dans le nouveau clone :
 
 1. Inspecter le statut et créer `chore/bootstrap-<slug-app>` depuis la branche par défaut.
-2. Exécuter `npm run init-app` une seule fois, de préférence en mode non interactif avec toutes les valeurs confirmées.
+2. Exécuter `npm ci`, puis `npm run init-app` une seule fois, de préférence en mode non interactif avec toutes les
+   valeurs confirmées.
 3. Passer explicitement `--repository-url "https://github.com/valiuz/<nom>"`.
 4. Relire `package.json`, `package-lock.json`, `.env.example`, `app.yaml`, `databricks.yml` et le workflow de déploiement.
 5. Rechercher les placeholders restants, notamment `__...__`, `replace_me`, `your-org` et `your-repository`.
 6. Vérifier qu'aucun nom de produit ou fournisseur d'assistant de développement n'a été ajouté. Construire le motif de
    recherche depuis la politique donnée pendant la session, sans l'écrire dans un fichier versionné.
-7. Exécuter `npm ci`, puis les validations demandées par `AGENTS.md`.
+7. Exécuter `npm run app:guide` pour consigner le public, la décision et le succès attendu, puis les validations
+   demandées par `AGENTS.md`.
 
 Exemple à compléter uniquement avec des valeurs confirmées :
 
@@ -125,14 +127,15 @@ Ne pas committer, pousser ou ouvrir une pull request sans autorisation explicite
 
 Lorsque le membre de l'équipe doit utiliser de vraies données, lire `docs/local-development.md` dans le nouveau clone.
 Faire confirmer le workspace, le profil local, le warehouse, le projet et le schema. Pour chaque table ou vue retenue,
-ajouter son nom `projet.schema.objet` et sa finalité dans `config/data-access.json`, puis exécuter :
+lancer le parcours guidé :
 
 ```bash
-npm run data:access:render
-npm run data:access:check
+npm run data:init -- <nom-court>
+npm run data:prepare:check
 ```
 
-Relire les bindings `SELECT` générés avant de les committer. Privilégier ensuite OAuth U2M :
+Conserver le mode `direct` si la source convient. Lire `data-preparation.md` avant de choisir `notebook` ou `pipeline`.
+Relire le contrat et les bindings `SELECT` générés avant de les committer. Privilégier ensuite OAuth U2M :
 
 ```bash
 databricks auth login --host "${workspace_url}" --profile "${databricks_profile}"
@@ -150,5 +153,5 @@ SQL valide ensuite `SELECT` sans retourner de ligne sur chaque source déclarée
 
 ## 7. Passer au cadrage produit
 
-Dès que l'initialisation locale est saine, lire `product-discovery.md`, créer `docs/product-brief.md` et commencer par
-l'objectif métier, les utilisateurs et la décision que l'application doit faciliter.
+Dès que l'initialisation locale est saine, lire `product-discovery.md`. `app:guide` maintient déjà
+`docs/product-brief.md` ; compléter les inconnues par petits lots au lieu de recréer le fichier.

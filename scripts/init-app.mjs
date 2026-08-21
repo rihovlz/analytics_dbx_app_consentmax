@@ -6,7 +6,9 @@ import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 
 import dataProjects from "../config/data-projects.json" with { type: "json" };
+import { loadAppSpec, syncProductBrief } from "./app-spec.mjs";
 import { renderDataAccess } from "./data-access.mjs";
+import { renderDataPreparation } from "./data-preparation.mjs";
 
 const DEFAULT_DATABRICKS_HOST = "https://3070470996474403.3.gcp.databricks.com";
 const DEFAULT_SQL_WAREHOUSE_ID = "ab362e9710498a08";
@@ -103,6 +105,8 @@ const files = [
   ".env.example",
   "app.yaml",
   "databricks.yml",
+  "data/databricks.yml",
+  "config/app-spec.yml",
   "config/data-access.json",
   ".github/workflows/deploy.yml",
 ];
@@ -118,7 +122,9 @@ for (const file of files) {
 }
 
 await renderDataAccess({ root: process.cwd() });
+await renderDataPreparation({ root: process.cwd() });
+await syncProductBrief(process.cwd(), await loadAppSpec(process.cwd()));
 
 stdout.write(
-  `Initialized ${answers.name} with data project ${answers.catalog}. Review config/data-access.json before deployment.\n`,
+  `Initialized ${answers.name} with data project ${answers.catalog}. Next: npm run app:guide.\n`,
 );

@@ -3,16 +3,21 @@
 ## Une nouvelle application
 
 1. Créer le repository via **Use this template**.
-2. Cloner, créer une branche et exécuter `npm run init-app -- <nom>`.
-3. Choisir le projet de données autorisé, déclarer les tables/vues dans `config/data-access.json`, puis exécuter
-   `npm run data:access:render`.
-4. Relire les placeholders remplacés dans `app.yaml`, `databricks.yml`, le manifeste de données et le workflow.
-5. Vérifier le workspace prérempli `https://3070470996474403.3.gcp.databricks.com`, le warehouse `team-da-poc`
+2. Cloner, exécuter `npm ci`, créer une branche et lancer `npm run init-app -- <nom>` une seule fois.
+3. Exécuter `npm run app:guide`, puis choisir la source avec `npm run data:init -- <nom-source>`. Garder le mode
+   `direct` si une table ou vue existante convient.
+4. Créer la première tranche avec `npm run feature:new -- <slug>`, puis relire la spec, le brief, le SQL et les tests.
+5. Relire les placeholders remplacés dans `app.yaml`, `databricks.yml`, le manifeste de données et le workflow.
+6. Vérifier le workspace prérempli `https://3070470996474403.3.gcp.databricks.com`, le warehouse `team-da-poc`
    (`ab362e9710498a08`), le projet/schema, les groupes, les sources et le chemin bundle.
-6. Ouvrir une pull request, laisser la CI valider le manifeste, lint, types, tests et build, puis fusionner dans `main`.
-7. Provisionner l'app une première fois afin que Databricks crée son service principal.
-8. Ajouter à ce service principal un credential Git en lecture sur le repository privé.
-9. Déclencher le workflow `Deploy Databricks App` et laisser le smoke distant vérifier les accès runtime.
+7. Lancer `npm run app:doctor` puis `npm run check`.
+8. Ouvrir une pull request, laisser la CI valider le cadrage, les contrats data, lint, types, tests et build, puis
+   fusionner dans `main`.
+9. Pour un contrat `notebook` ou `pipeline`, exécuter la préparation depuis la révision fusionnée et vérifier que sa
+   table de sortie existe.
+10. Provisionner l'app une première fois afin que Databricks crée son service principal.
+11. Ajouter à ce service principal un credential Git en lecture sur le repository privé.
+12. Déclencher le workflow `Deploy Databricks App` et laisser le smoke distant vérifier les accès runtime.
 
 Le credential Git ne peut pas être configuré avant l'étape de provisioning, car le service principal dédié n'existe
 pas encore.
@@ -33,6 +38,32 @@ npm run deploy -- --target dev --profile valiuz-analytics-dev
 ```
 
 La target `dev` téléverse le checkout local. Cette commande crée ou modifie des ressources distantes et démarre l’app.
+
+Le raccourci accompagné affiche d'abord tous ses contrôles et s'arrête sans `--confirm` :
+
+```bash
+npm run preview:real -- --profile valiuz-analytics-dev
+npm run preview:real -- --profile valiuz-analytics-dev --confirm
+```
+
+Il est limité à `dev`, exécute ensuite le préflight distant, déploie et lance les smokes. Ajouter `--prepare-data`
+autorise aussi l'exécution de toutes les préparations notebook/pipeline déclarées ; ne pas l'ajouter pour une app en
+lecture directe.
+
+## Préparation data avant l'app
+
+Une préparation `notebook` ou `pipeline` est un SQL d'écriture et utilise son propre mini-bundle. L'afficher puis
+l'exécuter séparément avant le premier binding `SELECT` de l'app :
+
+```bash
+npm run data:prepare -- <contrat> --target dev --profile valiuz-analytics-dev
+npm run data:prepare -- <contrat> --target dev --profile valiuz-analytics-dev --confirm
+```
+
+La première commande ne modifie rien. La seconde valide et déploie `data/databricks.yml`, exécute le Job puis laisse les
+schedules en pause. Vérifier la sortie avant d'utiliser `--activate-schedule`. Le workflow applicatif ne redéploie pas
+ce mini-bundle : pour une app interne mono-mainteneur, la préparation évolue explicitement lorsque son contrat ou son
+SQL change.
 
 ## Premier provisioning
 

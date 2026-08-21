@@ -26,8 +26,8 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci
-      - name: Validate declared data access
-        run: npm run data:access:check
+      - name: Validate guided app and data configuration
+        run: npm run app:spec:check && npm run data:access:check && npm run data:prepare:check
       - name: Lint
         run: npm run lint
       - name: Typecheck

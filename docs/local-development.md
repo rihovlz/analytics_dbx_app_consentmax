@@ -15,6 +15,15 @@ le runtime Databricks Apps avec l'identité propre de l'application.
 Les droits du développeur ne prouvent pas ceux du service principal de l'app, et inversement. Valider les deux identités
 avant la mise en production.
 
+Avant de chercher une erreur manuellement, lancer :
+
+```bash
+npm run app:doctor
+```
+
+La commande reste locale, ne révèle aucune valeur de credential et indique la prochaine action. Ajouter `--remote`
+uniquement pour lancer le préflight Databricks en lecture seule.
+
 ## 1. Installer le CLI
 
 Le bundle exige Databricks CLI `0.295.0` ou plus récent :
@@ -38,7 +47,14 @@ Le projet de données correspond au catalogue Unity Catalog. Choisir exactement 
 `dev-dtm-operating`, `dev-dtm-media-pm`, `dev-dtm-myvaliuz` et `dev-dtm-insight-sharing`. `npm run init-app` reporte ce
 choix dans `app.yaml`, `.env.example` et `config/data-access.json`.
 
-Ajouter ensuite chaque table ou vue nécessaire au manifeste :
+Le parcours recommandé enregistre la source, son propriétaire, son grain et sa fraîcheur :
+
+```bash
+npm run data:init -- campaign-performance
+```
+
+Choisir `direct` dans la majorité des cas. Le script ajoute alors la table ou vue au manifeste. Le résultat reste le
+même format simple et relisible :
 
 ```json
 {
@@ -62,6 +78,16 @@ npm run data:access:check
 
 Le manifeste et `resources/data-access.generated.yml` doivent être revus et commités ensemble. Une source appartenant
 à un autre projet est refusée.
+
+Si l'app a réellement besoin d'une table préparée, choisir `notebook` ou `pipeline`. Relire les colonnes et le SQL
+générés sous `data/`, puis afficher la cible sans écrire :
+
+```bash
+npm run data:prepare -- campaign-performance --profile valiuz-analytics-dev
+```
+
+La commande demande `--confirm` avant de déployer le mini-bundle et d'exécuter le SQL d'écriture. La table de sortie est
+créée avec l'identité du développeur ; l'app ne recevra ensuite que `SELECT`.
 
 ## 3. Préparer la configuration locale
 
@@ -140,6 +166,17 @@ npm run dev
 
 Ouvrir <http://localhost:3000> et lancer la vérification de connexion. Les requêtes métier restent en lecture seule,
 paramétrées et bornées. L'accès à une table demande aussi `SELECT` pour l'identité du développeur.
+
+Pour une preview accompagnée de bout en bout, commencer par afficher le plan :
+
+```bash
+npm run preview:real -- --profile valiuz-analytics-dev
+```
+
+Après vérification des cibles, ajouter `--confirm`. Ajouter `--prepare-data` uniquement si les starters notebook ou
+pipeline doivent être exécutés dans la même opération. La preview est volontairement limitée à la target `dev`, puis
+enchaîne le préflight distant, le déploiement de l'app et les smokes `/api/health` et `/api/readiness`, puis affiche
+l'URL validée.
 
 ## 7. Valider ou déployer un bundle dev
 

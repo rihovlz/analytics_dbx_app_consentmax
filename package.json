@@ -13,16 +13,25 @@
     "lint": "eslint src scripts tests --ext .ts,.tsx,.mjs",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
-    "check": "npm run data:access:check && npm run lint && npm run typecheck && npm test && npm run build",
+    "check": "npm run app:spec:check && npm run data:access:check && npm run data:prepare:check && npm run lint && npm run typecheck && npm test && npm run build",
     "init-app": "node scripts/init-app.mjs",
+    "app:guide": "node scripts/app-guide.mjs",
+    "app:spec:check": "node scripts/app-guide.mjs --check",
+    "feature:new": "node scripts/new-feature.mjs",
+    "data:init": "node scripts/init-data.mjs",
     "data:access:render": "node scripts/render-data-access.mjs",
     "data:access:check": "node scripts/render-data-access.mjs --check --allow-placeholder",
+    "data:prepare:render": "node scripts/render-data-preparation.mjs",
+    "data:prepare:check": "node scripts/render-data-preparation.mjs --check --allow-placeholder",
+    "data:prepare": "node scripts/run-data-preparation.mjs",
     "databricks:check": "node --env-file-if-exists=.env.local --import tsx scripts/check-databricks.ts",
     "test:databricks": "node --env-file-if-exists=.env.local --import tsx scripts/test-databricks.ts",
     "bundle:validate": "node scripts/deploy.mjs --validate-only",
     "bundle:summary": "databricks bundle summary",
     "app:provision": "node scripts/deploy.mjs --provision-only",
     "app:smoke": "node scripts/smoke-deployed-app.mjs",
+    "app:doctor": "node scripts/app-doctor.mjs",
+    "preview:real": "node scripts/preview-real.mjs",
     "deploy": "node scripts/deploy.mjs",
     "app:local": "databricks apps run-local --entry-point app.yaml"
   },
@@ -44,6 +53,7 @@
     "postcss": "8.5.24",
     "tailwindcss": "3.4.19",
     "tsx": "4.23.1",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "yaml": "2.9.0"
   }
 }

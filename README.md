@@ -13,13 +13,39 @@ Prérequis : Node.js 22.16+, npm et Git. Aucun accès Databricks n’est requis 
 ```bash
 git clone https://github.com/valiuz/analytics_dbx_app_template.git my-new-app
 cd my-new-app
-npm run init-app -- my-new-app
-cp .env.example .env.local
 npm ci
+npm run init-app -- my-new-app
+npm run app:guide
+npm run app:doctor
 npm run dev
 ```
 
 Ouvrir <http://localhost:3000>. Le mode démo est explicite et n’effectue aucun appel distant.
+
+## Parcours guidé pour une app interne
+
+Le parcours reste volontairement léger pour une app maintenue par une seule personne :
+
+1. `npm run app:guide` consigne utilisateurs, décision et succès attendu dans `config/app-spec.yml` et synchronise
+   `docs/product-brief.md`.
+2. `npm run data:init -- <nom>` choisit `direct`, `notebook` ou `pipeline`. Utiliser `direct` tant qu'une table ou vue
+   existante suffit.
+3. `npm run feature:new -- <slug>` crée une première tranche verticale : page, carte KPI, route, service, repository,
+   requête paramétrée, fixture démo et tests.
+4. `npm run app:doctor` indique la prochaine action utile. `npm run check` valide ensuite l'ensemble localement.
+
+Exemple minimal après avoir confirmé une table existante :
+
+```bash
+npm run data:init -- ventes \
+  --mode direct \
+  --source dev-dtm-media-pm.analytics.ventes \
+  --non-interactive
+npm run feature:new -- ventes-du-jour
+```
+
+Les commandes interactives demandent une information à la fois. Elles n'accèdent pas au workspace et ne déploient
+rien.
 
 ## Workflows d'assistance
 
@@ -77,6 +103,21 @@ Copier `.env.example` vers `.env.local`. Pour utiliser de vraies données, confi
 `npm run test:databricks`. Le premier contrôle lit les métadonnées des sources déclarées ; le second vérifie réellement
 `SELECT` sans retourner de ligne. Voir [docs/local-development.md](docs/local-development.md) pour le parcours complet.
 
+### Préparer une table dédiée seulement si nécessaire
+
+`npm run data:init` propose trois niveaux :
+
+| Mode | Quand l'utiliser | Ressource distante ajoutée |
+| --- | --- | --- |
+| `direct` | une table ou vue existante convient | aucune |
+| `notebook` | une sélection ou transformation batch simple doit être rejouée | un Lakeflow Job avec notebook SQL |
+| `pipeline` | la préparation est incrémentale, planifiée ou doit produire une materialized view | une pipeline Lakeflow et son Job |
+
+Les modes préparés créent un contrat sous `data/contracts/`, un SQL de départ avec colonnes explicites et un mini-bundle
+séparé sous `data/`. Relire le SQL, puis lancer explicitement `npm run data:prepare -- <nom> --confirm` avant de
+déployer l'app. Les schedules restent en pause par défaut. L'identité de préparation écrit la table ; l'identité de
+l'app ne reçoit que `SELECT` sur la sortie.
+
 ## Commandes
 
 | Commande | Usage |
@@ -87,13 +128,22 @@ Copier `.env.example` vers `.env.local`. Pour utiliser de vraies données, confi
 | `npm test` | tests unitaires Node |
 | `npm run build` | build standalone de production |
 | `npm run check` | toutes les validations locales |
+| `npm run app:guide` | cadre l'app et synchronise le brief produit |
+| `npm run app:spec:check` | vérifie la spec et le brief |
+| `npm run feature:new -- <slug>` | génère une tranche KPI complète à relire |
+| `npm run data:init -- <nom>` | déclare une source directe ou prépare un starter notebook/pipeline |
 | `npm run data:access:render` | valide le projet et génère les bindings des sources déclarées |
 | `npm run data:access:check` | refuse un manifeste invalide ou un fichier généré obsolète |
+| `npm run data:prepare:render` | régénère le mini-bundle depuis les contrats data |
+| `npm run data:prepare:check` | vérifie les contrats et le mini-bundle de préparation |
+| `npm run data:prepare -- <nom> --confirm` | déploie et exécute une préparation data distante |
 | `npm run databricks:check` | préflight en lecture seule du profil, warehouse, projet, schema et sources |
 | `npm run test:databricks` | smoke SQL réel sur les sources déclarées, hors CI |
 | `npm run bundle:validate` | validation du bundle Databricks |
 | `npm run app:provision -- --target prod --profile <profil>` | crée les ressources sans démarrer l'app |
 | `npm run app:smoke -- --app <app> --profile <profil>` | teste l'app déployée et ses accès SQL runtime |
+| `npm run app:doctor` | affiche les contrôles locaux et la prochaine action |
+| `npm run preview:real -- --profile <profil> --confirm` | déploie une preview dev et exécute les smokes |
 | `npm run deploy -- --target dev --profile <profil>` | valide, déploie et démarre l’app |
 
 `npm run deploy` modifie des ressources distantes. Vérifier le profil, le workspace, la target et les variables avant
@@ -115,6 +165,7 @@ tests/                           tests unitaires sans Databricks
 scripts/                         bootstrap, packaging et déploiement
 config/                          projets autorisés et manifeste des sources de données
 resources/                       bindings Databricks générés depuis le manifeste
+data/                            contrats et préparation optionnelle dans un mini-bundle séparé
 docs/                            architecture et runbooks
 ```
 
@@ -122,11 +173,13 @@ La boundary attendue est : `UI → service de feature → repository → SqlExec
 
 ## Ajouter une feature
 
-1. Créer `src/features/<nom>/` avec son contrat et son composant.
-2. Placer la logique métier dans `server/service.ts`.
-3. Placer l’accès aux données dans `server/repository.ts`.
-4. Exposer le service par une route `src/app/api/.../route.ts` avec `withApiRoute`.
-5. Ajouter des tests avec un `SqlExecutor` factice, puis lancer `npm run check`.
+Après avoir déclaré la source, lancer `npm run feature:new -- <slug>`. Le générateur demande le KPI minimal, crée la
+tranche complète et met à jour la navigation, la spec et le brief. Relire systématiquement la requête générée : elle
+ne couvre volontairement que `count`, `sum` et `avg` sur une colonne simple.
+
+Pour une tranche plus riche, conserver la même structure : contrat et composant dans `src/features/<nom>/`, logique
+métier dans `server/service.ts`, accès aux données dans `server/repository.ts`, route avec `withApiRoute`, puis tests
+avec un `SqlExecutor` factice.
 
 Les composants client ne doivent importer ni la configuration serveur, ni le driver Databricks, ni des credentials.
 
@@ -170,6 +223,8 @@ et `/api/readiness` pour vérifier les accès réels du service principal de l'a
 - Le déploiement Git-backed ne lit pas GitHub : ajouter un credential Git au service principal de l’app.
 - `Data project must be one of` : choisir l'un des quatre projets autorisés dans `config/data-projects.json`.
 - `Data access bundle is stale` : lancer `npm run data:access:render` et committer les deux fichiers.
+- `Data preparation bundle is stale` : lancer `npm run data:prepare:render` et relire le contrat concerné.
+- `Product brief is stale` : lancer `npm run app:guide -- --non-interactive`.
 - `/api/readiness` échoue : vérifier le projet, les bindings des sources et les droits du service principal de l'app.
 - Le bundle refuse des placeholders : relancer `npm run init-app -- <nom>` puis relire les valeurs.
 

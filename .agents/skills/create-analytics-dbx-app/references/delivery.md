@@ -15,6 +15,10 @@ suffisamment clairs.
 
 ## Construire un chemin complet
 
+Pour la première tranche simple, préférer `npm run feature:new -- <slug>`. Le générateur part d'une source déclarée,
+crée page, carte KPI, route, service, repository, requête, fixture et tests, puis synchronise la spec et le brief. Il ne
+génère que `count`, `sum` ou `avg` ; relire et adapter le SQL avant tout accès réel.
+
 Respecter la boundary du template :
 
 ```text
@@ -52,6 +56,10 @@ npm test
 npm run build
 git diff --check
 ```
+
+Lancer d'abord `npm run app:doctor` pour obtenir les incohérences et la prochaine action. Pour une preview réelle,
+afficher le plan avec `npm run preview:real -- --profile <profil>` ; `--confirm` autorise ensuite les mutations sur la
+target `dev`. `--prepare-data` ajoute des écritures et ne doit être utilisé que si elles ont aussi été approuvées.
 
 Relire ensuite le diff complet, le statut final, la présence éventuelle de secrets ou de données sensibles, et la
 neutralité du repository vis-à-vis des assistants de développement.

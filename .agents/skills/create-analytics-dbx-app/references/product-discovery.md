@@ -62,22 +62,17 @@ utilisateur ou la placer dans le backlog.
 
 ## Maintenir `docs/product-brief.md`
 
-Créer ou mettre à jour ce fichier après chaque lot significatif, sans remplacer les décisions utilisateur par des
-hypothèses. Utiliser cette structure compacte :
+Commencer par `npm run app:guide` afin de synchroniser `config/app-spec.yml` et `docs/product-brief.md`. Mettre à jour la
+spec après chaque lot significatif, sans remplacer les décisions utilisateur par des hypothèses. Ne pas modifier le
+brief généré sans reporter d'abord la décision dans la spec ou le contrat data concerné.
 
 ```markdown
 # Brief produit
 
 ## Objectif et utilisateurs
-## Décisions à faciliter
-## KPI et définitions
-## Sources et propriétaires
-## Requêtes et contrats de sortie
-## Pages et fonctionnalités
+## KPI, sources et fonctionnalités
 ## Accès, confidentialité et exploitation
-## Critères d'acceptation
-## Hypothèses et points à confirmer
-## MVP et backlog ordonné
+## Backlog
 ```
 
 Les identifiants techniques non secrets, comme projet/catalogue, schema, table ou warehouse ID, peuvent être documentés si la

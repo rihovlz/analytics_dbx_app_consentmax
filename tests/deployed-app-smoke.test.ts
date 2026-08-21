@@ -56,6 +56,7 @@ test("remote smoke verifies health and runtime data readiness without leaking th
       },
     );
     assert.match(result.stdout, /runtime SQL access verified on 2 source/);
+    assert.match(result.stdout, new RegExp(`http://127\\.0\\.0\\.1:${address.port}`));
     assert.doesNotMatch(result.stdout, new RegExp(token));
     assert.deepEqual(seenPaths, ["/api/health", "/api/readiness"]);
   } finally {

@@ -17,11 +17,13 @@ par tranches verticales testables.
   [references/product-discovery.md](references/product-discovery.md).
 - Pour explorer des objets Unity Catalog et établir leur contrat sans exposer de lignes sensibles, lire
   [references/data-discovery.md](references/data-discovery.md).
+- Pour choisir entre lecture directe, notebook batch et pipeline Lakeflow, lire
+  [references/data-preparation.md](references/data-preparation.md).
 - Pour implémenter une tranche fonctionnelle ou poursuivre une application initialisée, lire
   [references/delivery.md](references/delivery.md).
 
-Un nouveau projet suit les trois parcours dans cet ordre. Un projet déjà initialisé commence au premier parcours
-encore incomplet. Ne pas rejouer `npm run init-app` si les placeholders ont déjà été remplacés.
+Un nouveau projet suit bootstrap, cadrage, découverte/préparation puis livraison. Un projet déjà initialisé commence au
+premier parcours encore incomplet. Ne pas rejouer `npm run init-app` si les placeholders ont déjà été remplacés.
 
 # Démarrage obligatoire
 
@@ -36,8 +38,8 @@ encore incomplet. Ne pas rejouer `npm run init-app` si les placeholders ont déj
 - Ne pas redemander une information déjà disponible dans les fichiers, GitHub ou les réponses précédentes.
 - Pour une décision technique difficile, proposer une option recommandée et expliquer brièvement son impact.
 - Après chaque lot, récapituler les décisions, les inconnues bloquantes et la prochaine petite étape.
-- Une fois le clone disponible, maintenir `docs/product-brief.md` comme source de vérité. Marquer `À confirmer` au lieu
-  d'inventer une réponse.
+- Une fois le clone disponible, maintenir `config/app-spec.yml` comme source de vérité courte avec `app:guide`.
+  `docs/product-brief.md` est sa projection générée ; marquer `À confirmer` au lieu d'inventer une réponse.
 - Ne jamais inscrire de secret, token, donnée client, identifiant personnel ou extrait sensible dans le brief, les
   prompts, les logs, les fixtures ou Git.
 
@@ -53,6 +55,8 @@ encore incomplet. Ne pas rejouer `npm run init-app` si les placeholders ont déj
 - Le projet de données est un catalogue Unity Catalog choisi dans `config/data-projects.json`. Les valeurs initiales
   autorisées sont `dev-dtm-operating`, `dev-dtm-media-pm`, `dev-dtm-myvaliuz` et `dev-dtm-insight-sharing`.
 - Chaque table ou vue consommée est déclarée dans `config/data-access.json` et appartient au projet sélectionné.
+- Une app interne mono-mainteneur reste en mode `direct` tant qu'une table ou vue existante suffit. Ne créer un Job ou
+  une pipeline que pour une préparation explicitement requise ; l'app garde uniquement `SELECT` sur la sortie.
 - Le contenu versionné reste neutre vis-à-vis des assistants de développement : aucun nom de produit ou de fournisseur
   d'assistant, fichier de configuration propre à un outil ou texte promotionnel ne doit entrer dans le repository.
   Le standard ouvert `.agents/skills` est autorisé.
