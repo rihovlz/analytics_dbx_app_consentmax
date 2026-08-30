@@ -3,7 +3,7 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
-import { loadDataAccessManifest, renderDataAccess } from "./data-access.mjs";
+import { loadDataAccessManifest, loadGenieSpacesManifest, renderDataAccess } from "./data-access.mjs";
 
 function parseOptions(argv) {
   const options = { target: "dev", profile: undefined, provisionOnly: false, validateOnly: false };
@@ -72,6 +72,7 @@ await renderDataAccess({ root: process.cwd(), check: true });
 const manifest = await loadDataAccessManifest(process.cwd(), {
   requireSources: !provisionOnly && !validateOnly,
 });
+const genieSpacesManifest = await loadGenieSpacesManifest(process.cwd());
 const appName = JSON.parse(readFileSync("package.json", "utf8")).name;
 if (typeof appName !== "string" || !/^[a-z0-9][a-z0-9-]*$/.test(appName)) {
   throw new Error("package.json contains an invalid app name.");
@@ -97,6 +98,10 @@ process.stdout.write(
     `Warehouse: ${warehouse}`,
     `Data project: ${manifest.project}`,
     `Schema: ${schema}`,
+    `Genie spaces: ${genieSpacesManifest.spaces.length}`,
+    ...genieSpacesManifest.spaces.map(
+      (space) => `- ${space.displayName} (${space.key}: ${space.spaceId})`,
+    ),
     `Declared sources: ${manifest.sources.length}`,
     ...manifest.sources.map((source) => `- ${source.fullName}`),
   ].join("\n") + "\n",

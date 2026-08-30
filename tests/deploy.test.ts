@@ -21,6 +21,7 @@ async function prepareFixture(withSources: boolean) {
   await mkdir(join(root, "config"), { recursive: true });
   await mkdir(join(root, "resources"), { recursive: true });
   await copyFile("config/data-projects.json", join(root, "config/data-projects.json"));
+  await copyFile("config/genie-spaces.json", join(root, "config/genie-spaces.json"));
   await writeFile(
     join(root, "config/data-access.json"),
     JSON.stringify({
@@ -59,6 +60,8 @@ async function prepareFixture(withSources: boolean) {
       "    value: dev-dtm-media-pm",
       "  - name: DATABRICKS_SCHEMA",
       "    value: analytics",
+      "  - name: DATABRICKS_GENIE_SPACE_ID_FRAIM_SALES",
+      "    valueFrom: fraim-sales",
     ].join("\n"),
     "utf8",
   );
@@ -85,7 +88,7 @@ async function prepareFixture(withSources: boolean) {
 test("deploy forwards the selected CLI profile to every bundle command", async () => {
   const { root, log } = await prepareFixture(true);
 
-  execFileSync(
+  const output = execFileSync(
     process.execPath,
     ["scripts/deploy.mjs", "--target", "dev", "--profile", "analytics-dev"],
     {
@@ -95,6 +98,7 @@ test("deploy forwards the selected CLI profile to every bundle command", async (
         DATABRICKS_TEST_LOG: log,
         PATH: `${root}${delimiter}${process.env.PATH ?? ""}`,
       },
+      encoding: "utf8",
     },
   );
 
@@ -104,6 +108,11 @@ test("deploy forwards the selected CLI profile to every bundle command", async (
     "bundle deploy --target dev --profile analytics-dev",
     "bundle run app --target dev --profile analytics-dev",
   ]);
+  assert.match(output, /Genie spaces: 1/);
+  assert.match(
+    output,
+    /Genie - FRAIM - Sales Performance \(fraim-sales: 01f1706a44af166db267134b70dc27c8\)/,
+  );
 });
 
 test("production provisioning pins the exact commit and does not start the app", async () => {

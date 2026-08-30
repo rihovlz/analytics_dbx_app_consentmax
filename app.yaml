@@ -15,9 +15,15 @@ env:
     value: "__APP_SUPPORT_SLACK_URL__"
   - name: DATABRICKS_SQL_WAREHOUSE_ID
     valueFrom: sql-warehouse
+  - name: DATABRICKS_GENIE_SPACE_ID_FRAIM_SALES
+    valueFrom: fraim-sales
   - name: DATABRICKS_CATALOG
     value: "__DATABRICKS_CATALOG__"
   - name: DATABRICKS_SCHEMA
     value: "__DATABRICKS_SCHEMA__"
   - name: LOG_LEVEL
     value: info
+  - name: GENIE_MAX_CONCURRENT_STREAMS
+    value: "8"
+  - name: GENIE_MAX_CONCURRENT_STREAMS_PER_USER
+    value: "2"

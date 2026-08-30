@@ -19,6 +19,33 @@ l'app, qui conserve uniquement `CAN_USE` sur le warehouse et `SELECT` sur la sor
 Le code ne journalise ni ne renvoie ces variables. N’ajouter aucune variable `NEXT_PUBLIC_*` contenant un host privé,
 un identifiant de ressource ou un credential.
 
+## Identité utilisateur pour Genie
+
+La route Genie utilise l’autorisation utilisateur de Databricks Apps. Databricks transmet l’utilisateur et son jeton
+dans `x-forwarded-user` et `x-forwarded-access-token`. Le serveur lit ces en-têtes pour chaque requête. Il ne conserve
+pas le jeton après la requête.
+
+Le bundle demande uniquement le scope utilisateur `genie`. Chaque utilisateur donne son consentement lors du premier
+accès, sauf si un administrateur donne ce consentement. Les droits du Space et les règles Unity Catalog restent ceux
+de l’utilisateur. Les filtres de lignes et les masques de colonnes continuent donc de s’appliquer.
+
+`config/genie-spaces.json` associe un Space à des alias publics. Le navigateur envoie un alias comme `fraim-sales`.
+Le serveur résout cet alias vers la variable d’environnement injectée par le binding. Le navigateur ne choisit jamais
+un Space ID arbitraire.
+
+Chaque entrée utilise un ID de 32 caractères hexadécimaux minuscules. Ses alias incluent toujours la clé stable de la
+ressource. Le générateur et le runtime appliquent les mêmes limites.
+
+La ressource application utilise `CAN_RUN` pour chaque Space déclaré. Ne pas utiliser `CAN_EDIT` ou `CAN_MANAGE` pour
+un chat en lecture. Le Space, son warehouse et ses sources doivent aussi autoriser l’utilisateur concerné.
+
+En local, le profil OAuth U2M fournit le jeton du développeur. Ce chemin facilite le développement, mais il ne prouve
+pas le transfert OBO du runtime. Tester ce transfert dans une app déployée avec deux utilisateurs aux droits distincts.
+
+Les logs excluent les identifiants utilisateur, les jetons, les questions, le SQL et les lignes retournées. Le
+`requestId`, le type d’authentification, le statut terminal et la durée servent au diagnostic. Les journaux d’audit
+Databricks conservent la corrélation avec l’utilisateur.
+
 ## SQL Warehouse et Unity Catalog
 
 Le générateur déclare le warehouse dans `resources/data-access.generated.yml`, avec `CAN_USE`. `app.yaml` reçoit son ID

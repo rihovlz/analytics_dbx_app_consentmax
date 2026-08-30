@@ -43,6 +43,60 @@ reste un fallback explicite. Dans Databricks Apps, `DATABRICKS_APP_NAME` active 
 chemin Databricks. `/api/readiness` vérifie en plus, avec l'identité runtime, un accès `SELECT` sans ligne retournée sur
 chaque source déclarée dans `config/data-access.json`. Ces usages ont ainsi des coûts et des sémantiques distincts.
 
+## Flux conversationnel Genie
+
+`GenieChat` envoie une question et un contexte borné à une route Next.js. Le contexte contient les filtres, la période,
+les métriques visibles, les tables actives et la page. Le serveur produit un texte déterministe avant l’appel à Genie.
+
+```text
+GenieChat
+      ↓ question + contexte + alias
+Route SSE avec withApiRoute
+      ↓ jeton x-forwarded-access-token, serveur uniquement
+Service Genie → client Conversation API
+      ↓ statuts + texte + pièces jointes de requête
+Table, BigNumberKPI ou graphique + SQL repliable
+```
+
+Le navigateur connaît uniquement l’alias du Space. Le serveur charge `config/genie-spaces.json`, puis résout la
+variable d’environnement liée. Les modules sous `src/features/genie/server` isolent le jeton, le client HTTP, le
+polling borné et la validation Zod des réponses.
+
+Le template utilise une Route Handler Next.js, car il ne contient pas de runtime AppKit. Il n’ajoute aucun gateway IA.
+La route exige du JSON de même origine avant de lire l’identité OBO. Le lecteur arrête le flux entrant au-delà de
+64 Kio. Le contrat limite aussi la question à 10 000 caractères et le contexte sérialisé à 12 000 caractères.
+
+Le `POST` de soumission est exécuté une seule fois. Seuls les `GET` de statut et de résultat sont retentés après une
+erreur transitoire. Chaque lecture accepte cinq reprises au maximum. Le délai exponentiel de 1 à 5 secondes utilise un
+jitter et respecte `Retry-After` jusqu’à 60 secondes. L’ensemble du polling expire après dix minutes.
+
+En mode Databricks, un limiteur en mémoire accepte huit flux actifs par processus Node et deux par utilisateur. Les
+variables `GENIE_MAX_CONCURRENT_STREAMS` et `GENIE_MAX_CONCURRENT_STREAMS_PER_USER` modifient ces valeurs. Elles
+acceptent des entiers de 1 à 100, et la limite utilisateur ne peut pas dépasser la limite globale. Le mode démo ne
+réserve aucun slot. Cette protection n’est pas distribuée entre plusieurs réplicas.
+
+Le flux SSE transmet les statuts dès leur disponibilité. L’API Genie ne fournit pas de delta de texte. Le client
+révèle donc la réponse finale progressivement. Des commentaires heartbeat gardent le flux actif pendant une attente.
+Le mode de mouvement réduit affiche le texte sans cette transition.
+
+L’arrêt du `fetch` navigateur termine seulement le suivi local. Il ne prouve pas que Databricks a annulé le traitement.
+La session cliente devient non continuable et demande une nouvelle conversation. Dès l’envoi du `POST`, toute erreur
+cliente, réseau ou de flux rend la création distante ambiguë. Le client interdit alors le rejeu. Seul un refus HTTP
+explicite reçu avant le début du flux peut rester rejouable.
+
+Le rendu Markdown ne crée jamais de balise d’image. Il active uniquement les liens HTTP(S), les chemins de même origine
+qui commencent par un seul `/` et les fragments. Une destination refusée conserve son libellé sans `href`.
+
+Le serveur expose seulement le premier chunk inline, avec une limite de 500 lignes. Le champ `truncated` signale un
+résultat plus grand. Les liens de téléchargement signés ne passent jamais dans le navigateur.
+
+Les contrats `PinnedGenieInsight` et `GenieConversationSnapshot` peuvent contenir la réponse, le SQL et les lignes
+gouvernées. Ils ne fournissent aucun stockage partagé. Un stockage privé doit rester lié à l’utilisateur connecté.
+Une composition partagée conserve la définition et relit les données avec l’identité de chaque lecteur.
+
+Le mode démo utilise une fixture synthétique. Il couvre les statuts, le Markdown, le tableau, le graphique, le SQL et
+l’épinglage sans contacter Databricks.
+
 ## Accompagnement et génération locale
 
 `config/app-spec.yml` est la source de vérité courte du cadrage. `app:guide` la synchronise avec
@@ -186,8 +240,11 @@ credentials sont redactés. Ne jamais ajouter un payload métier complet aux log
 Les erreurs typées portent un code, un statut HTTP et un message utilisateur sûr. La cause technique est loggée côté
 serveur et remplacée dans la réponse par `{ error: { code, message, requestId } }`.
 
+`withApiRoute` transmet aussi les réponses SSE. Une erreur qui précède le flux utilise l’enveloppe JSON commune. Une
+erreur qui suit le début du flux utilise un événement SSE typé avec le même `requestId`.
+
 ## Extension
 
 Créer une feature avant de généraliser une abstraction. Extraire un module dans `src/lib` seulement lorsqu’il est sans
-vocabulaire métier et qu’au moins deux features ont le même besoin. Les modules optionnels comme l’upload, Genie et
-les exports restent hors du socle tant qu’une application ne les demande pas.
+vocabulaire métier et qu’au moins deux features ont le même besoin. Les modules optionnels comme l’upload et les
+exports restent hors du socle tant qu’une application ne les demande pas. Genie reste isolé dans sa feature.
