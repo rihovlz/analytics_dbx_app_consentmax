@@ -8,6 +8,7 @@ import { assertTemplateJourneyDoctor } from "../scripts/validate-template-journe
 function doctorOutput(recommendedStep = "npm run check"): unknown[] {
   return [
     { status: "pass", name: "Initialisation" },
+    { status: "pass", name: "Version du template" },
     { status: "pass", name: "Cadrage" },
     { status: "pass", name: "Accès aux données" },
     { status: "pass", name: "Features et sources" },
@@ -39,4 +40,8 @@ test("runs the clean consumer journey after the standard CI checks", async () =>
 
   const packageJson = JSON.parse(await readFile("package.json", "utf8"));
   assert.equal(packageJson.scripts["template:journey"], "node --import tsx scripts/validate-template-journey.ts");
+  assert.equal(
+    ci.jobs.check.steps.some((step: { run?: string }) => step.run?.includes("npm run template:check")),
+    true,
+  );
 });

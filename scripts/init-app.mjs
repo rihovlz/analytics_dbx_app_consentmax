@@ -9,6 +9,7 @@ import dataProjects from "../config/data-projects.json" with { type: "json" };
 import { loadAppSpec, syncProductBrief } from "./app-spec.mjs";
 import { renderDataAccess } from "./data-access.mjs";
 import { renderDataPreparation } from "./data-preparation.mjs";
+import { loadTemplateManifest, writeTemplateState } from "./template-manifest.mjs";
 
 const DEFAULT_DATABRICKS_HOST = "https://3070470996474403.3.gcp.databricks.com";
 const DEFAULT_SQL_WAREHOUSE_ID = "ab362e9710498a08";
@@ -145,6 +146,7 @@ for (const file of files) {
 await renderDataAccess({ root: process.cwd() });
 await renderDataPreparation({ root: process.cwd() });
 await syncProductBrief(process.cwd(), await loadAppSpec(process.cwd()));
+await writeTemplateState(process.cwd(), await loadTemplateManifest(process.cwd()));
 
 stdout.write(
   `Initialized ${answers.name} with data project ${answers.catalog}. Next: npm run app:guide.\n`,

@@ -32,7 +32,7 @@ export function assertTemplateJourneyDoctor(value: unknown): void {
   const failures = results.filter((item) => item.status === "fail");
   assert.deepEqual(failures, [], "app:doctor must not report a failing check after the journey.");
 
-  for (const name of ["Initialisation", "Cadrage", "Accès aux données", "Features et sources"]) {
+  for (const name of ["Initialisation", "Version du template", "Cadrage", "Accès aux données", "Features et sources"]) {
     const item = results.find((candidate) => candidate.name === name);
     assert.equal(item?.status, "pass", `app:doctor must pass '${name}'.`);
   }
@@ -165,6 +165,24 @@ async function initializeApp(fixtureRoot: string, environment: NodeJS.ProcessEnv
 }
 
 async function inspectGeneratedApp(fixtureRoot: string, environment: NodeJS.ProcessEnv): Promise<void> {
+  const templateStatus = await execFileAsync(process.execPath, ["scripts/template-status.mjs", "--json"], {
+    cwd: fixtureRoot,
+    env: environment,
+    encoding: "utf8",
+    maxBuffer: 4 * 1024 * 1024,
+  });
+  const template = asRecord(JSON.parse(templateStatus.stdout), "template:status output");
+  const instance = asRecord(template.instance, "template:status instance");
+  assert.equal(instance.kind, "tracked");
+  assert.equal(instance.version, "1.1.0");
+  assert.equal(instance.behind, false);
+  assert.deepEqual(
+    asArray(template.capabilities, "template:status capabilities")
+      .map((item, index) => asRecord(item, `template:status capabilities[${index}]`))
+      .filter((item) => item.ok !== true),
+    [],
+  );
+
   const doctor = await execFileAsync(process.execPath, ["scripts/app-doctor.mjs", "--json"], {
     cwd: fixtureRoot,
     env: environment,
@@ -181,7 +199,8 @@ async function inspectGeneratedApp(fixtureRoot: string, environment: NodeJS.Proc
     await readFile(join(fixtureRoot, "src/features/journey-kpi/server/queries.ts"), "utf8"),
     /SUM\(`amount`\)/,
   );
-  process.stdout.write("app:doctor and the generated vertical slice satisfy the journey contract.\n");
+  assert.match(await readFile(join(fixtureRoot, ".valiuz-template.yml"), "utf8"), /version: 1\.1\.0/);
+  process.stdout.write("template:status, app:doctor and the generated vertical slice satisfy the journey contract.\n");
 }
 
 export async function validateTemplateJourney(): Promise<void> {

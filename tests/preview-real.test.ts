@@ -12,6 +12,8 @@ test("real preview requires an explicit confirmation before remote changes", asy
   const files = [
     "config/data-projects.json",
     "scripts/app-doctor.mjs",
+    "scripts/template-manifest.mjs",
+    "scripts/template-status.mjs",
     "scripts/app-spec.mjs",
     "scripts/data-access.mjs",
     "scripts/data-preparation.mjs",

@@ -4,6 +4,7 @@ import { copyFile, mkdir, mkdtemp, readFile, symlink, writeFile } from "node:fs/
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
+import { parse } from "yaml";
 
 const copiedFiles = [
   "config/data-projects.json",
@@ -11,6 +12,8 @@ const copiedFiles = [
   "scripts/data-access.mjs",
   "scripts/data-preparation.mjs",
   "scripts/init-app.mjs",
+  "scripts/template-manifest.mjs",
+  "template/manifest.yml",
 ];
 
 const operationalFiles = [
@@ -27,6 +30,7 @@ const operationalFiles = [
   "docs/product-brief.md",
   "resources/data-access.generated.yml",
   ".github/workflows/deploy.yml",
+  ".valiuz-template.yml",
 ];
 
 async function prepareRoot(prefix: string): Promise<string> {
@@ -96,6 +100,18 @@ test("bootstrap replaces all operational placeholders and keeps JSON valid", asy
   assert.match(renderedText, /https:\/\/valiuz\.slack\.com\/team\/U123456/);
   JSON.parse(await readFile(join(root, "package.json"), "utf8"));
   JSON.parse(await readFile(join(root, "package-lock.json"), "utf8"));
+  const templateState = parse(await readFile(join(root, ".valiuz-template.yml"), "utf8"));
+  assert.equal(templateState.template.version, "1.1.0");
+  assert.deepEqual(templateState.capabilities, [
+    "guided-app-workflow",
+    "declared-data-access",
+    "optional-data-preparation",
+    "valiuz-app-shell",
+    "databricks-app-bundle",
+    "databricks-deployment-compatibility",
+    "clean-template-consumer-journey",
+    "template-version-tracking",
+  ]);
 });
 
 test("bootstrap uses the shared Valiuz workspace and SQL warehouse defaults", async () => {
