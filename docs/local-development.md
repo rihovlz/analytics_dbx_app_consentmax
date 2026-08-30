@@ -119,9 +119,12 @@ Vérifier dans `.env.local` :
 APP_MODE=databricks
 APP_SUPPORT_NAME="Prénom ou équipe"
 APP_SUPPORT_SLACK_URL="https://valiuz.slack.com/team/<identifiant>"
+GENIE_MAX_CONCURRENT_STREAMS=8
+GENIE_MAX_CONCURRENT_STREAMS_PER_USER=2
 DATABRICKS_HOST=https://<workspace-url>
 DATABRICKS_CONFIG_PROFILE=valiuz-analytics-dev
 DATABRICKS_SQL_WAREHOUSE_ID=<warehouse-id>
+DATABRICKS_GENIE_SPACE_ID_FRAIM_SALES=<space-id>
 DATABRICKS_CATALOG=<projet-autorisé>
 DATABRICKS_SCHEMA=<schema>
 DATABRICKS_TOKEN=
@@ -131,6 +134,8 @@ DATABRICKS_TOKEN=
 fichier, un ticket, un message ou un prompt.
 
 `DATABRICKS_CATALOG` doit être identique au champ `project` du manifeste.
+Le Space ID doit correspondre à l’entrée `fraim-sales` de `config/genie-spaces.json`.
+Si la source est une URL MCP, utiliser uniquement son dernier segment hexadécimal de 32 caractères.
 
 ## 4. Se connecter avec OAuth U2M
 
@@ -145,6 +150,12 @@ databricks auth login \
 Le navigateur ouvre la connexion Valiuz. Le CLI conserve et rafraîchit le jeton OAuth dans son stockage utilisateur.
 Consulter la [documentation OAuth U2M](https://docs.databricks.com/gcp/en/dev-tools/cli/authentication) en cas de
 problème d'authentification.
+
+La route Genie utilise ce jeton OAuth pour le développement local. Ce comportement représente uniquement le
+développeur connecté. Le runtime déployé utilise `x-forwarded-access-token` pour chaque utilisateur.
+
+Le mode démo ne lit pas ce Space ID et ne demande aucun jeton. La page `/genie` utilise alors une conversation
+synthétique. Elle permet de développer les états, les résultats riches et l’épinglage sans accès distant.
 
 ## 5. Vérifier les accès sans SQL
 

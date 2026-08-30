@@ -28,7 +28,9 @@ test("shell exposes the 2026 brand tokens and self-hosted typeface", async () =>
   }
   assert.match(styles, /--brand-gradient: linear-gradient/);
   assert.match(layout, /@fontsource-variable\/outfit/);
-  assert.match(header, /width=\{45\}/);
+  assert.match(header, /width=\{1781\}/);
+  assert.match(header, /height=\{2192\}/);
+  assert.match(header, /style=\{\{ height: "3\.5rem", width: "auto" \}\}/);
 });
 
 test("support contact exposes the configured Valiuz Slack destination", () => {

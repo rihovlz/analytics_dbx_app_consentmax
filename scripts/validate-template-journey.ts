@@ -220,7 +220,7 @@ export async function validateTemplateJourney(): Promise<void> {
 
   try {
     process.stdout.write(`Creating a clean template checkout in ${fixtureRoot}.\n`);
-    await copyTrackedFiles(sourceRoot, fixtureRoot);
+    await copyTrackedFiles(sourceRoot, fixtureRoot, ["config/genie-spaces.json"]);
     await initializeCleanGitCheckout(fixtureRoot, environment);
     await runCommand("npm", ["ci", "--no-audit", "--no-fund"], fixtureRoot, environment);
     await initializeApp(fixtureRoot, environment);

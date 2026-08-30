@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 const links = [
   { href: "/", label: "Accueil" },
   { href: "/visualizations", label: "Visualisations" },
+  { href: "/genie", label: "Genie" },
   // feature:new inserts links above this line.
 ];
 

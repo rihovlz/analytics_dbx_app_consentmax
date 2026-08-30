@@ -63,6 +63,26 @@ jobs:
       - name: Validate a generated application
         run: npm run template:journey
 
+  genie-e2e:
+    name: Genie demo journey
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Validate the Genie demo journey
+        run: npm run test:e2e
+
   bundle-compatibility:
     name: Databricks CLI ${{ matrix.cli_version }}
     needs: check

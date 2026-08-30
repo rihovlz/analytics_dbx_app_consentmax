@@ -15,6 +15,9 @@ import { copyTrackedFiles, findRepositoryRoot, linkRepositoryNodeModules } from 
 const execFileAsync = promisify(execFile);
 const fixtureAppName = "ci-bundle-app";
 const fixtureSourceName = "data-bundle-source";
+const fixtureGenieSpaceKey = "fraim-sales";
+const fixtureGenieSpaceName = "Genie - FRAIM - Sales Performance";
+const fixtureGenieSpaceId = "01f1706a44af166db267134b70dc27c8";
 const fixtureRepositoryUrl = "https://github.com/valiuz/analytics_dbx_app_ci_fixture";
 
 type CommandResult = {
@@ -50,16 +53,21 @@ export function assertBundleContract(value: unknown, target: "dev" | "prod"): vo
   assert.deepEqual(Object.keys(apps), ["app"], "The rendered bundle must contain exactly one app resource.");
   const app = asRecord(apps.app, "resources.apps.app");
   assert.equal(app.name, fixtureAppName);
+  assert.deepEqual(asArray(app.user_api_scopes, "resources.apps.app.user_api_scopes"), ["genie"]);
 
   const appResources = asArray(app.resources, "resources.apps.app.resources").map((resource, index) =>
     asRecord(resource, `resources.apps.app.resources[${index}]`),
   );
   assert.deepEqual(
     appResources.map((resource) => resource.name),
-    ["sql-warehouse", fixtureSourceName],
-    "The app must keep its warehouse and generated Unity Catalog binding.",
+    ["sql-warehouse", fixtureGenieSpaceKey, fixtureSourceName],
+    "The app must keep its warehouse, Genie space and generated Unity Catalog binding.",
   );
-  const dataBinding = asRecord(appResources[1].uc_securable, "Unity Catalog binding");
+  const genieBinding = asRecord(appResources[1].genie_space, "Genie space binding");
+  assert.equal(genieBinding.name, fixtureGenieSpaceName);
+  assert.equal(genieBinding.space_id, fixtureGenieSpaceId);
+  assert.equal(genieBinding.permission, "CAN_RUN");
+  const dataBinding = asRecord(appResources[2].uc_securable, "Unity Catalog binding");
   assert.equal(dataBinding.securable_full_name, "dev-dtm-operating.analytics.bundle_source");
   assert.equal(dataBinding.permission, "SELECT");
 
@@ -240,7 +248,7 @@ export async function validateBundleCliCompatibility(): Promise<void> {
   const mockWorkspace = await startMockWorkspace();
 
   try {
-    await copyTrackedFiles(sourceRoot, fixtureRoot);
+    await copyTrackedFiles(sourceRoot, fixtureRoot, ["config/genie-spaces.json"]);
     await linkRepositoryNodeModules(sourceRoot, fixtureRoot);
     await initializeFixture(fixtureRoot, mockWorkspace.host);
     const configFile = join(fixtureRoot, ".databrickscfg");

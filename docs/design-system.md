@@ -148,6 +148,36 @@ La page `/visualizations` compose chaque exemple côté serveur avec des donnée
 `demo-map-data.ts` importe `server-only` et convertit l’atlas TopoJSON embarqué par `world-atlas` en GeoJSON. Cette page
 ne lit aucune source Databricks.
 
+## Expérience conversationnelle Genie
+
+`GenieChat` utilise les surfaces, les bordures et les ombres du système Valiuz. L’orange indique l’action principale.
+Les statuts techniques utilisent des tons neutres. Une erreur utilise le corail et donne une action suivante.
+
+La barre de question reste visible à la fin du fil. Son libellé accessible décrit le Space actif. La touche Entrée
+envoie la question. La combinaison Maj+Entrée ajoute une ligne.
+
+Le suivi montre des étapes courtes comme « Analyse de la question » et « Exécution de la requête ». Ne pas montrer le
+raisonnement interne du modèle. `aria-live` annonce uniquement les changements de statut utiles.
+
+Une réponse utilise du Markdown sans HTML brut. Une image distante devient un texte alternatif inerte. Un lien reste
+actif uniquement pour HTTP(S), un chemin de même origine qui commence par un seul `/` ou un fragment `#`. Les tables
+conservent les en-têtes, les légendes et le défilement horizontal. Le composant choisit `BigNumberKPI` pour une valeur
+unique. Il choisit un graphique uniquement lorsque le schéma fournit une dimension et une mesure compatibles.
+
+L’action « Arrêter le suivi » décrit une action locale. Elle ne confirme pas une annulation Databricks. Après cette
+action, l’interface explique que le traitement peut continuer et exige une nouvelle conversation avant un autre envoi.
+Après l’envoi du `POST`, une erreur ambiguë ne propose pas de rejeu, même sans accusé de création. Cette règle évite un
+doublon si la réponse réseau est perdue.
+
+Le SQL généré reste replié par défaut. Les actions de copie, d’épinglage et de sauvegarde ont un nom accessible. Une
+confirmation visuelle ne dépend jamais uniquement de la couleur.
+
+Les transitions utilisent l’opacité et les transformations. Elles restent courtes et ne bloquent aucune action. Le
+mode `prefers-reduced-motion` supprime la révélation progressive, les déplacements et les animations de statut.
+
+Une carte épinglée conserve sa provenance. Son aperçu peut contenir des données gouvernées. Un stockage privé doit
+rester lié à l’utilisateur. Une composition partagée relit les données avec l’identité de chaque lecteur.
+
 ## Checklist d'une nouvelle page
 
 - Le titre répond à la décision que l'utilisateur doit prendre.

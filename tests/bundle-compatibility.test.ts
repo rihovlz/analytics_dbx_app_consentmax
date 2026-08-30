@@ -8,10 +8,19 @@ import { assertBundleContract } from "../scripts/validate-bundle-cli";
 function bundleOutput(target: "dev" | "prod") {
   const app: Record<string, unknown> = {
     name: "ci-bundle-app",
+    user_api_scopes: ["genie"],
     resources: [
       {
         name: "sql-warehouse",
         sql_warehouse: { id: "warehouse-id", permission: "CAN_USE" },
+      },
+      {
+        name: "fraim-sales",
+        genie_space: {
+          name: "Genie - FRAIM - Sales Performance",
+          space_id: "01f1706a44af166db267134b70dc27c8",
+          permission: "CAN_RUN",
+        },
       },
       {
         name: "data-bundle-source",
@@ -62,7 +71,7 @@ test("rejects an extra app resource or a missing data binding", () => {
   appResources.pop();
   assert.throws(
     () => assertBundleContract(missingBinding, "dev"),
-    /warehouse and generated Unity Catalog binding/,
+    /warehouse, Genie space and generated Unity Catalog binding/,
   );
 });
 

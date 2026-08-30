@@ -19,6 +19,7 @@ ni credential, ni configuration du workspace, ni donnée métier.
 | `1.1.0` | `5df063bd0dc7b3664f1bf2cbe624119ddf5568ac` | Compatibilité de déploiement, parcours consommateur propre et suivi de version |
 | `1.2.0` | `a1ed6bc333c8b8355641b17f74fe3ed0fb200815` | Historisation à coût borné et gouvernance automatique des releases et de la documentation |
 | `1.3.0` | `08058f189790546146dabec88a6a0897568b55e9` | Visualisations analytics réutilisables, page de démonstration et modes clair/sombre |
+| `1.4.0` | `19ade7c5882aeb3065453e0aaf3c02552a61fd6c` | Assistant Genie OBO, contexte de dashboard, résultats riches et épinglage composable |
 
 Le point historique est le SHA complet de la branche de base examinée pour préparer la version. Il sert à borner le
 diff, pas à reproduire seul le checkout final. Le manifeste et ses sondes définissent le contrat réel de la version.
@@ -34,7 +35,7 @@ npm run template:status
 npm run template:check
 ```
 
-Une nouvelle app reçoit la version `1.3.0`. `npm run check` inclut `template:check` et
+Une nouvelle app reçoit la version `1.4.0`. `npm run check` inclut `template:check` et
 `template:release:check`. Le second reconnaît une app initialisée et n'exige aucun bump pour ses features métier.
 
 ## App copiée avant le suivi de version
@@ -99,7 +100,7 @@ npm run app:doctor
 npm run check
 ```
 
-Une app `1.0.0` applique ensuite séparément les guides `1.1.0 → 1.2.0`, puis `1.2.0 → 1.3.0`.
+Une app `1.0.0` applique ensuite chaque guide dans l’ordre, jusqu’au guide `1.3.0 → 1.4.0`.
 `template:status` propose la prochaine étape disponible au lieu de sauter une migration intermédiaire.
 
 ## Passage de 1.1.0 à 1.2.0
@@ -155,6 +156,46 @@ Si ce contrôle réussit, modifier `.valiuz-template.yml` :
 
 Exécuter ensuite `npm run template:status`, `npm run app:doctor` et `npm run check`. Vérifier visuellement
 `/visualizations` en modes clair et sombre, au clavier, sur mobile et avec un zoom navigateur à 200 %.
+
+## Passage de 1.3.0 à 1.4.0
+
+Afficher le guide sémantique :
+
+```bash
+npm run template:diff -- --from 1.3.0 --to 1.4.0
+```
+
+Appliquer les changements dans une branche dédiée. Conserver les dashboards, les alias et les Space ID propres à
+l’application. Installer les dépendances avec npm. Ne pas remplacer le fichier `package-lock.json` de l’application.
+
+Fusionner le service Genie et la route SSE avec les couches serveur existantes. Le jeton OBO reste dans la portée de
+la requête. Les questions, le SQL, les résultats et les en-têtes d’autorisation restent hors des logs.
+Conserver la limite de corps à 64 Kio et les quotas de flux actifs. Seuls les `GET` de statut et de résultat peuvent
+être retentés. Ne jamais rejouer automatiquement le `POST` de soumission.
+
+Ajouter les Spaces dans `config/genie-spaces.json`. Puis générer la ressource application :
+
+```bash
+npm run data:access:render
+```
+
+Examiner le scope `genie` et chaque binding `CAN_RUN`. Conserver une seule définition `resources.apps.app` dans le
+bundle. Configurer les droits et le consentement utilisateur dans le workspace avant le déploiement.
+
+Valider la capability avant de modifier l’état :
+
+```bash
+npm run template:check -- --to 1.4.0
+```
+
+Si la validation réussit, modifier `.valiuz-template.yml` :
+
+- Remplacer `version: 1.3.0` par `version: 1.4.0`.
+- Ajouter `genie-natural-language-analytics` aux capabilities.
+- Ajouter `1.3.0-to-1.4.0` à `appliedUpgrades`.
+
+Exécuter `npm run template:status`, `npm run app:doctor`, `npm run test:e2e` et `npm run check`.
+Examiner `/genie` en modes clair et sombre. Examiner aussi le clavier, le mobile et le mouvement réduit.
 
 ## Préparer la version après une feature du template
 

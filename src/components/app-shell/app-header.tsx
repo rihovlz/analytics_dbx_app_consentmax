@@ -22,9 +22,10 @@ export function AppHeader({
           <Image
             src="/valiuz-logo-icon.svg"
             alt="Valiuz"
-            width={45}
-            height={56}
-            className="h-14 w-auto shrink-0"
+            width={1781}
+            height={2192}
+            className="shrink-0"
+            style={{ height: "3.5rem", width: "auto" }}
             priority
           />
           <div className="min-w-0">

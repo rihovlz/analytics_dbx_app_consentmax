@@ -16,13 +16,17 @@ export async function findRepositoryRoot(cwd = process.cwd()): Promise<string> {
   return root;
 }
 
-export async function copyTrackedFiles(sourceRoot: string, fixtureRoot: string): Promise<void> {
+export async function copyTrackedFiles(
+  sourceRoot: string,
+  fixtureRoot: string,
+  additionalFiles: string[] = [],
+): Promise<void> {
   const { stdout } = await execFileAsync("git", ["ls-files", "-z"], {
     cwd: sourceRoot,
     encoding: "utf8",
     maxBuffer: 16 * 1024 * 1024,
   });
-  const files = stdout.split("\0").filter(Boolean);
+  const files = [...new Set([...stdout.split("\0").filter(Boolean), ...additionalFiles])];
   assert.ok(files.length > 0, "The fixture must contain tracked files.");
 
   for (const file of files) {

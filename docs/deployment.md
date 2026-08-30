@@ -8,10 +8,9 @@
 3. Exécuter `npm run app:guide`, puis choisir la source avec `npm run data:init -- <nom-source>`. Garder le mode
    `direct` si une table ou vue existante convient.
 4. Créer la première tranche avec `npm run feature:new -- <slug>`, puis relire la spec, le brief, le SQL et les tests.
-5. Vérifier le nom du mainteneur et le lien Slack affichés dans le header. Relire les placeholders remplacés dans
-   `app.yaml`, `databricks.yml`, le manifeste de données, la ressource générée et le workflow.
+5. Vérifier le contact Slack et les Spaces dans `config/genie-spaces.json`. Relire aussi `app.yaml` et la ressource générée.
 6. Vérifier le workspace prérempli `https://3070470996474403.3.gcp.databricks.com`, le warehouse `team-da-poc`
-   (`ab362e9710498a08`), le projet/schema, les groupes, les sources et le chemin bundle.
+   (`ab362e9710498a08`), le Space Genie, le projet/schema, les groupes, les sources et le chemin bundle.
 7. Lancer `npm run app:doctor` puis `npm run check`.
 8. Ouvrir une pull request. Laisser la CI valider le checkout courant et une app générée dans une copie propre.
    Fusionner ensuite dans `main`.
@@ -19,7 +18,8 @@
    table de sortie existe.
 10. Provisionner l'app une première fois afin que Databricks crée son service principal.
 11. Ajouter à ce service principal un credential Git en lecture sur le repository privé.
-12. Déclencher le workflow `Deploy Databricks App` et laisser le smoke distant vérifier les accès runtime.
+12. Vérifier le scope utilisateur `genie` et le binding `CAN_RUN` dans le plan du bundle.
+13. Déclencher le workflow `Deploy Databricks App` et laisser le smoke distant vérifier les accès runtime.
 
 Le credential Git ne peut pas être configuré avant l'étape de provisioning, car le service principal dédié n'existe
 pas encore.
@@ -32,11 +32,12 @@ Conserver les adaptations métier de l'app. Ne remplacer aucun dossier complet a
 2. Déclarer la baseline réelle dans `.valiuz-template.yml`.
 3. Si l'app est en `1.0.0`, appliquer d'abord le guide `1.0.0 → 1.1.0` et valider cet état.
 4. Si l'app est en `1.1.0`, appliquer ensuite le guide `1.1.0 → 1.2.0` et valider cet état.
-5. Exécuter `npm run template:diff -- --from 1.2.0 --to 1.3.0`.
-6. Appliquer chaque changement guidé dans une branche dédiée, sans remplacer les composants métier, la navigation ou
+5. Si l'app est en `1.2.0`, appliquer le guide `1.2.0 → 1.3.0` et valider cet état.
+6. Exécuter `npm run template:diff -- --from 1.3.0 --to 1.4.0`.
+7. Appliquer chaque changement guidé dans une branche dédiée, sans remplacer les composants métier, la navigation ou
    les styles propres à l'app.
-7. Exécuter `npm run template:check -- --to 1.3.0` avant de modifier l'état de l'app.
-8. Mettre `.valiuz-template.yml` à `1.3.0`, ajouter `reusable-analytics-visualizations` et l'upgrade appliquée, puis
+8. Exécuter `npm run template:check -- --to 1.4.0` avant de modifier l'état de l'app.
+9. Mettre `.valiuz-template.yml` à `1.4.0`, ajouter `genie-natural-language-analytics` et l'upgrade appliquée, puis
    exécuter `npm run check`.
 
 Le diff ne contacte ni GitHub ni Databricks. Les commandes de déploiement restent des mutations distantes distinctes.
@@ -118,9 +119,13 @@ npm run app:provision -- --target prod --profile valiuz-analytics-dev
 ```
 
 La commande affiche d'abord le workspace, la target, l'app, le commit, le warehouse, le projet, le schema et le nombre
-de sources. Elle valide puis crée les ressources, sans démarrer l'app. Utiliser ensuite la page **Authorization** de
+de sources. Le plan montre aussi les Spaces Genie, `CAN_RUN` et le scope utilisateur `genie`. Elle valide puis crée les
+ressources, sans démarrer l'app. Utiliser ensuite la page **Authorization** de
 l'app pour identifier son service principal, et lui configurer un credential GitHub en lecture seule. Ne jamais placer
 ce credential dans le repository, les variables non secrètes GitHub ou un log.
+
+Examiner la configuration utilisateur après le provisioning. Le scope `genie` demande un consentement utilisateur ou
+administrateur. Ne pas ajouter le scope `sql` si seul le service Genie exécute les requêtes.
 
 ## Target prod et GitHub Actions
 
@@ -149,6 +154,9 @@ Un autre job CI initialise une app temporaire avec un contrat notebook borné. I
 les targets `dev` et `prod`. La matrice utilise les versions `0.295.0` et `1.14.1` du Databricks CLI. Un serveur HTTP
 local fournit les réponses minimales. Ce job n'utilise ni profil, ni credential réel, ni workspace distant.
 
+Le job `Genie demo journey` teste le contexte, les résultats riches, l’épinglage et la continuation dans Chromium.
+Il couvre aussi le refus de permission, le mobile, le thème sombre et le mouvement réduit. Il reste en mode démo.
+
 Le workflow de déploiement installe la version `1.14.1`, qui figure dans cette matrice. Pour mettre le CLI à jour,
 modifier la matrice, le test de workflow et la version de déploiement dans la même pull request.
 
@@ -165,10 +173,15 @@ Après déploiement :
    retournée, avec l'identité de l'app ;
 3. lancer la vérification de connexion depuis l’UI ;
 4. contrôler les logs par `requestId` sans payload sensible ;
-5. tester les permissions d’un utilisateur `CAN_USE` et d’un gestionnaire `CAN_MANAGE`.
+5. tester les permissions d’un utilisateur `CAN_USE` et d’un gestionnaire `CAN_MANAGE` ;
+6. poser une question Genie avec deux utilisateurs aux droits de données distincts ;
+7. vérifier qu’aucun jeton, question, SQL ou résultat ne figure dans les logs.
 
 Le workflow effectue automatiquement les deux premiers contrôles avec `npm run app:smoke`. En local, la même commande
 accepte `--profile <profil>` ; le jeton OAuth reste en mémoire et n'est jamais affiché.
+
+Le smoke Genie est manuel, car il exécute une demande réelle et peut démarrer un compute. Obtenir l’autorisation
+explicite avant ce test. Vérifier le workspace, l’app, le Space et les deux identités avant l’appel.
 
 Pour revenir en arrière, utiliser le déclenchement manuel avec le SHA d'une révision connue, puis restaurer `main` par
 une pull request. Le déploiement reste ainsi associé à un commit immuable. Ne pas modifier manuellement le code source
