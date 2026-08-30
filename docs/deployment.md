@@ -4,6 +4,7 @@
 
 1. Créer le repository via **Use this template**.
 2. Cloner, exécuter `npm ci`, créer une branche et lancer `npm run init-app -- <nom>` une seule fois.
+   Contrôler ensuite la version avec `npm run template:status`.
 3. Exécuter `npm run app:guide`, puis choisir la source avec `npm run data:init -- <nom-source>`. Garder le mode
    `direct` si une table ou vue existante convient.
 4. Créer la première tranche avec `npm run feature:new -- <slug>`, puis relire la spec, le brief, le SQL et les tests.
@@ -22,6 +23,19 @@
 
 Le credential Git ne peut pas être configuré avant l'étape de provisioning, car le service principal dédié n'existe
 pas encore.
+
+## Mettre à niveau une app issue du template
+
+Conserver les adaptations métier de l'app. Ne remplacer aucun dossier complet avec le contenu du template.
+
+1. Lire [template-upgrades.md](template-upgrades.md).
+2. Déclarer la baseline réelle dans `.valiuz-template.yml`.
+3. Exécuter `npm run template:diff -- --from 1.0.0 --to 1.1.0`.
+4. Appliquer chaque changement guidé dans une branche dédiée.
+5. Exécuter `npm run template:check -- --to 1.1.0` avant de modifier l'état de l'app.
+6. Mettre `.valiuz-template.yml` à `1.1.0`, puis exécuter `npm run check`.
+
+Le diff ne contacte ni GitHub ni Databricks. Les commandes de déploiement restent des mutations distantes distinctes.
 
 ## Développement local
 
@@ -97,9 +111,10 @@ principal. Le principal CI doit pouvoir gérer les ressources du bundle, sans dr
 La CI construit l'app avec `APP_MODE=databricks`, sans les variables runtime. Le shell lit uniquement sa configuration
 publique pendant ce build. Databricks injecte le host et les credentials lorsque le serveur démarre.
 
-Un job CI exécute `npm run template:journey` après les contrôles standards. Il crée une copie Git propre et y exécute
-`npm ci`. Il initialise ensuite l'app, le cadrage, une source directe et une tranche KPI. Enfin, il exécute
-`app:doctor` et `npm run check`. Ce job n'utilise aucun workspace ou credential Databricks.
+Le job principal exécute `npm run template:check`. Un autre job exécute `npm run template:journey` après ces contrôles.
+Il crée une copie Git propre et y exécute `npm ci`. Il initialise ensuite l'app, son état de template, le cadrage, une
+source directe et une tranche KPI. Enfin, il exécute `app:doctor` et `npm run check`. Ce job n'utilise aucun workspace
+ou credential Databricks.
 
 Un autre job CI initialise une app temporaire avec une source déclarée. Il valide les targets `dev` et `prod` avec
 les versions `0.295.0` et `1.14.1` du Databricks CLI. Un serveur HTTP local fournit les réponses minimales du workspace.

@@ -15,6 +15,7 @@ git clone https://github.com/valiuz/analytics_dbx_app_template.git my-new-app
 cd my-new-app
 npm ci
 npm run init-app -- my-new-app
+npm run template:status
 npm run app:guide
 npm run app:doctor
 npm run dev
@@ -46,6 +47,26 @@ npm run feature:new -- ventes-du-jour
 
 Les commandes interactives demandent une information à la fois. Elles n'accèdent pas au workspace et ne déploient
 rien.
+
+## Version du template
+
+`template/manifest.yml` donne la version courante et les capabilities du template. La version courante est `1.1.0`.
+La version `1.0.0` représente la baseline qui précède les évolutions du 30 août 2026.
+
+`init-app` crée `.valiuz-template.yml` dans chaque nouvelle app. Ce fichier indique la version utilisée et les
+capabilities attendues. La version dans `package.json` reste la version du package applicatif. Elle est indépendante.
+
+Ces commandes restent locales et ne modifient pas le code de l'app :
+
+```bash
+npm run template:status
+npm run template:check
+npm run template:diff -- --from 1.0.0 --to 1.1.0
+```
+
+Le diff est un guide sémantique. Il donne les fichiers, les changements et les commandes de validation. Il ne
+télécharge rien et n'écrase aucune adaptation métier. Suivre [le guide de mise à niveau](docs/template-upgrades.md)
+pour une app qui provient d'une ancienne copie du repository.
 
 ## Identité Valiuz et support
 
@@ -169,6 +190,9 @@ l'app ne reçoit que `SELECT` sur la sortie.
 | `npm run bundle:validate` | validation du bundle Databricks |
 | `npm run bundle:compatibility` | validation des bundles initialisés avec le Databricks CLI installé, sans workspace distant |
 | `npm run template:journey` | parcours complet dans une copie Git propre, avec installation et build de l'app générée |
+| `npm run template:status` | affiche la version de l'app et les capabilities trouvées |
+| `npm run template:check` | refuse un manifeste invalide ou une capability déclarée mais absente |
+| `npm run template:diff -- --from <version> --to <version>` | affiche le guide sémantique entre deux versions |
 | `npm run app:provision -- --target prod --profile <profil>` | crée les ressources sans démarrer l'app |
 | `npm run app:smoke -- --app <app> --profile <profil>` | teste l'app déployée et ses accès SQL runtime |
 | `npm run app:doctor` | affiche les contrôles locaux et la prochaine action |
@@ -192,11 +216,13 @@ src/lib/http/                    wrapper des routes API
 src/lib/logging/                 logs JSON et contexte de requête
 tests/                           tests unitaires sans Databricks
 scripts/                         bootstrap, packaging et déploiement
+template/                        manifeste, versions et guides de mise à niveau
 config/                          projets autorisés et manifeste des sources de données
 resources/                       bindings Databricks générés depuis le manifeste
 data/                            contrats et préparation optionnelle dans un mini-bundle séparé
 public/                          logo et favicon Valiuz partagés par le shell
 docs/                            architecture et runbooks
+.valiuz-template.yml             état du template dans une app initialisée
 ```
 
 La boundary attendue est : `UI → service de feature → repository → SqlExecutor → Databricks SQL / Unity Catalog`.
@@ -241,8 +267,9 @@ Action de déploiement utilise OIDC et des variables GitHub, sans secret Databri
 désactivé tant que `DATABRICKS_AUTO_DEPLOY` n’est pas `true`. Après l'état `RUNNING`, le workflow appelle `/api/health`
 et `/api/readiness` pour vérifier les accès réels du service principal de l'app.
 
-La CI exécute `npm run template:journey` après les contrôles standards. Cette commande crée une copie Git propre et
-exécute `npm ci`, `init-app`, `app:guide`, `data:init`, `feature:new`, `app:doctor` et `npm run check`.
+La CI exécute `npm run template:check` avec les contrôles standards. Elle exécute aussi `npm run template:journey`.
+Ce parcours crée une copie Git propre et exécute `npm ci`, `init-app`, `template:status`, `app:guide`, `data:init`,
+`feature:new`, `app:doctor` et `npm run check`.
 
 Un autre job initialise une app temporaire et valide ses targets `dev` et `prod` avec le vrai Databricks CLI. La
 matrice couvre les versions `0.295.0` et `1.14.1`. Ces deux jobs n'utilisent aucun credential Databricks réel.
@@ -261,6 +288,7 @@ matrice couvre les versions `0.295.0` et `1.14.1`. Ces deux jobs n'utilisent auc
 - `Data access bundle is stale` : lancer `npm run data:access:render` et committer les deux fichiers.
 - `Data preparation bundle is stale` : lancer `npm run data:prepare:render` et relire le contrat concerné.
 - `Product brief is stale` : lancer `npm run app:guide -- --non-interactive`.
+- Une capability du template manque : lancer `npm run template:status`, puis lire `docs/template-upgrades.md`.
 - `APP_SUPPORT_SLACK_URL` est refusée : utiliser un lien HTTPS vers `valiuz.slack.com`.
 - `/api/readiness` échoue : vérifier le projet, les bindings des sources et les droits du service principal de l'app.
 - Le bundle refuse des placeholders : relancer `npm run init-app -- <nom>` puis relire les valeurs.
