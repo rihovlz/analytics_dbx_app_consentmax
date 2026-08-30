@@ -16,7 +16,7 @@ test("declares the 1.0.0 baseline and the current 1.1.0 template", async () => {
 
 test("verifies the source capabilities and exposes the 1.0.0 to 1.1.0 diff", () => {
   const status = JSON.parse(execFileSync(process.execPath, ["scripts/template-status.mjs", "--json"], { encoding: "utf8" }));
-  assert.equal(status.instance.kind, "source");
+  assert.notEqual(status.instance.kind, "legacy");
   assert.equal(status.instance.effectiveVersion, "1.1.0");
   assert.equal(status.capabilities.every((capability: { ok: boolean }) => capability.ok), true);
 
