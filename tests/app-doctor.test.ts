@@ -15,6 +15,8 @@ test("app doctor reports the next useful action without exposing environment val
     "scripts/app-spec.mjs",
     "scripts/data-access.mjs",
     "scripts/data-preparation.mjs",
+    "scripts/template-manifest.mjs",
+    "scripts/template-status.mjs",
   ];
   for (const file of files) {
     const destination = join(root, file);

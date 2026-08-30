@@ -1,0 +1,134 @@
+schemaVersion: 1
+template:
+  id: valiuz/analytics_dbx_app_template
+  repository: https://github.com/valiuz/analytics_dbx_app_template
+  currentVersion: 1.1.0
+requirements:
+  node: ">=22.16 <23"
+  databricksCli: ">=0.295.0"
+versions:
+  "1.0.0":
+    sourceCommit: 05d914c6863c92304b1bc662e40c17e0f97b2c29
+    summary: Baseline du template avant les améliorations de compatibilité du 30 août 2026.
+    capabilities:
+      - guided-app-workflow
+      - declared-data-access
+      - optional-data-preparation
+      - valiuz-app-shell
+      - databricks-app-bundle
+  "1.1.0":
+    sourceCommit: 5df063bd0dc7b3664f1bf2cbe624119ddf5568ac
+    summary: Compatibilité Databricks renforcée, parcours consommateur propre et suivi de version du template.
+    extends: 1.0.0
+    capabilities:
+      - databricks-deployment-compatibility
+      - clean-template-consumer-journey
+      - template-version-tracking
+capabilities:
+  guided-app-workflow:
+    since: 1.0.0
+    description: Initialise, cadre et génère une première tranche verticale d'application.
+    probes:
+      - type: file
+        path: scripts/init-app.mjs
+      - type: file
+        path: scripts/app-guide.mjs
+      - type: file
+        path: scripts/new-feature.mjs
+  declared-data-access:
+    since: 1.0.0
+    description: Déclare les sources Unity Catalog et génère les bindings en lecture seule.
+    probes:
+      - type: file
+        path: config/data-access.json
+      - type: file
+        path: scripts/data-access.mjs
+      - type: file
+        path: resources/data-access.generated.yml
+  optional-data-preparation:
+    since: 1.0.0
+    description: Prend en charge les modes direct, notebook et pipeline dans un bundle data séparé.
+    probes:
+      - type: file
+        path: data/databricks.yml
+      - type: file
+        path: scripts/init-data.mjs
+      - type: file
+        path: scripts/data-preparation.mjs
+  valiuz-app-shell:
+    since: 1.0.0
+    description: Fournit le shell partagé et les médias officiels Valiuz.
+    probes:
+      - type: file
+        path: src/components/app-shell/app-shell.tsx
+      - type: file
+        path: public/valiuz-logo-icon.svg
+      - type: file
+        path: public/favicon.svg
+  databricks-app-bundle:
+    since: 1.0.0
+    description: Déploie l'application avec un manifest runtime unique et un Databricks Asset Bundle.
+    probes:
+      - type: file
+        path: app.yaml
+      - type: file
+        path: databricks.yml
+      - type: file
+        path: scripts/deploy.mjs
+  databricks-deployment-compatibility:
+    since: 1.1.0
+    description: Couvre les sorties CLI 1.x, les catalogues avec tirets, le bundle unique et le build sans variables runtime.
+    probes:
+      - type: fileContains
+        path: scripts/check-databricks.ts
+        text: export function parseDatabricksCliHost
+      - type: fileContains
+        path: src/features/readiness/server/repository.ts
+        text: quoteQualifiedIdentifier(source.fullName)
+      - type: fileNotContains
+        path: databricks.yml
+        text: "\nresources:\n  apps:"
+      - type: fileContains
+        path: resources/data-access.generated.yml
+        text: "      name: ${var.app_name}"
+      - type: fileContains
+        path: src/app/page.tsx
+        text: parseAppDisplayConfig
+      - type: packageScript
+        name: bundle:compatibility
+        command: node --import tsx scripts/validate-bundle-cli.ts
+  clean-template-consumer-journey:
+    since: 1.1.0
+    description: Valide une application générée depuis une copie Git propre jusqu'au build de production.
+    probes:
+      - type: file
+        path: scripts/validate-template-journey.ts
+      - type: packageScript
+        name: template:journey
+        command: node --import tsx scripts/validate-template-journey.ts
+      - type: fileContains
+        path: .github/workflows/ci.yml
+        text: npm run template:journey
+  template-version-tracking:
+    since: 1.1.0
+    description: Expose la version source, les capabilities vérifiées et les guides de mise à niveau.
+    probes:
+      - type: file
+        path: template/manifest.yml
+      - type: file
+        path: scripts/template-manifest.mjs
+      - type: file
+        path: scripts/template-status.mjs
+      - type: packageScript
+        name: template:status
+        command: node scripts/template-status.mjs
+      - type: packageScript
+        name: template:check
+        command: node scripts/template-status.mjs --check
+      - type: packageScript
+        name: template:diff
+        command: node scripts/template-status.mjs --diff
+upgrades:
+  - from: 1.0.0
+    to: 1.1.0
+    path: template/upgrades/1.0.0-to-1.1.0.yml

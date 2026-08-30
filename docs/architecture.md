@@ -52,6 +52,20 @@ chaque source déclarée dans `config/data-access.json`. Ces usages ont ainsi de
 Ces scripts sont des outils de développement. Ils ne sont ni importés par le runtime Next.js ni exécutés au démarrage
 de l'app. `app:doctor` contrôle leur cohérence et propose une prochaine action sans corriger ou déployer automatiquement.
 
+## Contrat de version du template
+
+`template/manifest.yml` définit les versions, les capabilities et les chemins de mise à niveau. Chaque capability
+utilise des sondes locales. Une sonde contrôle un fichier, un marqueur de fichier ou une commande npm exacte.
+
+`init-app` crée `.valiuz-template.yml`. Cet état contient la version de départ et les capabilities héritées. Il ne
+contient aucune configuration Databricks, aucune donnée métier et aucun credential.
+
+`template:status`, `template:check` et `template:diff` sont des outils de développement. Next.js ne les importe pas.
+Databricks Apps ne les exécute pas au runtime. Le diff décrit une migration, mais il ne modifie pas les fichiers.
+
+Le champ `sourceCommit` fournit un point historique pour chaque version. Il ne prouve pas qu'une app reste identique à
+ce commit. Les sondes donnent le niveau de preuve local après les adaptations propres à l'app.
+
 ## Shell Valiuz et contact
 
 `AppShell` compose le header, la navigation et le contenu sans connaître le métier. Le header utilise le SVG canonique

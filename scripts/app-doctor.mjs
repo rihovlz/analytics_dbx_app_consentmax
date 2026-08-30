@@ -9,6 +9,7 @@ import { pathToFileURL } from "node:url";
 import { loadAppSpec, renderProductBrief } from "./app-spec.mjs";
 import { renderDataAccess } from "./data-access.mjs";
 import { loadDataContracts, renderDataPreparation } from "./data-preparation.mjs";
+import { inspectTemplateVersion } from "./template-status.mjs";
 
 function result(status, name, detail, next) {
   return { status, name, detail, ...(next ? { next } : {}) };
@@ -40,6 +41,68 @@ export async function inspectApp(root, { execute = spawnSync, nodeVersion = proc
       ? result("warn", "Initialisation", "Le checkout est encore le template.", "npm run init-app -- <nom>")
       : result("pass", "Initialisation", `Application '${packageJson.name}' initialisée.`),
   );
+
+  const templateManifest = await readOptional(join(root, "template/manifest.yml"));
+  if (!templateManifest) {
+    results.push(
+      result(
+        "warn",
+        "Version du template",
+        "Cette app est antérieure au suivi de version du template.",
+        "Consulter docs/template-upgrades.md",
+      ),
+    );
+  } else {
+    try {
+      const templateStatus = await inspectTemplateVersion(root);
+      const missingCapabilities = templateStatus.capabilities.filter((capability) => !capability.ok);
+      if (templateStatus.instance.kind === "legacy") {
+        results.push(
+          result(
+            "warn",
+            "Version du template",
+            "Le manifeste est présent, mais .valiuz-template.yml ne déclare pas la baseline de cette app.",
+            "npm run template:status",
+          ),
+        );
+      } else if (missingCapabilities.length > 0) {
+        results.push(
+          result(
+            "fail",
+            "Version du template",
+            `${missingCapabilities.length} capability(s) déclarée(s) ne sont pas vérifiées.`,
+            "npm run template:status",
+          ),
+        );
+      } else if (templateStatus.instance.behind) {
+        results.push(
+          result(
+            "warn",
+            "Version du template",
+            `Version ${templateStatus.instance.version}; ${templateStatus.template.currentVersion} est disponible.`,
+            "npm run template:status",
+          ),
+        );
+      } else {
+        results.push(
+          result(
+            "pass",
+            "Version du template",
+            `Version ${templateStatus.instance.effectiveVersion}; toutes les capabilities déclarées sont présentes.`,
+          ),
+        );
+      }
+    } catch (error) {
+      results.push(
+        result(
+          "fail",
+          "Version du template",
+          error instanceof Error ? error.message : "Suivi de version invalide.",
+          "npm run template:status",
+        ),
+      );
+    }
+  }
 
   const major = Number(nodeVersion.split(".")[0]);
   results.push(
