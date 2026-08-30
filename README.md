@@ -102,7 +102,8 @@ Catalog et l’accès des utilisateurs à l’app restent à configurer séparé
 
 ## Configuration
 
-La configuration serveur est validée au démarrage dans `src/lib/config/server-config.ts`.
+`parseAppDisplayConfig` valide la configuration publique pendant le build. Le serveur valide la configuration
+Databricks complète au démarrage dans `src/lib/config/server-config.ts`.
 
 | Variable | Local démo | Local Databricks | Databricks Apps |
 | --- | --- | --- | --- |
@@ -111,7 +112,7 @@ La configuration serveur est validée au démarrage dans `src/lib/config/server-
 | `APP_SUPPORT_NAME` | nom du contact ou de l'équipe | même valeur | injectée via `app.yaml` |
 | `APP_SUPPORT_SLACK_URL` | URL HTTPS `valiuz.slack.com` | même valeur | injectée via `app.yaml` |
 | `LOG_LEVEL` | `info` par défaut | même valeur | `info` via `app.yaml` |
-| `DATABRICKS_HOST` | non | oui | injectée par Databricks |
+| `DATABRICKS_HOST` | non | oui | injectée par Databricks au runtime, absente pendant le build |
 | `DATABRICKS_CONFIG_PROFILE` | non | oui, recommandé | jamais utilisée |
 | `DATABRICKS_TOKEN` | non | fallback uniquement | jamais utilisée |
 | `DATABRICKS_CLIENT_ID` / `DATABRICKS_CLIENT_SECRET` | non | non | injectées par Databricks |
@@ -121,8 +122,8 @@ La configuration serveur est validée au démarrage dans `src/lib/config/server-
 | `DATABRICKS_SQL_TIMEOUT_MS` | 30 s par défaut | 60 s dans `.env.example` | 30 s par défaut |
 
 Les tables et vues nécessaires sont déclarées dans `config/data-access.json`. Après chaque modification, exécuter
-`npm run data:access:render` et committer le manifeste avec `resources/data-access.generated.yml`. Le bundle lie alors
-chaque source à l'app avec `SELECT`, en plus du warehouse avec `CAN_USE`.
+`npm run data:access:render`. Committer le manifeste avec `resources/data-access.generated.yml`. Ce fichier contient
+la ressource app complète, le warehouse avec `CAN_USE` et chaque source avec `SELECT`.
 
 Copier `.env.example` vers `.env.local`. Pour utiliser de vraies données, configurer un profil OAuth avec
 `databricks auth login`, passer `APP_MODE` à `databricks`, puis exécuter `npm run databricks:check` et
@@ -166,6 +167,7 @@ l'app ne reçoit que `SELECT` sur la sortie.
 | `npm run databricks:check` | préflight en lecture seule du profil, warehouse, projet, schema et sources |
 | `npm run test:databricks` | smoke SQL réel sur les sources déclarées, hors CI |
 | `npm run bundle:validate` | validation du bundle Databricks |
+| `npm run bundle:compatibility` | validation des bundles initialisés avec le Databricks CLI installé, sans workspace distant |
 | `npm run app:provision -- --target prod --profile <profil>` | crée les ressources sans démarrer l'app |
 | `npm run app:smoke -- --app <app> --profile <profil>` | teste l'app déployée et ses accès SQL runtime |
 | `npm run app:doctor` | affiche les contrôles locaux et la prochaine action |
@@ -217,8 +219,8 @@ valider chaque ligne avec Zod. Ne pas interpoler d’entrée utilisateur dans le
 un fichier `.sql` voisin du repository et documenter son contrat d’entrée/sortie.
 
 Avant d'utiliser une nouvelle table ou vue, l'ajouter à `config/data-access.json`. Son `fullName` doit commencer par le
-projet choisi et utiliser le format `projet.schema.objet`. L'identifiant est transmis au smoke de readiness via
-`IDENTIFIER(?)`, jamais interpolé depuis une entrée utilisateur.
+projet choisi et utiliser le format `projet.schema.objet`. Le repository valide les trois segments et ajoute leurs
+backticks. Il lie ensuite la valeur à `IDENTIFIER(?)`. Il n'interpole aucune entrée utilisateur dans le SQL.
 
 L’exemple `SELECT current_user()` se trouve dans `src/features/connection-check/server/`.
 
@@ -237,6 +239,10 @@ Après `init-app`, relire `databricks.yml`, `app.yaml` et `config/data-access.js
 Action de déploiement utilise OIDC et des variables GitHub, sans secret Databricks committé. L’auto-déploiement reste
 désactivé tant que `DATABRICKS_AUTO_DEPLOY` n’est pas `true`. Après l'état `RUNNING`, le workflow appelle `/api/health`
 et `/api/readiness` pour vérifier les accès réels du service principal de l'app.
+
+La CI initialise aussi une app temporaire et valide ses targets `dev` et `prod` avec le vrai Databricks CLI. La matrice
+couvre la version minimale `0.295.0` et la version de déploiement `1.14.1`. Un serveur HTTP local remplace le workspace.
+La validation n'utilise aucun credential réel et ne contacte pas Databricks.
 
 ## Troubleshooting
 

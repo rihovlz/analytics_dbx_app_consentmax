@@ -3,12 +3,12 @@ import type { ReactNode } from "react";
 import "@fontsource-variable/outfit";
 
 import { AppShell } from "@/components/app-shell/app-shell";
-import { getServerConfig } from "@/lib/config/server-config";
+import { parseAppDisplayConfig } from "@/lib/config/server-config";
 
 import "./globals.css";
 
 export function generateMetadata(): Metadata {
-  const config = getServerConfig();
+  const config = parseAppDisplayConfig();
   return {
     title: config.appName,
     description: config.appDescription,
@@ -17,7 +17,7 @@ export function generateMetadata(): Metadata {
 }
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
-  const config = getServerConfig();
+  const config = parseAppDisplayConfig();
 
   return (
     <html lang="fr">

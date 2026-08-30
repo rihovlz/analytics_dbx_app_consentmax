@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { checkDatabricksAccess, parseDatabricksCliVersion } from "../scripts/check-databricks";
+import {
+  checkDatabricksAccess,
+  parseDatabricksCliHost,
+  parseDatabricksCliVersion,
+} from "../scripts/check-databricks";
 import { parseServerConfig } from "../src/lib/config/server-config";
 import type { DatabricksCliRunner } from "../src/lib/databricks/cli-auth";
 
@@ -22,13 +26,21 @@ test("accepts CLI versions above the bundle minimum", () => {
   assert.deepEqual(parseDatabricksCliVersion("Databricks CLI v1.12.1"), [1, 12, 1]);
 });
 
+test("accepts current and legacy CLI host descriptions", () => {
+  const host = "dbc.example.cloud.databricks.com";
+  assert.equal(parseDatabricksCliHost(`  ✓ host: https://${host} (from profile)\n`), host);
+  assert.equal(parseDatabricksCliHost(`Host: https://${host}\n`), host);
+});
+
 test("checks identity, warehouse, catalog and schema without running SQL", async () => {
   const calls: string[][] = [];
   const runner: DatabricksCliRunner = async (args) => {
     calls.push([...args]);
     const operation = args.slice(0, 2).join(" ");
     if (args[0] === "version") return "Databricks CLI v1.12.1";
-    if (operation === "auth describe") return "Host: https://dbc.example.cloud.databricks.com\n";
+    if (operation === "auth describe") {
+      return "Current configuration:\n  ✓ host: https://dbc.example.cloud.databricks.com (from profile)\n";
+    }
     if (operation === "current-user me") return JSON.stringify({ user_name: "analytics@example.com" });
     if (operation === "warehouses get") return JSON.stringify({ name: "team-da-poc", state: "RUNNING" });
     if (operation === "catalogs get") return JSON.stringify({ name: "dev-dtm-media-pm" });
@@ -55,7 +67,7 @@ test("checks identity, warehouse, catalog and schema without running SQL", async
 test("rejects a CLI profile targeting another workspace", async () => {
   const runner: DatabricksCliRunner = async (args) => {
     if (args[0] === "version") return "Databricks CLI v1.12.1";
-    return "Host: https://another-workspace.gcp.databricks.com\n";
+    return "  ✓ host: https://another-workspace.gcp.databricks.com (from profile)\n";
   };
 
   await assert.rejects(

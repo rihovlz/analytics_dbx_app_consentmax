@@ -61,7 +61,7 @@ function workspaceHost(target, profile) {
   if (result.error || result.status !== 0) {
     throw new Error("Unable to determine the development workspace from Databricks authentication.");
   }
-  const match = result.stdout.match(/^Host:\s+(https:\/\/\S+)\s*$/m);
+  const match = result.stdout.match(/^\s*(?:✓\s*)?host:\s+(https:\/\/\S+)/im);
   if (!match) throw new Error("Databricks authentication did not report a development workspace host.");
   return match[1];
 }

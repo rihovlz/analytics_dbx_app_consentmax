@@ -27,6 +27,7 @@
     "databricks:check": "node --env-file-if-exists=.env.local --import tsx scripts/check-databricks.ts",
     "test:databricks": "node --env-file-if-exists=.env.local --import tsx scripts/test-databricks.ts",
     "bundle:validate": "node scripts/deploy.mjs --validate-only",
+    "bundle:compatibility": "node --import tsx scripts/validate-bundle-cli.ts",
     "bundle:summary": "databricks bundle summary",
     "app:provision": "node scripts/deploy.mjs --provision-only",
     "app:smoke": "node scripts/smoke-deployed-app.mjs",

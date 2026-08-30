@@ -32,10 +32,12 @@ Databricks SQL Warehouse → Unity Catalog
 
 ## Configuration et runtime
 
-`parseServerConfig` accepte deux modes. `demo` est credential-free et déterministe. `databricks` échoue immédiatement
-si une variable obligatoire manque. En local, il utilise en priorité un jeton OAuth U2M éphémère fourni par un profil
-Databricks CLI ; un PAT court terme reste un fallback explicite. Dans Databricks Apps, la présence de
-`DATABRICKS_APP_NAME` force OAuth M2M avec les credentials injectés par la plateforme.
+`parseAppDisplayConfig` lit uniquement le mode, le nom, la description et le contact. Next.js peut utiliser cette
+configuration pendant le build sans credentials Databricks.
+
+`parseServerConfig` accepte les modes `demo` et `databricks`. Le mode `databricks` refuse une variable runtime
+manquante. En local, il utilise en priorité un jeton OAuth U2M fourni par un profil Databricks CLI. Un PAT court terme
+reste un fallback explicite. Dans Databricks Apps, `DATABRICKS_APP_NAME` active OAuth M2M avec les credentials injectés.
 
 `/health` reste un probe superficiel et ne réveille pas le warehouse. `/api/connection-check` teste explicitement le
 chemin Databricks. `/api/readiness` vérifie en plus, avec l'identité runtime, un accès `SELECT` sans ligne retournée sur
@@ -44,9 +46,8 @@ chaque source déclarée dans `config/data-access.json`. Ces usages ont ainsi de
 ## Accompagnement et génération locale
 
 `config/app-spec.yml` est la source de vérité courte du cadrage. `app:guide` la synchronise avec
-`docs/product-brief.md`, puis `feature:new` génère une première tranche verticale respectant les mêmes boundaries que le
-code manuel. Le SQL généré est volontairement limité à un `count`, `sum` ou `avg` sur une source déjà déclarée ; il doit
-être relu avant utilisation avec des données réelles.
+`docs/product-brief.md`. Ensuite, `feature:new` génère une première tranche verticale. Le SQL généré accepte seulement
+`count`, `sum` et `avg` sur une source déclarée. Le repository délimite chaque segment de l'identifiant avant le binding.
 
 Ces scripts sont des outils de développement. Ils ne sont ni importés par le runtime Next.js ni exécutés au démarrage
 de l'app. `app:doctor` contrôle leur cohérence et propose une prochaine action sans corriger ou déployer automatiquement.
@@ -57,7 +58,7 @@ de l'app. `app:doctor` contrôle leur cohérence et propose une prochaine action
 `public/valiuz-logo-icon.svg` ; `public/favicon.svg` contient le même média et `generateMetadata` l'associe à l'onglet
 avec le nom de l'app.
 
-Le contact Slack est une configuration publique rendue côté serveur, puis passée au shell. `APP_SUPPORT_NAME` nomme le
+Le contact Slack est une configuration publique transmise au shell. `APP_SUPPORT_NAME` nomme le
 mainteneur ou l'équipe et `APP_SUPPORT_SLACK_URL` accepte uniquement une URL HTTPS du workspace
 `valiuz.slack.com`. Le shell ouvre ce lien dans un nouvel onglet ; il n'embarque ni token Slack ni logique métier. Le
 contact FRAIM est prérempli comme point de départ, puis remplacé par `init-app` lorsque l'équipe choisit son support.

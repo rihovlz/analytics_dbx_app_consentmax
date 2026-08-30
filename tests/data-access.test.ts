@@ -4,6 +4,7 @@ import { copyFile, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
+import { parse } from "yaml";
 
 import { parseDataAccessManifest } from "../src/lib/config/data-access";
 
@@ -71,6 +72,8 @@ test("renders least-privilege Unity Catalog app resources and detects drift", as
 
   execFileSync(process.execPath, ["scripts/render-data-access.mjs"], { cwd: root });
   const rendered = await readFile(join(root, "resources/data-access.generated.yml"), "utf8");
+  assert.match(rendered, /name: \$\{var\.app_name\}/);
+  assert.match(rendered, /level: CAN_MANAGE/);
   assert.match(rendered, /uc_securable:/);
   assert.match(rendered, /dev-dtm-media-pm\.analytics\.campaign_performance/);
   assert.match(rendered, /permission: SELECT/);
@@ -81,4 +84,14 @@ test("renders least-privilege Unity Catalog app resources and detects drift", as
     () => execFileSync(process.execPath, ["scripts/render-data-access.mjs", "--check"], { cwd: root, stdio: "pipe" }),
     /Command failed/,
   );
+});
+
+test("defines the app resource in one included bundle file", async () => {
+  const bundle = parse(await readFile("databricks.yml", "utf8"));
+  const generated = parse(await readFile("resources/data-access.generated.yml", "utf8"));
+
+  assert.equal(bundle.resources?.apps?.app, undefined);
+  assert.equal(generated.resources.apps.app.name, "${var.app_name}");
+  assert.equal(generated.resources.apps.app.compute_size, "MEDIUM");
+  assert.equal(generated.resources.apps.app.permissions.length, 2);
 });

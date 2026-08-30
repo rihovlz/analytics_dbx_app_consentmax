@@ -55,8 +55,8 @@ function isVersionAtLeast(
   return true;
 }
 
-function hostFromDescription(output: string): string {
-  const match = output.match(/^Host:\s+(\S+)\s*$/m);
+export function parseDatabricksCliHost(output: string): string {
+  const match = output.match(/^\s*(?:✓\s*)?host:\s+(https:\/\/\S+)/im);
   if (!match) throw new Error("Unable to determine the workspace host from the Databricks CLI profile");
   return new URL(match[1]).hostname;
 }
@@ -78,7 +78,7 @@ export async function checkDatabricksAccess(
 
   const profile = config.auth.profile;
   const authDescription = await runner(["auth", "describe", "--profile", profile]);
-  const profileHost = hostFromDescription(authDescription);
+  const profileHost = parseDatabricksCliHost(authDescription);
   if (profileHost !== config.host) {
     throw new Error(`Databricks CLI profile '${profile}' targets a different workspace`);
   }

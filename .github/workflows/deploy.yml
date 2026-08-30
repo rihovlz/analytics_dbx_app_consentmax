@@ -46,6 +46,8 @@ jobs:
           node-version-file: .nvmrc
       - name: Install Databricks CLI
         uses: databricks/setup-cli@6bb7075f85b326f8b9ce160933dfe9bcd63c8121
+        with:
+          version: "1.14.1"
       - name: Reject an uninitialized template
         run: |
           PLACEHOLDER='__APP''_NAME__'

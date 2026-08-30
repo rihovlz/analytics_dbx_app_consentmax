@@ -156,9 +156,9 @@ Après confirmation du workspace, du warehouse, du projet/catalogue et du schema
 npm run test:databricks
 ```
 
-Cette commande exécute `SELECT current_user()` puis compile en une requête les sources déclarées avec
-`SELECT ... WHERE FALSE`. Les identifiants sont liés par paramètres ; aucune ligne métier n'est retournée. La commande
-peut démarrer le warehouse et générer un coût. Le driver demande au CLI un jeton OAuth éphémère et ne le journalise pas.
+Cette commande exécute `SELECT current_user()` puis compile les sources déclarées avec `SELECT ... WHERE FALSE`. Chaque
+segment d'identifiant est validé et délimité avant le binding. Aucune ligne métier n'est retournée. La commande peut
+démarrer le warehouse et générer un coût. Le driver demande au CLI un jeton OAuth éphémère et ne le journalise pas.
 
 Pour développer ensuite sur les vraies sources :
 

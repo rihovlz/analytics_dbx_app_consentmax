@@ -43,7 +43,7 @@ function workspaceHost(target, profile) {
     encoding: "utf8",
   });
   if (result.error || result.status !== 0) throw new Error("Unable to determine the Databricks workspace.");
-  const match = result.stdout.match(/^Host:\s+(https:\/\/\S+)\s*$/m);
+  const match = result.stdout.match(/^\s*(?:✓\s*)?host:\s+(https:\/\/\S+)/im);
   if (!match) throw new Error("Databricks authentication did not report a workspace host.");
   return match[1];
 }

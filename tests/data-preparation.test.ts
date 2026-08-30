@@ -103,7 +103,7 @@ test("data init creates a reviewed-column notebook job and runnable contract", a
     [
       "#!/bin/sh",
       "if [ \"$1 $2\" = \"auth describe\" ]; then",
-      "  printf 'Host: https://dbc.example.cloud.databricks.com\\n'",
+      "  printf '  ✓ host: https://dbc.example.cloud.databricks.com (from profile)\\n'",
       "  exit 0",
       "fi",
       "printf '%s\\n' \"$*\" >> \"$DATABRICKS_TEST_LOG\"",

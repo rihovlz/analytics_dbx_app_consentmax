@@ -7,8 +7,8 @@
 3. Exécuter `npm run app:guide`, puis choisir la source avec `npm run data:init -- <nom-source>`. Garder le mode
    `direct` si une table ou vue existante convient.
 4. Créer la première tranche avec `npm run feature:new -- <slug>`, puis relire la spec, le brief, le SQL et les tests.
-5. Vérifier le nom du mainteneur et le lien Slack affichés dans le header, puis relire les placeholders remplacés dans
-   `app.yaml`, `databricks.yml`, le manifeste de données et le workflow.
+5. Vérifier le nom du mainteneur et le lien Slack affichés dans le header. Relire les placeholders remplacés dans
+   `app.yaml`, `databricks.yml`, le manifeste de données, la ressource générée et le workflow.
 6. Vérifier le workspace prérempli `https://3070470996474403.3.gcp.databricks.com`, le warehouse `team-da-poc`
    (`ab362e9710498a08`), le projet/schema, les groupes, les sources et le chemin bundle.
 7. Lancer `npm run app:doctor` puis `npm run check`.
@@ -93,6 +93,16 @@ GitHub `databricks-production`, protéger ses approbateurs si nécessaire, puis 
 Le workflow utilise GitHub OIDC (`DATABRICKS_AUTH_TYPE=github-oidc`) : aucun client secret Databricks n’est stocké dans
 GitHub. Créer la federation policy Databricks correspondant au repository, à la branche/environment et au service
 principal. Le principal CI doit pouvoir gérer les ressources du bundle, sans droits de données inutiles.
+
+La CI construit l'app avec `APP_MODE=databricks`, sans les variables runtime. Le shell lit uniquement sa configuration
+publique pendant ce build. Databricks injecte le host et les credentials lorsque le serveur démarre.
+
+Un second job CI initialise une app temporaire avec une source déclarée. Il valide les targets `dev` et `prod` avec
+les versions `0.295.0` et `1.14.1` du Databricks CLI. Un serveur HTTP local fournit les réponses minimales du workspace.
+Le job n'utilise ni profil Databricks, ni credential réel, ni workspace distant.
+
+Le workflow de déploiement installe la version `1.14.1`, qui figure dans cette matrice. Pour mettre le CLI à jour,
+modifier la matrice, le test de workflow et la version de déploiement dans la même pull request.
 
 Le workflow vérifie l’identité, valide le bundle, injecte le SHA du checkout dans `git_source.commit`, déploie, lance
 la ressource app, puis attend l’état `RUNNING`. Un déclenchement manuel accepte une branche, un tag ou un SHA dans

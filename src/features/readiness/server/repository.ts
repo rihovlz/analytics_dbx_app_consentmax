@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { DataSource } from "@/lib/config/data-access";
+import { quoteQualifiedIdentifier } from "@/lib/databricks/identifiers";
 import type { SqlExecutor } from "@/lib/databricks/types";
 import { buildSourceAccessQuery } from "@/features/readiness/server/queries";
 
@@ -14,7 +15,7 @@ export async function verifySourceAccess(
   await executor.query({
     name: "readiness-declared-sources",
     statement: buildSourceAccessQuery(sources.length),
-    parameters: sources.map((source) => source.fullName),
+    parameters: sources.map((source) => quoteQualifiedIdentifier(source.fullName)),
     rowSchema: emptyRowSchema,
     requestId,
     maxRows: 1,

@@ -2,6 +2,14 @@
 resources:
   apps:
     app:
+      name: ${var.app_name}
+      description: ${var.app_description}
+      compute_size: MEDIUM
+      permissions:
+        - group_name: ${var.can_manage_group}
+          level: CAN_MANAGE
+        - group_name: ${var.can_use_group}
+          level: CAN_USE
       resources:
         - name: sql-warehouse
           sql_warehouse:

@@ -55,6 +55,21 @@ const rawConfigSchema = z.object({
   DATABRICKS_SQL_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(300_000).default(30_000),
 });
 
+const appDisplayConfigSchema = rawConfigSchema.pick({
+  APP_MODE: true,
+  APP_NAME: true,
+  APP_DESCRIPTION: true,
+  APP_SUPPORT_NAME: true,
+  APP_SUPPORT_SLACK_URL: true,
+});
+
+export type AppDisplayConfig = {
+  mode: "demo" | "databricks";
+  appName: string;
+  appDescription: string;
+  supportContact: { name: string; slackUrl: string };
+};
+
 export type DemoConfig = {
   mode: "demo";
   appName: string;
@@ -81,6 +96,24 @@ export type DatabricksConfig = {
 };
 
 export type ServerConfig = DemoConfig | DatabricksConfig;
+
+export function parseAppDisplayConfig(
+  environment: Record<string, string | undefined> = process.env,
+): AppDisplayConfig {
+  const parsed = appDisplayConfigSchema.safeParse(environment);
+  if (!parsed.success) {
+    throw new ConfigurationError("Invalid application display configuration", parsed.error.flatten());
+  }
+  return {
+    mode: parsed.data.APP_MODE,
+    appName: parsed.data.APP_NAME,
+    appDescription: parsed.data.APP_DESCRIPTION,
+    supportContact: {
+      name: parsed.data.APP_SUPPORT_NAME,
+      slackUrl: parsed.data.APP_SUPPORT_SLACK_URL,
+    },
+  };
+}
 
 export function parseServerConfig(
   environment: Record<string, string | undefined> = process.env,

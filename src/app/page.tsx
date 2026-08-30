@@ -1,8 +1,8 @@
 import { ConnectionCheckCard } from "@/features/connection-check/connection-check-card";
-import { getServerConfig } from "@/lib/config/server-config";
+import { parseAppDisplayConfig } from "@/lib/config/server-config";
 
 export default function HomePage() {
-  const config = getServerConfig();
+  const config = parseAppDisplayConfig();
 
   return (
     <div className="space-y-6">

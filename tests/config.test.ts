@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { ConfigurationError } from "../src/lib/errors/app-error";
-import { parseServerConfig } from "../src/lib/config/server-config";
+import { parseAppDisplayConfig, parseServerConfig } from "../src/lib/config/server-config";
 
 test("defaults to an explicit credential-free demo mode", () => {
   const config = parseServerConfig({});
@@ -32,6 +32,18 @@ test("presets the direct Slack support contact used by FRAIM", () => {
   assert.deepEqual(config.supportContact, {
     name: "Alexis",
     slackUrl: "https://valiuz.slack.com/team/U01C3FT98HE",
+  });
+});
+
+test("builds display configuration without Databricks runtime variables", () => {
+  assert.deepEqual(parseAppDisplayConfig({ APP_MODE: "databricks" }), {
+    mode: "databricks",
+    appName: "Databricks App",
+    appDescription: "A reusable Databricks App",
+    supportContact: {
+      name: "Alexis",
+      slackUrl: "https://valiuz.slack.com/team/U01C3FT98HE",
+    },
   });
 });
 

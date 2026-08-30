@@ -101,7 +101,11 @@ test("app guide and feature generator create one complete vertical slice", async
   const navigation = await readFile(join(root, "src/components/app-shell/app-nav.tsx"), "utf8");
   assert.match(spec, /slug: daily-sales/);
   assert.match(query, /SUM\(`revenue`\)/);
-  assert.match(repository, /parameters: \[source\]/);
+  assert.match(repository, /parameters: \[quoteQualifiedIdentifier\(source\)\]/);
+  assert.match(
+    await readFile(join(root, "tests/daily-sales.test.ts"), "utf8"),
+    /`dev-dtm-media-pm`\.`analytics`\.`sales_daily`/,
+  );
   assert.match(navigation, /Ventes quotidiennes/);
   assert.match(await readFile(join(root, "tests/daily-sales.test.ts"), "utf8"), /deterministic demo value/);
 });

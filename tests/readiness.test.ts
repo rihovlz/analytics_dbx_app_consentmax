@@ -67,8 +67,8 @@ test("readiness binds a qualified source name as an identifier parameter", async
           "SELECT 1 AS accessible FROM IDENTIFIER(?) WHERE FALSE",
       );
       assert.deepEqual(options.parameters, [
-        "dev-dtm-media-pm.analytics.campaign_performance",
-        "dev-dtm-media-pm.analytics.campaign_budget",
+        "`dev-dtm-media-pm`.`analytics`.`campaign_performance`",
+        "`dev-dtm-media-pm`.`analytics`.`campaign_budget`",
       ]);
       assert.equal(options.maxRows, 1);
       return [];

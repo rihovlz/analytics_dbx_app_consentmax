@@ -34,5 +34,33 @@ jobs:
         run: npm run typecheck
       - name: Unit tests
         run: npm test
-      - name: Build
+      - name: Build without Databricks runtime variables
+        env:
+          APP_MODE: databricks
         run: npm run build
+
+  bundle-compatibility:
+    name: Databricks CLI ${{ matrix.cli_version }}
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        cli_version: ["0.295.0", "1.14.1"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Install Databricks CLI
+        uses: databricks/setup-cli@6bb7075f85b326f8b9ce160933dfe9bcd63c8121
+        with:
+          version: ${{ matrix.cli_version }}
+      - name: Validate initialized app bundles
+        run: npm run bundle:compatibility
