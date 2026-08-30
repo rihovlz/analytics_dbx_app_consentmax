@@ -3,12 +3,14 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { once } from "node:events";
-import { copyFile, lstat, mkdir, mkdtemp, readlink, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
+
+import { copyTrackedFiles, findRepositoryRoot, linkRepositoryNodeModules } from "./repository-fixture";
 
 const execFileAsync = promisify(execFile);
 const fixtureAppName = "ci-bundle-app";
@@ -96,29 +98,6 @@ async function runCommand(
       cause: error,
     });
   }
-}
-
-async function copyTrackedFiles(sourceRoot: string, fixtureRoot: string): Promise<void> {
-  const { stdout } = await runCommand("git", ["ls-files", "-z"], { cwd: sourceRoot });
-  const files = stdout.split("\0").filter(Boolean);
-  assert.ok(files.length > 0, "The compatibility check must run from a Git checkout.");
-
-  for (const file of files) {
-    const source = join(sourceRoot, file);
-    const destination = join(fixtureRoot, file);
-    await mkdir(dirname(destination), { recursive: true });
-    const metadata = await lstat(source);
-    if (metadata.isSymbolicLink()) {
-      await symlink(await readlink(source), destination);
-      continue;
-    }
-    await copyFile(source, destination);
-  }
-
-  const nodeModules = join(sourceRoot, "node_modules");
-  const nodeModulesMetadata = await lstat(nodeModules).catch(() => undefined);
-  assert.ok(nodeModulesMetadata?.isDirectory(), "Run npm ci before the bundle compatibility check.");
-  await symlink(nodeModules, join(fixtureRoot, "node_modules"), "dir");
 }
 
 async function startMockWorkspace(): Promise<MockWorkspace> {
@@ -216,13 +195,13 @@ async function initializeFixture(fixtureRoot: string, host: string): Promise<voi
 }
 
 export async function validateBundleCliCompatibility(): Promise<void> {
-  const sourceRootResult = await runCommand("git", ["rev-parse", "--show-toplevel"], { cwd: process.cwd() });
-  const sourceRoot = sourceRootResult.stdout.trim();
+  const sourceRoot = await findRepositoryRoot();
   const fixtureRoot = await mkdtemp(join(tmpdir(), "databricks-bundle-cli-"));
   const mockWorkspace = await startMockWorkspace();
 
   try {
     await copyTrackedFiles(sourceRoot, fixtureRoot);
+    await linkRepositoryNodeModules(sourceRoot, fixtureRoot);
     await initializeFixture(fixtureRoot, mockWorkspace.host);
     const configFile = join(fixtureRoot, ".databrickscfg");
     await writeFile(configFile, "", "utf8");
