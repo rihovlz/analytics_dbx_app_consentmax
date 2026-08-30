@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { parse } from "yaml";
 
 import { assertTemplateJourneyDoctor } from "../scripts/validate-template-journey";
 
@@ -23,4 +25,18 @@ test("rejects a failing doctor check or an incomplete journey", () => {
   failing.splice(4, 0, { status: "fail", name: "Accès aux données" });
   assert.throws(() => assertTemplateJourneyDoctor(failing), /must not report a failing check/);
   assert.throws(() => assertTemplateJourneyDoctor(doctorOutput("npm run feature:new -- <slug>")), /npm run check/);
+});
+
+test("runs the clean consumer journey after the standard CI checks", async () => {
+  const ci = parse(await readFile(".github/workflows/ci.yml", "utf8"));
+  const journey = ci.jobs["template-consumer-journey"];
+  assert.equal(journey.needs, "check");
+  assert.equal(journey["timeout-minutes"], 20);
+  assert.equal(
+    journey.steps.some((step: { run?: string }) => step.run === "npm run template:journey"),
+    true,
+  );
+
+  const packageJson = JSON.parse(await readFile("package.json", "utf8"));
+  assert.equal(packageJson.scripts["template:journey"], "node --import tsx scripts/validate-template-journey.ts");
 });

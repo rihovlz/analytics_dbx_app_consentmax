@@ -39,6 +39,24 @@ jobs:
           APP_MODE: databricks
         run: npm run build
 
+  template-consumer-journey:
+    name: Clean template consumer journey
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install journey runner
+        run: npm ci
+      - name: Validate a generated application
+        run: npm run template:journey
+
   bundle-compatibility:
     name: Databricks CLI ${{ matrix.cli_version }}
     needs: check
