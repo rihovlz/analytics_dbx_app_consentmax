@@ -168,6 +168,7 @@ l'app ne reçoit que `SELECT` sur la sortie.
 | `npm run test:databricks` | smoke SQL réel sur les sources déclarées, hors CI |
 | `npm run bundle:validate` | validation du bundle Databricks |
 | `npm run bundle:compatibility` | validation des bundles initialisés avec le Databricks CLI installé, sans workspace distant |
+| `npm run template:journey` | parcours complet dans une copie Git propre, avec installation et build de l'app générée |
 | `npm run app:provision -- --target prod --profile <profil>` | crée les ressources sans démarrer l'app |
 | `npm run app:smoke -- --app <app> --profile <profil>` | teste l'app déployée et ses accès SQL runtime |
 | `npm run app:doctor` | affiche les contrôles locaux et la prochaine action |
@@ -240,9 +241,11 @@ Action de déploiement utilise OIDC et des variables GitHub, sans secret Databri
 désactivé tant que `DATABRICKS_AUTO_DEPLOY` n’est pas `true`. Après l'état `RUNNING`, le workflow appelle `/api/health`
 et `/api/readiness` pour vérifier les accès réels du service principal de l'app.
 
-La CI initialise aussi une app temporaire et valide ses targets `dev` et `prod` avec le vrai Databricks CLI. La matrice
-couvre la version minimale `0.295.0` et la version de déploiement `1.14.1`. Un serveur HTTP local remplace le workspace.
-La validation n'utilise aucun credential réel et ne contacte pas Databricks.
+La CI exécute `npm run template:journey` après les contrôles standards. Cette commande crée une copie Git propre et
+exécute `npm ci`, `init-app`, `app:guide`, `data:init`, `feature:new`, `app:doctor` et `npm run check`.
+
+Un autre job initialise une app temporaire et valide ses targets `dev` et `prod` avec le vrai Databricks CLI. La
+matrice couvre les versions `0.295.0` et `1.14.1`. Ces deux jobs n'utilisent aucun credential Databricks réel.
 
 ## Troubleshooting
 

@@ -12,8 +12,8 @@
 6. Vérifier le workspace prérempli `https://3070470996474403.3.gcp.databricks.com`, le warehouse `team-da-poc`
    (`ab362e9710498a08`), le projet/schema, les groupes, les sources et le chemin bundle.
 7. Lancer `npm run app:doctor` puis `npm run check`.
-8. Ouvrir une pull request, laisser la CI valider le cadrage, les contrats data, lint, types, tests et build, puis
-   fusionner dans `main`.
+8. Ouvrir une pull request. Laisser la CI valider le checkout courant et une app générée dans une copie propre.
+   Fusionner ensuite dans `main`.
 9. Pour un contrat `notebook` ou `pipeline`, exécuter la préparation depuis la révision fusionnée et vérifier que sa
    table de sortie existe.
 10. Provisionner l'app une première fois afin que Databricks crée son service principal.
@@ -97,9 +97,13 @@ principal. Le principal CI doit pouvoir gérer les ressources du bundle, sans dr
 La CI construit l'app avec `APP_MODE=databricks`, sans les variables runtime. Le shell lit uniquement sa configuration
 publique pendant ce build. Databricks injecte le host et les credentials lorsque le serveur démarre.
 
-Un second job CI initialise une app temporaire avec une source déclarée. Il valide les targets `dev` et `prod` avec
+Un job CI exécute `npm run template:journey` après les contrôles standards. Il crée une copie Git propre et y exécute
+`npm ci`. Il initialise ensuite l'app, le cadrage, une source directe et une tranche KPI. Enfin, il exécute
+`app:doctor` et `npm run check`. Ce job n'utilise aucun workspace ou credential Databricks.
+
+Un autre job CI initialise une app temporaire avec une source déclarée. Il valide les targets `dev` et `prod` avec
 les versions `0.295.0` et `1.14.1` du Databricks CLI. Un serveur HTTP local fournit les réponses minimales du workspace.
-Le job n'utilise ni profil Databricks, ni credential réel, ni workspace distant.
+Ce job n'utilise ni profil Databricks, ni credential réel, ni workspace distant.
 
 Le workflow de déploiement installe la version `1.14.1`, qui figure dans cette matrice. Pour mettre le CLI à jour,
 modifier la matrice, le test de workflow et la version de déploiement dans la même pull request.
