@@ -60,8 +60,13 @@ utilise des sondes locales. Une sonde contrôle un fichier, un marqueur de fichi
 `init-app` crée `.valiuz-template.yml`. Cet état contient la version de départ et les capabilities héritées. Il ne
 contient aucune configuration Databricks, aucune donnée métier et aucun credential.
 
-`template:status`, `template:check` et `template:diff` sont des outils de développement. Next.js ne les importe pas.
-Databricks Apps ne les exécute pas au runtime. Le diff décrit une migration, mais il ne modifie pas les fichiers.
+`template:status`, `template:check`, `template:diff` et `template:release:check` sont des outils de développement.
+Next.js ne les importe pas. Databricks Apps ne les exécute pas au runtime. Le diff décrit une migration, mais il ne
+modifie pas les fichiers.
+
+Dans le repository source, `template:release:check` compare le checkout à une base Git. Un changement de comportement
+doit augmenter la version, déclarer un chemin de migration et inclure la revue du README et du guide des versions. Une
+app initialisée ignore ce bump : ses features métier ne changent pas la version du template dont elle est issue.
 
 Le champ `sourceCommit` fournit un point historique pour chaque version. Il ne prouve pas qu'une app reste identique à
 ce commit. Les sondes donnent le niveau de preuve local après les adaptations propres à l'app.
@@ -101,6 +106,13 @@ Cette séparation permet de créer la table avant que le bundle applicatif ne lu
 donner des droits d'écriture au service principal de l'app. Un contrat `direct` ne génère aucune ressource. Les modes
 `notebook` et `pipeline` restent adaptés aux transformations propres à l'app ; une donnée partagée par plusieurs apps
 doit être maintenue dans un data product distinct.
+
+Un contrat notebook peut limiter une reprise à une plage de dates. Une table temporaire fige la source du run. Le Job
+valide le grain, puis remplace la plage atomiquement et par nom de colonne. Il garde une seule exécution concurrente.
+Il applique aussi le timeout du contrat.
+
+Une architecture hot/cold appartient à un data product si elle conserve des données après leur rétention source.
+L'app conserve seulement un accès `SELECT` sur la sortie publiée.
 
 ## Erreurs et observabilité
 

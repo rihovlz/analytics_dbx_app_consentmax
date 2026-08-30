@@ -76,6 +76,19 @@ git diff --check
 
 Review the complete diff and final status. Report commands actually run; never claim an unexecuted check passed.
 
+## Feature Completion and Template Releases
+
+After every feature or fix that changes behavior, configuration, workflows, shared skills or operations, use
+`review-analytics-app-docs` before handoff. Apply the documentation corrections that belong to the authorized change;
+do not wait for the user to name the skill again.
+
+When `package.json` still has `name: __PACKAGE_NAME__`, also use `prepare-template-release` automatically. Compare the
+change with the branch base, decide patch/minor/major according to `docs/template-upgrades.md`, and update the manifest,
+capabilities, upgrade guide, version tests and documentation. Run `npm run template:release:check -- --base <ref>`.
+
+In an initialized application, do not bump the template version for a business feature. Update `.valiuz-template.yml`
+only after applying a declared template upgrade. Always report the version decision, including when no bump applies.
+
 ## Deployment and Git
 
 Use a feature branch and a pull request. Keep commits focused; do not commit generated `.next`, caches or credentials.
@@ -97,6 +110,7 @@ A change is done only when:
 - the selected data project, declared sources and generated least-privilege bindings agree;
 - user errors are understandable while technical causes remain in structured logs;
 - behavior changes have deterministic unit tests and docs reflect operational changes;
+- every template-source feature has an explicit SemVer decision, upgrade path and successful release check;
 - lint, typecheck, unit tests and production build pass;
 - remote changes were explicitly authorized and smoke-checked;
 - the final diff and status are understood and the handoff lists any unvalidated item.

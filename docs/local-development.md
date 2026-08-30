@@ -89,6 +89,22 @@ npm run data:prepare -- campaign-performance --profile valiuz-analytics-dev
 La commande demande `--confirm` avant de déployer le mini-bundle et d'exécuter le SQL d'écriture. La table de sortie est
 créée avec l'identité du développeur ; l'app ne recevra ensuite que `SELECT`.
 
+Si le contrat déclare `bounded-replace`, afficher une reprise avant de l'exécuter :
+
+```bash
+npm run data:replay -- campaign-performance \
+  --profile valiuz-analytics-dev \
+  --start-date 2026-08-01 \
+  --end-date 2026-08-07
+```
+
+La commande affiche la plage, sa limite, le jour finalisé, la couverture requise et le warehouse. Ajouter `--confirm`
+pour démarrer le Job déployé. La commande ne redéploie pas le mini-bundle. Les deux dates sont obligatoires. Un
+fingerprint du contrat et du SQL refuse un Job déployé depuis une autre révision avant sa lecture source.
+
+Avant le premier run, vérifier le type `DATE` et le pruning physique de la source. Adapter aussi les contrôles de
+complétude du staging au contrat métier.
+
 ## 3. Préparer la configuration locale
 
 Copier le modèle, puis renseigner uniquement des valeurs non secrètes :
@@ -179,6 +195,9 @@ Après vérification des cibles, ajouter `--confirm`. Ajouter `--prepare-data` u
 pipeline doivent être exécutés dans la même opération. La preview est volontairement limitée à la target `dev`, puis
 enchaîne le préflight distant, le déploiement de l'app et les smokes `/api/health` et `/api/readiness`, puis affiche
 l'URL validée.
+
+La preview refuse `--prepare-data` si un contrat utilise `bounded-replace`. Exécuter ce contrat séparément avec ses
+deux dates explicites.
 
 ## 7. Valider ou déployer un bundle dev
 

@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -28,6 +30,10 @@ jobs:
         run: npm ci
       - name: Validate template, guided app and data configuration
         run: npm run template:check && npm run app:spec:check && npm run data:access:check && npm run data:prepare:check
+      - name: Validate template release and documentation review
+        env:
+          TEMPLATE_RELEASE_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: npm run template:release:check
       - name: Lint
         run: npm run lint
       - name: Typecheck

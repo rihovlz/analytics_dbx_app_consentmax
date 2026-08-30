@@ -33,6 +33,18 @@ const operationalFiles = [
   ".valiuz-template.yml",
 ];
 
+type TemplateManifest = {
+  template: { currentVersion: string };
+  versions: Record<string, { extends?: string; capabilities: string[] }>;
+};
+
+function expectedCapabilities(manifest: TemplateManifest, version: string): string[] {
+  const release = manifest.versions[version];
+  assert.ok(release, `Template release ${version} must exist.`);
+  const inherited = release.extends ? expectedCapabilities(manifest, release.extends) : [];
+  return [...new Set([...inherited, ...release.capabilities])];
+}
+
 async function prepareRoot(prefix: string): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), prefix));
   for (const file of copiedFiles) {
@@ -101,17 +113,10 @@ test("bootstrap replaces all operational placeholders and keeps JSON valid", asy
   JSON.parse(await readFile(join(root, "package.json"), "utf8"));
   JSON.parse(await readFile(join(root, "package-lock.json"), "utf8"));
   const templateState = parse(await readFile(join(root, ".valiuz-template.yml"), "utf8"));
-  assert.equal(templateState.template.version, "1.1.0");
-  assert.deepEqual(templateState.capabilities, [
-    "guided-app-workflow",
-    "declared-data-access",
-    "optional-data-preparation",
-    "valiuz-app-shell",
-    "databricks-app-bundle",
-    "databricks-deployment-compatibility",
-    "clean-template-consumer-journey",
-    "template-version-tracking",
-  ]);
+  const manifest = parse(await readFile("template/manifest.yml", "utf8")) as TemplateManifest;
+  assert.equal(templateState.template.version, manifest.template.currentVersion);
+  assert.deepEqual(templateState.capabilities, expectedCapabilities(manifest, manifest.template.currentVersion));
+  assert.deepEqual(templateState.appliedUpgrades, []);
 });
 
 test("bootstrap uses the shared Valiuz workspace and SQL warehouse defaults", async () => {

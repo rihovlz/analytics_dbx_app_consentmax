@@ -36,6 +36,7 @@ const app = options.app ?? packageName;
 if (!/^[a-z0-9][a-z0-9-]*$/.test(app)) throw new Error("Provide an initialized app name with --app.");
 const { project, contracts } = await loadDataContracts(process.cwd());
 const prepared = contracts.filter((contract) => contract.mode !== "direct");
+const bounded = prepared.filter((contract) => contract.replay);
 stdout.write(
   [
     "Real-data preview plan:",
@@ -44,9 +45,15 @@ stdout.write(
     `App: ${app}`,
     `Data project: ${project}`,
     `Prepared datasets: ${prepared.length}`,
+    `Bounded datasets requiring explicit dates: ${bounded.length}`,
     `Run preparation now: ${options.prepareData ? "yes" : "no"}`,
   ].join("\n") + "\n",
 );
+if (options.prepareData && bounded.length > 0) {
+  throw new Error(
+    `preview:real cannot choose replay dates for bounded datasets: ${bounded.map((contract) => contract.name).join(", ")}. Run data:prepare for each dataset first.`,
+  );
+}
 run(process.execPath, ["scripts/app-doctor.mjs"]);
 if (!options.confirm) {
   stdout.write("No remote change made. Rerun with --confirm after reviewing this plan.\n");

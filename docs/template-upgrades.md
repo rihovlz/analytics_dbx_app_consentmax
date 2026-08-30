@@ -17,9 +17,11 @@ ni credential, ni configuration du workspace, ni donnée métier.
 | --- | --- | --- |
 | `1.0.0` | `05d914c6863c92304b1bc662e40c17e0f97b2c29` | Parcours guidé, accès déclarés, préparation optionnelle, shell Valiuz et bundle Databricks |
 | `1.1.0` | `5df063bd0dc7b3664f1bf2cbe624119ddf5568ac` | Compatibilité de déploiement, parcours consommateur propre et suivi de version |
+| `1.2.0` | `a1ed6bc333c8b8355641b17f74fe3ed0fb200815` | Historisation à coût borné et gouvernance automatique des releases et de la documentation |
 
-Le point historique sert à expliquer le changement. Le manifeste et ses sondes définissent le contrat réel de la
-version. Ils acceptent les adaptations métier qui conservent ce contrat.
+Le point historique est le SHA complet de la branche de base examinée pour préparer la version. Il sert à borner le
+diff, pas à reproduire seul le checkout final. Le manifeste et ses sondes définissent le contrat réel de la version.
+Ils acceptent les adaptations métier qui conservent ce contrat.
 
 ## Nouvelle app
 
@@ -31,12 +33,14 @@ npm run template:status
 npm run template:check
 ```
 
-Une nouvelle app reçoit la version `1.1.0`. `npm run check` inclut aussi `template:check`.
+Une nouvelle app reçoit la version `1.2.0`. `npm run check` inclut `template:check` et
+`template:release:check`. Le second reconnaît une app initialisée et n'exige aucun bump pour ses features métier.
 
 ## App copiée avant le suivi de version
 
-Créer une pull request dédiée à l'adoption du manifeste. Copier `template/`, `scripts/template-manifest.mjs` et
-`scripts/template-status.mjs`. Ajouter aussi les trois commandes `template:*` de `package.json`.
+Créer une pull request dédiée à l'adoption du manifeste. Copier `template/`, `scripts/template-manifest.mjs`,
+`scripts/template-status.mjs` et `scripts/check-template-release.mjs`. Ajouter aussi les commandes `template:*` de
+`package.json`.
 
 Contrôler la baseline `1.0.0` avant de créer l'état :
 
@@ -93,6 +97,51 @@ npm run template:status
 npm run app:doctor
 npm run check
 ```
+
+Une app `1.0.0` applique ensuite séparément le guide `1.1.0 → 1.2.0`. `template:status` propose la prochaine étape
+disponible au lieu de sauter une migration intermédiaire.
+
+## Passage de 1.1.0 à 1.2.0
+
+Afficher le guide sémantique :
+
+```bash
+npm run template:diff -- --from 1.1.0 --to 1.2.0
+```
+
+Appliquer les changements guidés sans remplacer les contrats data ou les adaptations métier de l'app. La reprise
+`bounded-replace` reste optionnelle à l'usage, mais ses garde-fous et son skill font partie du contrat `1.2.0`.
+
+Contrôler les capabilities avant de modifier l'état :
+
+```bash
+npm run template:check -- --to 1.2.0
+```
+
+Si ce contrôle réussit, modifier `.valiuz-template.yml` :
+
+- Remplacer `version: 1.1.0` par `version: 1.2.0`.
+- Ajouter `cost-aware-data-history` et `feature-release-governance` aux capabilities.
+- Ajouter `1.1.0-to-1.2.0` à `appliedUpgrades`.
+
+Exécuter ensuite `npm run template:status`, `npm run app:doctor` et `npm run check`.
+
+## Préparer la version après une feature du template
+
+`AGENTS.md` demande automatiquement les skills `prepare-template-release` et `review-analytics-app-docs` après un
+changement de comportement, de configuration, de workflow ou de skill partagé. Il n'est pas nécessaire de les nommer
+dans chaque session.
+
+Le contrôle déterministe utilise la branche ou le SHA de base :
+
+```bash
+npm run template:release:check -- --base origin/main
+```
+
+Il vérifie le bump SemVer, le `sourceCommit`, les capabilities, le guide direct, `README.md` et ce document. La CI lui
+transmet le SHA de base de la pull request ou du push. Par prudence, toute modification hors `README.md`, `docs/` et
+`tests/` demande une release ; le manifeste lui-même appartient au contrat. Le contrôle ne crée aucun commit, tag,
+pull request ou release.
 
 ## Limites du MVP
 

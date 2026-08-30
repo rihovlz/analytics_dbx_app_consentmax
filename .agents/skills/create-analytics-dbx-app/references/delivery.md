@@ -64,8 +64,13 @@ target `dev`. `--prepare-data` ajoute des écritures et ne doit être utilisé q
 Relire ensuite le diff complet, le statut final, la présence éventuelle de secrets ou de données sensibles, et la
 neutralité du repository vis-à-vis des assistants de développement.
 
-Utiliser `review-analytics-app-docs` avant la pull request lorsqu'une tranche modifie le comportement, la configuration,
-les routes, les sources, les droits ou l'exploitation de l'application.
+Utiliser automatiquement `review-analytics-app-docs` avant le handoff lorsqu'une tranche modifie le comportement, la
+configuration, les routes, les sources, les droits ou l'exploitation de l'application. Corriger les écarts
+documentaires qui appartiennent à la tranche autorisée.
+
+Dans le repository source du template (`package.json` conserve `__PACKAGE_NAME__`), utiliser aussi
+`prepare-template-release` après chaque feature ou correction de comportement. Dans une app initialisée, ne pas
+augmenter la version du template pour une feature métier.
 
 Utiliser `validate-analytics-kpis` lorsqu'une tranche ajoute ou modifie un KPI, un comparatif ou une conclusion
 chiffrée. Utiliser `test-analytics-app-e2e` pour un parcours utilisateur critique ou lorsqu'une interaction entre page,

@@ -2,7 +2,7 @@ schemaVersion: 1
 template:
   id: valiuz/analytics_dbx_app_template
   repository: https://github.com/valiuz/analytics_dbx_app_template
-  currentVersion: 1.1.0
+  currentVersion: 1.2.0
 requirements:
   node: ">=22.16 <23"
   databricksCli: ">=0.295.0"
@@ -24,6 +24,13 @@ versions:
       - databricks-deployment-compatibility
       - clean-template-consumer-journey
       - template-version-tracking
+  "1.2.0":
+    sourceCommit: a1ed6bc333c8b8355641b17f74fe3ed0fb200815
+    summary: Historisation à coût borné et gouvernance automatique des versions et de la documentation.
+    extends: 1.1.0
+    capabilities:
+      - cost-aware-data-history
+      - feature-release-governance
 capabilities:
   guided-app-workflow:
     since: 1.0.0
@@ -128,7 +135,58 @@ capabilities:
       - type: packageScript
         name: template:diff
         command: node scripts/template-status.mjs --diff
+  cost-aware-data-history:
+    since: 1.2.0
+    description: Génère et exécute des reprises Databricks bornées avec validation avant remplacement atomique.
+    probes:
+      - type: file
+        path: .agents/skills/design-cost-aware-data-history/SKILL.md
+      - type: fileContains
+        path: scripts/data-preparation.mjs
+        text: output retention and finalization lag exceed source retention
+      - type: fileContains
+        path: scripts/init-data.mjs
+        text: CREATE OR REPLACE TEMP TABLE
+      - type: fileContains
+        path: scripts/init-data.mjs
+        text: REPLACE WHERE
+      - type: fileContains
+        path: scripts/run-data-preparation.mjs
+        text: Bounded replay commands require both --start-date and --end-date.
+      - type: fileContains
+        path: scripts/run-data-preparation.mjs
+        text: --deployment_fingerprint
+      - type: fileContains
+        path: scripts/preview-real.mjs
+        text: preview:real cannot choose replay dates for bounded datasets
+      - type: fileContains
+        path: scripts/validate-bundle-cli.ts
+        text: assertDataBundleContract
+      - type: packageScript
+        name: data:replay
+        command: node scripts/run-data-preparation.mjs --run-only
+  feature-release-governance:
+    since: 1.2.0
+    description: Impose après chaque feature une décision SemVer, un guide de migration et une revue documentaire.
+    probes:
+      - type: file
+        path: .agents/skills/prepare-template-release/SKILL.md
+      - type: fileContains
+        path: AGENTS.md
+        text: prepare-template-release
+      - type: fileContains
+        path: .agents/skills/review-analytics-app-docs/SKILL.md
+        text: Lorsqu'une évolution de code est déjà autorisée
+      - type: packageScript
+        name: template:release:check
+        command: node scripts/check-template-release.mjs
+      - type: fileContains
+        path: .github/workflows/ci.yml
+        text: npm run template:release:check
 upgrades:
   - from: 1.0.0
     to: 1.1.0
     path: template/upgrades/1.0.0-to-1.1.0.yml
+  - from: 1.1.0
+    to: 1.2.0
+    path: template/upgrades/1.1.0-to-1.2.0.yml

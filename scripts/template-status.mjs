@@ -38,6 +38,16 @@ export function parseTemplateStatusOptions(args) {
   };
 }
 
+export function findNextTemplateUpgrade(manifest, from, currentVersion = manifest.template.currentVersion) {
+  return manifest.upgrades
+    .filter((candidate) => (
+      candidate.from === from
+      && compareVersions(candidate.to, from) > 0
+      && compareVersions(candidate.to, currentVersion) <= 0
+    ))
+    .sort((left, right) => compareVersions(left.to, right.to))[0];
+}
+
 async function isTemplateSource(root) {
   const packageJson = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
   return packageJson.name === "__PACKAGE_NAME__";
@@ -72,9 +82,7 @@ export async function inspectTemplateVersion(root, { verifyVersion } = {}) {
   }
   const currentVersion = manifest.template.currentVersion;
   const behind = effectiveVersion ? compareVersions(effectiveVersion, currentVersion) < 0 : false;
-  const upgrade = behind
-    ? manifest.upgrades.find((candidate) => candidate.from === effectiveVersion && candidate.to === currentVersion)
-    : undefined;
+  const upgrade = behind ? findNextTemplateUpgrade(manifest, effectiveVersion, currentVersion) : undefined;
   return {
     template: {
       id: manifest.template.id,
@@ -139,8 +147,18 @@ function printUpgrade(upgrade) {
 export async function runTemplateStatus(root, options) {
   const manifest = await loadTemplateManifest(root);
   if (options.diff) {
-    const from = options.from ?? "1.0.0";
-    const to = options.to ?? manifest.template.currentVersion;
+    const state = await loadTemplateState(root);
+    const stateUpgrade = state
+      ? findNextTemplateUpgrade(manifest, state.template.version)
+      : undefined;
+    const from = options.from
+      ?? (stateUpgrade ? state.template.version : undefined)
+      ?? manifest.versions[manifest.template.currentVersion].extends
+      ?? manifest.template.currentVersion;
+    const to = options.to
+      ?? stateUpgrade?.to
+      ?? findNextTemplateUpgrade(manifest, from)?.to
+      ?? manifest.template.currentVersion;
     const upgrade = await loadTemplateUpgrade(root, manifest, from, to);
     if (options.json) stdout.write(`${JSON.stringify(upgrade, null, 2)}\n`);
     else printUpgrade(upgrade);

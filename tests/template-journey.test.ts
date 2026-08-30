@@ -44,4 +44,15 @@ test("runs the clean consumer journey after the standard CI checks", async () =>
     ci.jobs.check.steps.some((step: { run?: string }) => step.run?.includes("npm run template:check")),
     true,
   );
+  assert.equal(
+    ci.jobs.check.steps.some((step: { run?: string }) => step.run === "npm run template:release:check"),
+    true,
+  );
+  assert.equal(
+    ci.jobs.check.steps.find(
+      (step: { uses?: string; with?: Record<string, unknown> }) => step.uses === "actions/checkout@v4",
+    )?.with?.["fetch-depth"],
+    0,
+  );
+  assert.equal(packageJson.scripts["template:release:check"], "node scripts/check-template-release.mjs");
 });

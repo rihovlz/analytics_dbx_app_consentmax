@@ -50,8 +50,8 @@ rien.
 
 ## Version du template
 
-`template/manifest.yml` donne la version courante et les capabilities du template. La version courante est `1.1.0`.
-La version `1.0.0` représente la baseline qui précède les évolutions du 30 août 2026.
+`template/manifest.yml` donne la version courante et les capabilities du template. La version courante est `1.2.0`.
+La version `1.0.0` représente la baseline initiale et `1.1.0` le premier parcours de mise à niveau suivi.
 
 `init-app` crée `.valiuz-template.yml` dans chaque nouvelle app. Ce fichier indique la version utilisée et les
 capabilities attendues. La version dans `package.json` reste la version du package applicatif. Elle est indépendante.
@@ -61,7 +61,8 @@ Ces commandes restent locales et ne modifient pas le code de l'app :
 ```bash
 npm run template:status
 npm run template:check
-npm run template:diff -- --from 1.0.0 --to 1.1.0
+npm run template:diff -- --from 1.1.0 --to 1.2.0
+npm run template:release:check -- --base origin/main
 ```
 
 Le diff est un guide sémantique. Il donne les fichiers, les changements et les commandes de validation. Il ne
@@ -95,13 +96,17 @@ Le repository fournit des workflows compatibles avec le standard ouvert Agent Sk
 | Skill | Usage |
 | --- | --- |
 | `create-analytics-dbx-app` | Créer le repository Valiuz, initialiser le clone, découvrir les sources Databricks et cadrer progressivement KPI, requêtes et fonctionnalités |
+| `design-cost-aware-data-history` | Concevoir une historisation avec reprise bornée ou hot/cold, sans imposer un recalcul complet |
 | `github-engineer` | Isoler une tâche dans une branche ou un worktree, publier une pull request et nettoyer prudemment le travail fusionné |
+| `prepare-template-release` | Décider la version SemVer d'une évolution du template et synchroniser manifeste, migration, tests et documentation |
 | `review-analytics-app-docs` | Comparer README, runbooks, manifests et workflows au code et à la configuration réels |
 | `test-analytics-app-e2e` | Planifier, écrire et diagnostiquer des parcours Playwright reproductibles en mode démo |
 | `validate-analytics-kpis` | Vérifier les contrats de données, calculs, risques statistiques et représentations des KPI |
 
-Depuis un checkout du template, demander à l'assistant d'utiliser le skill correspondant. Le bootstrap pose au maximum
-trois questions à la fois. Toute mutation GitHub ou Databricks demande une autorisation explicite.
+Les descriptions des skills permettent leur sélection implicite. `AGENTS.md` impose aussi
+`prepare-template-release` et `review-analytics-app-docs` à la fin d'une feature du template : il n'est pas nécessaire
+de les rappeler dans chaque session. Le bootstrap pose au maximum trois questions à la fois. Toute mutation GitHub ou
+Databricks demande une autorisation explicite.
 
 ## Infrastructure Valiuz préremplie
 
@@ -166,6 +171,29 @@ séparé sous `data/`. Relire le SQL, puis lancer explicitement `npm run data:pr
 déployer l'app. Les schedules restent en pause par défaut. L'identité de préparation écrit la table ; l'identité de
 l'app ne reçoit que `SELECT` sur la sortie.
 
+Un contrat borné demande aussi `--start-date` et `--end-date` pour chaque exécution manuelle.
+
+Un notebook peut déclarer `bounded-replace`. Le contrat fixe une colonne `DATE`, les fenêtres et le jour finalisé. Il
+distingue l'historique requis des rétentions source et sortie. La source doit couvrir la sortie et le délai finalisé.
+
+Le starter matérialise une tranche temporaire. Il contrôle le type `DATE`, les clés nulles et les doublons. Il publie
+ensuite la plage avec `BY NAME` et `REPLACE WHERE`. Vérifier le pruning physique et ajouter les contrôles métier avant
+le premier run. Une nouvelle sortie utilise le liquid clustering sur la date. Le calendrier du starter est fixé à
+`Europe/Paris` ; l'adapter avant le premier run si le contrat métier utilise un autre fuseau.
+
+Après le premier déploiement, afficher une reprise ciblée avec :
+
+```bash
+npm run data:replay -- <nom> \
+  --profile valiuz-analytics-dev \
+  --start-date 2026-08-01 \
+  --end-date 2026-08-07
+```
+
+Les deux dates sont obligatoires pour une exécution CLI. Ajouter `--confirm` seulement après la revue des cibles. La
+commande exécute le Job déployé sans redéployer le bundle. Un fingerprint du contrat et du SQL fait échouer le Job
+avant la lecture source si le checkout local ne correspond pas à la préparation déployée.
+
 ## Commandes
 
 | Commande | Usage |
@@ -185,6 +213,7 @@ l'app ne reçoit que `SELECT` sur la sortie.
 | `npm run data:prepare:render` | régénère le mini-bundle depuis les contrats data |
 | `npm run data:prepare:check` | vérifie les contrats et le mini-bundle de préparation |
 | `npm run data:prepare -- <nom> --confirm` | déploie et exécute une préparation data distante |
+| `npm run data:replay -- <nom> --start-date <date> --end-date <date> --confirm` | rejoue une plage autorisée sans redéployer le bundle |
 | `npm run databricks:check` | préflight en lecture seule du profil, warehouse, projet, schema et sources |
 | `npm run test:databricks` | smoke SQL réel sur les sources déclarées, hors CI |
 | `npm run bundle:validate` | validation du bundle Databricks |
@@ -193,6 +222,7 @@ l'app ne reçoit que `SELECT` sur la sortie.
 | `npm run template:status` | affiche la version de l'app et les capabilities trouvées |
 | `npm run template:check` | refuse un manifeste invalide ou une capability déclarée mais absente |
 | `npm run template:diff -- --from <version> --to <version>` | affiche le guide sémantique entre deux versions |
+| `npm run template:release:check -- --base <ref>` | refuse une feature du template sans version, migration et revue documentaire cohérentes |
 | `npm run app:provision -- --target prod --profile <profil>` | crée les ressources sans démarrer l'app |
 | `npm run app:smoke -- --app <app> --profile <profil>` | teste l'app déployée et ses accès SQL runtime |
 | `npm run app:doctor` | affiche les contrôles locaux et la prochaine action |
@@ -267,12 +297,13 @@ Action de déploiement utilise OIDC et des variables GitHub, sans secret Databri
 désactivé tant que `DATABRICKS_AUTO_DEPLOY` n’est pas `true`. Après l'état `RUNNING`, le workflow appelle `/api/health`
 et `/api/readiness` pour vérifier les accès réels du service principal de l'app.
 
-La CI exécute `npm run template:check` avec les contrôles standards. Elle exécute aussi `npm run template:journey`.
-Ce parcours crée une copie Git propre et exécute `npm ci`, `init-app`, `template:status`, `app:guide`, `data:init`,
-`feature:new`, `app:doctor` et `npm run check`.
+La CI exécute `template:check` et compare la release à la branche de base avec `template:release:check`. Elle refuse une
+feature du template sans décision SemVer, guide de migration, README et guide des versions mis à jour. Elle exécute
+aussi `npm run template:journey`. Ce parcours crée une copie Git propre et exécute `npm ci`, `init-app`,
+`template:status`, `app:guide`, `data:init`, `feature:new`, `app:doctor` et `npm run check`.
 
-Un autre job initialise une app temporaire et valide ses targets `dev` et `prod` avec le vrai Databricks CLI. La
-matrice couvre les versions `0.295.0` et `1.14.1`. Ces deux jobs n'utilisent aucun credential Databricks réel.
+Un autre job initialise une app et un contrat notebook borné temporaires. Il valide leurs bundles `dev` et `prod` avec
+le vrai Databricks CLI. La matrice couvre les versions `0.295.0` et `1.14.1`. Aucun credential Databricks réel n'est lu.
 
 ## Troubleshooting
 
