@@ -72,9 +72,27 @@ npm run data:prepare:check
 - `notebook` génère un notebook SQL source-format et un Lakeflow Job utilisant le warehouse configuré.
 - `pipeline` génère une materialized view dans une pipeline Lakeflow serverless, orchestrée par un Job.
 
-Les contrats sont versionnés sous `data/contracts/`. Ils définissent source, sortie, colonnes explicites, grain, clés,
-propriétaire, fraîcheur et fréquence. Les starters SQL évitent `SELECT *`; les adapter et exécuter manuellement les
-contrôles agrégés sous `data/tests/` dans un notebook ou l'éditeur SQL avant la première écriture.
+Les contrats sont versionnés sous `data/contracts/`. Ils définissent la source, la sortie, le grain, les clés, la
+fraîcheur, la fréquence et le timeout. Les starters SQL évitent `SELECT *`. Adapter le SQL avant la première écriture.
+
+Un notebook peut utiliser la stratégie `bounded-replace`. Dans ce cas, le contrat ajoute :
+
+- Une colonne déclarée `DATE` et présente dans la clé métier.
+- Une fenêtre normale pour le refresh.
+- Une fenêtre maximale de 366 jours.
+- Un délai qui définit le dernier jour finalisé.
+- La profondeur requise et les rétentions source et sortie.
+
+La rétention source est mesurée depuis la date courante. Elle doit couvrir la rétention de sortie et le délai finalisé.
+Sinon, utiliser un data product hot/cold. Le générateur ne vérifie pas le type et le pruning physique de la colonne.
+Les confirmer dans Databricks avant la première écriture.
+
+Le starter matérialise une table temporaire de session. Il contrôle le type, les clés nulles et le grain. Il publie
+ensuite avec `BY NAME` et `REPLACE WHERE`. Le Job applique `max_concurrent_runs: 1` et un timeout non nul. Vérifier que
+le SQL Warehouse prend en charge les tables temporaires de session.
+
+Une nouvelle sortie Delta utilise le liquid clustering sur la colonne de date. Pour une sortie existante, vérifier le
+provider, le schéma et le layout. Le starter ne modifie pas automatiquement une table existante.
 
 Le mini-bundle `data/databricks.yml` est séparé du bundle applicatif pour respecter cet ordre :
 
@@ -88,6 +106,38 @@ Le mini-bundle `data/databricks.yml` est séparé du bundle applicatif pour resp
 npm run data:prepare -- <nom> --profile valiuz-analytics-dev
 npm run data:prepare -- <nom> --profile valiuz-analytics-dev --confirm
 ```
+
+Pour `bounded-replace`, ajouter `--start-date` et `--end-date` aux deux commandes. La CLI refuse une exécution manuelle
+sans ces deux bornes.
+
+Après ce déploiement, exécuter seulement une plage autorisée :
+
+```bash
+npm run data:replay -- <nom> \
+  --profile valiuz-analytics-dev \
+  --start-date 2026-08-01 \
+  --end-date 2026-08-07
+npm run data:replay -- <nom> \
+  --profile valiuz-analytics-dev \
+  --start-date 2026-08-01 \
+  --end-date 2026-08-07 \
+  --confirm
+```
+
+La première commande ne modifie rien. La seconde démarre le Job déjà déployé. Elle ne déploie pas le bundle.
+Les deux dates sont obligatoires dans la CLI. Le Job planifié utilise sa fenêtre normale et le dernier jour finalisé.
+Exécuter `data:replay` depuis la même révision que le dernier `data:prepare`. Le bundle enregistre un fingerprint du
+contrat et du SQL dans les paramètres du Job. Le notebook le compare à la valeur locale avant de lire la source. Si le
+contrat ou le SQL a changé, la reprise échoue et demande un nouveau `data:prepare`.
+
+Le notebook et les schedules générés utilisent `Europe/Paris`. Confirmer que ce fuseau correspond au calendrier
+métier ; sinon, adapter le starter et ses tests avant le premier déploiement.
+
+Le chargement initial utilise des plages contiguës limitées par `maxDays`. La commande n'enregistre pas de checkpoint.
+Réconcilier la couverture complète avant de connecter la sortie à l'app.
+
+Utiliser un data product hot/cold si la source expire ou si plusieurs apps utilisent l'historique. Ne pas copier les
+notebooks d'un autre projet dans l'app. Conserver l'identité d'écriture dans le data product.
 
 Les schedules `hourly` et `daily` restent `PAUSED`. `--activate-schedule` les passe à `UNPAUSED` lors d'un déploiement
 explicitement confirmé ; ce choix s'applique à toutes les préparations planifiées du mini-bundle. Pour une app interne
@@ -108,9 +158,9 @@ métadonnées des sources déclarées. `npm run test:databricks` exécute ensuit
 les sources dans une requête paramétrée avec `WHERE FALSE`. Ce test d'intégration ne retourne aucune ligne et reste
 séparé de `npm test`, afin que la CI unitaire ne dépende pas d'un workspace ou d'un warehouse actif.
 
-`npm run bundle:compatibility` valide un autre contrat. Cette commande initialise une app temporaire avec une source
-directe. Le Databricks CLI valide ensuite les targets `dev` et `prod` contre un serveur HTTP local. La commande ne lit
-aucun profil Databricks et ne contacte aucun workspace distant.
+`npm run bundle:compatibility` initialise une app temporaire et un contrat notebook borné. Le Databricks CLI valide les
+bundles app et data pour les targets `dev` et `prod` contre un serveur HTTP local. La commande ne lit aucun profil
+Databricks et ne contacte aucun workspace distant.
 
 ## Secrets additionnels
 

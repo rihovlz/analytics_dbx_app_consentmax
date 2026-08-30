@@ -77,6 +77,33 @@ export function assertBundleContract(value: unknown, target: "dev" | "prod"): vo
   assert.equal(gitSource.commit, "0000000000000000000000000000000000000000");
 }
 
+function assertDataBundleContract(value: unknown, target: "dev" | "prod"): void {
+  const output = asRecord(value, "data CLI output");
+  const bundle = asRecord(output.bundle, "data bundle");
+  assert.equal(bundle.name, `${fixtureAppName}-data`);
+  assert.equal(bundle.target, target);
+
+  const resources = asRecord(output.resources, "data resources");
+  const jobs = asRecord(resources.jobs, "data resources.jobs");
+  assert.deepEqual(Object.keys(jobs), ["prepare_bundle_source"]);
+  const job = asRecord(jobs.prepare_bundle_source, "bounded replay job");
+  assert.equal(job.max_concurrent_runs, 1);
+  const parameters = asArray(job.parameters, "bounded replay job parameters").map((parameter, index) =>
+    asRecord(parameter, `bounded replay job parameters[${index}]`),
+  );
+  assert.deepEqual(
+    parameters.map((parameter) => parameter.name),
+    ["replay_start_date", "replay_end_date", "deployment_fingerprint"],
+  );
+  assert.match(String(parameters[2].default), /^[0-9a-f]{64}$/);
+  const tasks = asArray(job.tasks, "bounded replay job tasks").map((task, index) =>
+    asRecord(task, `bounded replay job tasks[${index}]`),
+  );
+  assert.equal(tasks.length, 1);
+  assert.equal(tasks[0].timeout_seconds, 3_600);
+  assert.equal(typeof tasks[0].notebook_task, "object");
+}
+
 async function runCommand(
   command: string,
   args: string[],
@@ -183,11 +210,24 @@ async function initializeFixture(fixtureRoot: string, host: string): Promise<voi
       "scripts/init-data.mjs",
       "bundle-source",
       "--non-interactive",
-      "--mode", "direct",
-      "--source", "dev-dtm-operating.analytics.bundle_source",
+      "--mode", "notebook",
+      "--source", "dev-dtm-operating.raw.bundle_source",
+      "--output", "dev-dtm-operating.analytics.bundle_source",
+      "--columns", "event_date,entity_id,value",
+      "--keys", "event_date,entity_id",
       "--purpose", "Validate the generated data binding",
       "--owner", "Analytics",
-      "--grain", "One synthetic row",
+      "--grain", "One synthetic row per date and entity",
+      "--refresh", "daily",
+      "--timeout-minutes", "60",
+      "--replay-strategy", "bounded-replace",
+      "--date-column", "event_date",
+      "--default-lookback-days", "7",
+      "--max-replay-days", "31",
+      "--finalization-lag-days", "1",
+      "--required-history-days", "365",
+      "--output-retention-days", "365",
+      "--source-retention-days", "730",
     ],
     { cwd: fixtureRoot },
   );
@@ -221,6 +261,13 @@ export async function validateBundleCliCompatibility(): Promise<void> {
       });
       if (result.stderr) process.stderr.write(result.stderr);
       assertBundleContract(JSON.parse(result.stdout), target);
+
+      const dataResult = await runCommand(cli, ["bundle", "validate", "--target", target, "--output", "json"], {
+        cwd: join(fixtureRoot, "data"),
+        env: cliEnvironment,
+      });
+      if (dataResult.stderr) process.stderr.write(dataResult.stderr);
+      assertDataBundleContract(JSON.parse(dataResult.stdout), target);
     }
 
     assert.deepEqual(mockWorkspace.unhandledRequests, [], "The CLI called an endpoint missing from the local mock.");

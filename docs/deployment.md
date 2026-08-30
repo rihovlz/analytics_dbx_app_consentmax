@@ -30,10 +30,12 @@ Conserver les adaptations métier de l'app. Ne remplacer aucun dossier complet a
 
 1. Lire [template-upgrades.md](template-upgrades.md).
 2. Déclarer la baseline réelle dans `.valiuz-template.yml`.
-3. Exécuter `npm run template:diff -- --from 1.0.0 --to 1.1.0`.
-4. Appliquer chaque changement guidé dans une branche dédiée.
-5. Exécuter `npm run template:check -- --to 1.1.0` avant de modifier l'état de l'app.
-6. Mettre `.valiuz-template.yml` à `1.1.0`, puis exécuter `npm run check`.
+3. Si l'app est en `1.0.0`, appliquer d'abord le guide `1.0.0 → 1.1.0` et valider cet état.
+4. Exécuter `npm run template:diff -- --from 1.1.0 --to 1.2.0`.
+5. Appliquer chaque changement guidé dans une branche dédiée.
+6. Exécuter `npm run template:check -- --to 1.2.0` avant de modifier l'état de l'app.
+7. Mettre `.valiuz-template.yml` à `1.2.0`, ajouter les capabilities et l'upgrade appliquée, puis exécuter
+   `npm run check`.
 
 Le diff ne contacte ni GitHub ni Databricks. Les commandes de déploiement restent des mutations distantes distinctes.
 
@@ -65,6 +67,9 @@ Il est limité à `dev`, exécute ensuite le préflight distant, déploie et lan
 autorise aussi l'exécution de toutes les préparations notebook/pipeline déclarées ; ne pas l'ajouter pour une app en
 lecture directe.
 
+`--prepare-data` refuse les contrats `bounded-replace`. Exécuter ceux-ci séparément avec des dates explicites avant la
+preview. La commande globale ne choisit jamais une plage historique pour le mainteneur.
+
 ## Préparation data avant l'app
 
 Une préparation `notebook` ou `pipeline` est un SQL d'écriture et utilise son propre mini-bundle. L'afficher puis
@@ -79,6 +84,28 @@ La première commande ne modifie rien. La seconde valide et déploie `data/datab
 schedules en pause. Vérifier la sortie avant d'utiliser `--activate-schedule`. Le workflow applicatif ne redéploie pas
 ce mini-bundle : pour une app interne mono-mainteneur, la préparation évolue explicitement lorsque son contrat ou son
 SQL change.
+
+Ajouter `--start-date` et `--end-date` aux deux commandes pour un contrat `bounded-replace`.
+
+Pour un contrat `bounded-replace`, une reprise ultérieure ne déploie pas le bundle :
+
+```bash
+npm run data:replay -- <contrat> \
+  --target dev \
+  --profile valiuz-analytics-dev \
+  --start-date 2026-08-01 \
+  --end-date 2026-08-07
+```
+
+Examiner le plan. Ajouter `--confirm` pour démarrer le Job. La plage doit rester dans la limite du contrat.
+Les deux dates sont obligatoires. Le plan affiche aussi le warehouse attendu par le bundle local, le jour finalisé et
+la couverture requise. En reprise seule, il indique explicitement que le warehouse et le schedule du Job déployé ne
+sont pas interrogés. Vérifier ces réglages dans Databricks si leur état réel intervient dans la décision d'exécution.
+Exécuter cette commande depuis la révision du dernier `data:prepare`. Le fingerprint du contrat et du SQL fait échouer
+le Job avant sa lecture source si la préparation déployée diffère. Après un changement, redéployer avec `data:prepare`.
+
+Le premier `data:prepare` demande la même plage explicite. Charger les autres plages avec `data:replay`. Garder le
+schedule en pause jusqu'à la réconciliation de toute la couverture. Le starter ne conserve pas de checkpoint.
 
 ## Premier provisioning
 
@@ -111,14 +138,14 @@ principal. Le principal CI doit pouvoir gérer les ressources du bundle, sans dr
 La CI construit l'app avec `APP_MODE=databricks`, sans les variables runtime. Le shell lit uniquement sa configuration
 publique pendant ce build. Databricks injecte le host et les credentials lorsque le serveur démarre.
 
-Le job principal exécute `npm run template:check`. Un autre job exécute `npm run template:journey` après ces contrôles.
-Il crée une copie Git propre et y exécute `npm ci`. Il initialise ensuite l'app, son état de template, le cadrage, une
-source directe et une tranche KPI. Enfin, il exécute `app:doctor` et `npm run check`. Ce job n'utilise aucun workspace
-ou credential Databricks.
+Le job principal exécute `npm run template:check` puis `npm run template:release:check` face au SHA de base de la pull
+request ou du push. Un autre job exécute `npm run template:journey` après ces contrôles. Il crée une copie Git propre et
+y exécute `npm ci`. Il initialise ensuite l'app, son état de template, le cadrage, une source directe et une tranche
+KPI. Enfin, il exécute `app:doctor` et `npm run check`. Ce job n'utilise aucun workspace ou credential Databricks.
 
-Un autre job CI initialise une app temporaire avec une source déclarée. Il valide les targets `dev` et `prod` avec
-les versions `0.295.0` et `1.14.1` du Databricks CLI. Un serveur HTTP local fournit les réponses minimales du workspace.
-Ce job n'utilise ni profil Databricks, ni credential réel, ni workspace distant.
+Un autre job CI initialise une app temporaire avec un contrat notebook borné. Il valide les bundles app et data pour
+les targets `dev` et `prod`. La matrice utilise les versions `0.295.0` et `1.14.1` du Databricks CLI. Un serveur HTTP
+local fournit les réponses minimales. Ce job n'utilise ni profil, ni credential réel, ni workspace distant.
 
 Le workflow de déploiement installe la version `1.14.1`, qui figure dans cette matrice. Pour mettre le CLI à jour,
 modifier la matrice, le test de workflow et la version de déploiement dans la même pull request.

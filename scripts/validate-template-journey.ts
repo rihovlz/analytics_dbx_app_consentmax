@@ -58,6 +58,7 @@ function fixtureEnvironment(): NodeJS.ProcessEnv {
     "DATABRICKS_CONFIG_PROFILE",
     "DATABRICKS_HOST",
     "DATABRICKS_TOKEN",
+    "GIT_INDEX_FILE",
   ]) {
     delete environment[name];
   }
@@ -172,9 +173,10 @@ async function inspectGeneratedApp(fixtureRoot: string, environment: NodeJS.Proc
     maxBuffer: 4 * 1024 * 1024,
   });
   const template = asRecord(JSON.parse(templateStatus.stdout), "template:status output");
+  const templateContract = asRecord(template.template, "template:status template");
   const instance = asRecord(template.instance, "template:status instance");
   assert.equal(instance.kind, "tracked");
-  assert.equal(instance.version, "1.1.0");
+  assert.equal(instance.version, templateContract.currentVersion);
   assert.equal(instance.behind, false);
   assert.deepEqual(
     asArray(template.capabilities, "template:status capabilities")
@@ -199,7 +201,10 @@ async function inspectGeneratedApp(fixtureRoot: string, environment: NodeJS.Proc
     await readFile(join(fixtureRoot, "src/features/journey-kpi/server/queries.ts"), "utf8"),
     /SUM\(`amount`\)/,
   );
-  assert.match(await readFile(join(fixtureRoot, ".valiuz-template.yml"), "utf8"), /version: 1\.1\.0/);
+  assert.match(
+    await readFile(join(fixtureRoot, ".valiuz-template.yml"), "utf8"),
+    new RegExp(`version: ${String(templateContract.currentVersion).replaceAll(".", "\\.")}`),
+  );
   process.stdout.write("template:status, app:doctor and the generated vertical slice satisfy the journey contract.\n");
 }
 

@@ -6,8 +6,9 @@ description: Auditer la documentation d'une application analytics Databricks fac
 # Mission
 
 Vérifier que `README.md` et `docs/` décrivent fidèlement l'application, son architecture, sa configuration et son
-exploitation. Produire un rapport factuel et actionnable. Rester en lecture seule, sauf si l'utilisateur demande
-explicitement d'appliquer les corrections documentaires.
+exploitation. Produire un rapport factuel et actionnable. Pour une demande d'audit seule, rester en lecture seule.
+Lorsqu'une évolution de code est déjà autorisée et que ce skill termine cette évolution, appliquer les corrections
+documentaires minimales qui appartiennent au même périmètre.
 
 # Établir la source de vérité
 

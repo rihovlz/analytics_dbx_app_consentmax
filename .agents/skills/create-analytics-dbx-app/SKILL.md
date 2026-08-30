@@ -19,6 +19,8 @@ par tranches verticales testables.
   [references/data-discovery.md](references/data-discovery.md).
 - Pour choisir entre lecture directe, notebook batch et pipeline Lakeflow, lire
   [references/data-preparation.md](references/data-preparation.md).
+- Pour conserver un historique ou rejouer une plage avec un coût borné, utiliser le skill
+  `design-cost-aware-data-history`.
 - Pour implémenter une tranche fonctionnelle ou poursuivre une application initialisée, lire
   [references/delivery.md](references/delivery.md).
 

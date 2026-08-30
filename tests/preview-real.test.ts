@@ -58,4 +58,56 @@ test("real preview requires an explicit confirmation before remote changes", asy
   assert.equal(result.status, 2, result.stderr);
   assert.match(result.stdout, /No remote change made/);
   assert.doesNotMatch(result.stdout, /bundle deploy/);
+
+  await writeFile(
+    join(root, "config/data-access.json"),
+    JSON.stringify({
+      project: "dev-dtm-media-pm",
+      sources: [
+        {
+          name: "history",
+          fullName: "dev-dtm-media-pm.analytics.history",
+          purpose: "Validate explicit replay dates",
+        },
+      ],
+    }),
+    "utf8",
+  );
+  await writeFile(
+    join(root, "data/contracts/history.yml"),
+    [
+      "version: 1",
+      "name: history",
+      "mode: notebook",
+      "appSource: history",
+      "source: dev-dtm-media-pm.raw.sales",
+      "output: dev-dtm-media-pm.analytics.history",
+      "columns: [sale_date, store_id, revenue]",
+      "owner: Analytics",
+      "purpose: Validate explicit replay dates",
+      "grain: One row per date and store",
+      "keys: [sale_date, store_id]",
+      "refresh: manual",
+      "freshnessHours: 24",
+      "timeoutMinutes: 60",
+      "replay:",
+      "  strategy: bounded-replace",
+      "  dateColumn: sale_date",
+      "  defaultLookbackDays: 7",
+      "  maxDays: 31",
+      "  finalizationLagDays: 1",
+      "  requiredHistoryDays: 365",
+      "  outputRetentionDays: 365",
+      "  sourceRetentionDays: 730",
+      "",
+    ].join("\n"),
+    "utf8",
+  );
+  const bounded = spawnSync(process.execPath, ["scripts/preview-real.mjs", "--prepare-data"], {
+    cwd: root,
+    encoding: "utf8",
+    env: { ...process.env, PATH: "" },
+  });
+  assert.equal(bounded.status, 1);
+  assert.match(bounded.stderr, /cannot choose replay dates for bounded datasets/);
 });
