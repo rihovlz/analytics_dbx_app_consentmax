@@ -31,11 +31,13 @@ Conserver les adaptations métier de l'app. Ne remplacer aucun dossier complet a
 1. Lire [template-upgrades.md](template-upgrades.md).
 2. Déclarer la baseline réelle dans `.valiuz-template.yml`.
 3. Si l'app est en `1.0.0`, appliquer d'abord le guide `1.0.0 → 1.1.0` et valider cet état.
-4. Exécuter `npm run template:diff -- --from 1.1.0 --to 1.2.0`.
-5. Appliquer chaque changement guidé dans une branche dédiée.
-6. Exécuter `npm run template:check -- --to 1.2.0` avant de modifier l'état de l'app.
-7. Mettre `.valiuz-template.yml` à `1.2.0`, ajouter les capabilities et l'upgrade appliquée, puis exécuter
-   `npm run check`.
+4. Si l'app est en `1.1.0`, appliquer ensuite le guide `1.1.0 → 1.2.0` et valider cet état.
+5. Exécuter `npm run template:diff -- --from 1.2.0 --to 1.3.0`.
+6. Appliquer chaque changement guidé dans une branche dédiée, sans remplacer les composants métier, la navigation ou
+   les styles propres à l'app.
+7. Exécuter `npm run template:check -- --to 1.3.0` avant de modifier l'état de l'app.
+8. Mettre `.valiuz-template.yml` à `1.3.0`, ajouter `reusable-analytics-visualizations` et l'upgrade appliquée, puis
+   exécuter `npm run check`.
 
 Le diff ne contacte ni GitHub ni Databricks. Les commandes de déploiement restent des mutations distantes distinctes.
 

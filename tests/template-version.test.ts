@@ -6,9 +6,9 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 import { parse } from "yaml";
 
-test("declares the historical baselines and the current 1.2.0 template", async () => {
+test("declares the historical baselines and the current 1.3.0 template", async () => {
   const manifest = parse(await readFile("template/manifest.yml", "utf8"));
-  assert.equal(manifest.template.currentVersion, "1.2.0");
+  assert.equal(manifest.template.currentVersion, "1.3.0");
   assert.equal(manifest.versions["1.0.0"].sourceCommit, "05d914c6863c92304b1bc662e40c17e0f97b2c29");
   assert.equal(manifest.versions["1.1.0"].sourceCommit, "5df063bd0dc7b3664f1bf2cbe624119ddf5568ac");
   assert.equal(manifest.versions["1.1.0"].extends, "1.0.0");
@@ -18,12 +18,17 @@ test("declares the historical baselines and the current 1.2.0 template", async (
     "cost-aware-data-history",
     "feature-release-governance",
   ]);
+  assert.equal(manifest.versions["1.3.0"].sourceCommit, "08058f189790546146dabec88a6a0897568b55e9");
+  assert.equal(manifest.versions["1.3.0"].extends, "1.2.0");
+  assert.deepEqual(manifest.versions["1.3.0"].capabilities, [
+    "reusable-analytics-visualizations",
+  ]);
 });
 
 test("verifies the source capabilities and exposes the latest upgrade by default", () => {
   const status = JSON.parse(execFileSync(process.execPath, ["scripts/template-status.mjs", "--json"], { encoding: "utf8" }));
   assert.notEqual(status.instance.kind, "legacy");
-  assert.equal(status.instance.effectiveVersion, "1.2.0");
+  assert.equal(status.instance.effectiveVersion, "1.3.0");
   assert.equal(status.capabilities.every((capability: { ok: boolean }) => capability.ok), true);
 
   const upgrade = JSON.parse(execFileSync(
@@ -34,17 +39,16 @@ test("verifies the source capabilities and exposes the latest upgrade by default
   assert.deepEqual(
     upgrade.changes.map((change: { id: string }) => change.id),
     [
-      "cost-aware-data-history-skill",
-      "bounded-data-replay",
-      "automatic-feature-release-review",
-      "template-version-1-2",
+      "visualization-foundations",
+      "reusable-analytics-visualizations",
+      "visualization-demo-route",
+      "template-version-1-3",
     ],
   );
   assert.deepEqual(upgrade.validation, [
     "npm run template:status",
-    "npm run template:check -- --to 1.2.0",
+    "npm run template:check -- --to 1.3.0",
     "npm run template:release:check -- --base origin/main",
-    "npm run data:prepare:check",
     "npm run app:doctor",
     "npm run check",
   ]);
@@ -150,13 +154,14 @@ test("reports a tracked 1.0.0 app and rejects missing 1.1.0 capabilities", async
   assert.match(target.stderr, /3 template capability check\(s\) failed/);
 });
 
-test("offers the 1.2.0 upgrade to a tracked 1.1.0 app", async () => {
+test("offers sequential upgrades to a tracked 1.1.0 app", async () => {
   const root = await mkdtemp(join(tmpdir(), "template-version-1-1-"));
   for (const file of [
     "scripts/template-manifest.mjs",
     "scripts/template-status.mjs",
     "template/manifest.yml",
     "template/upgrades/1.1.0-to-1.2.0.yml",
+    "template/upgrades/1.2.0-to-1.3.0.yml",
   ]) {
     const destination = join(root, file);
     await mkdir(dirname(destination), { recursive: true });
@@ -208,16 +213,39 @@ test("offers the 1.2.0 upgrade to a tracked 1.1.0 app", async () => {
       "  id: valiuz/analytics_dbx_app_template",
       "  repository: https://github.com/valiuz/analytics_dbx_app_template",
       "  version: 1.2.0",
-      "capabilities: []",
-      "appliedUpgrades: []",
+      "capabilities:",
+      "  - guided-app-workflow",
+      "  - declared-data-access",
+      "  - optional-data-preparation",
+      "  - valiuz-app-shell",
+      "  - databricks-app-bundle",
+      "  - databricks-deployment-compatibility",
+      "  - clean-template-consumer-journey",
+      "  - template-version-tracking",
+      "  - cost-aware-data-history",
+      "  - feature-release-governance",
+      "appliedUpgrades:",
+      "  - 1.0.0-to-1.1.0",
+      "  - 1.1.0-to-1.2.0",
       "",
     ].join("\n"),
     "utf8",
   );
+  const nextStatus = JSON.parse(execFileSync(process.execPath, ["scripts/template-status.mjs", "--json"], {
+    cwd: root,
+    encoding: "utf8",
+  }));
+  assert.equal(nextStatus.instance.version, "1.2.0");
+  assert.deepEqual(nextStatus.upgrade, {
+    from: "1.2.0",
+    to: "1.3.0",
+    path: "template/upgrades/1.2.0-to-1.3.0.yml",
+  });
+
   const latestDiff = JSON.parse(execFileSync(
     process.execPath,
     ["scripts/template-status.mjs", "--diff", "--json"],
     { cwd: root, encoding: "utf8" },
   ));
-  assert.equal(latestDiff.id, "1.1.0-to-1.2.0");
+  assert.equal(latestDiff.id, "1.2.0-to-1.3.0");
 });

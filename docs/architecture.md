@@ -23,7 +23,7 @@ Databricks SQL Warehouse → Unity Catalog
 ## Boundaries
 
 - `src/app` compose les pages et expose les endpoints ; aucune requête SQL n’y vit.
-- `src/components` contient uniquement des composants génériques.
+- `src/components` contient le shell, les états et les visualisations génériques.
 - `src/features` contient les vertical slices fonctionnelles. Les modules sous `server/` ne sont importés que par le
   serveur.
 - `src/lib` est le socle réutilisable. Il ne connaît aucun KPI, table ou vocabulaire métier.
@@ -86,6 +86,70 @@ Les couleurs et la typographie sont centralisées dans `globals.css` et `tailwin
 Outfit, conserve l'icône Valiuz à sa taille numérique minimale et réserve le gradient à une ligne ou une forme
 d'accent. Les règles applicables aux pages métier et aux graphiques sont documentées dans `docs/design-system.md`.
 
+Les tokens `--chart-*` séparent les couleurs de tracé des couleurs de marque. Le token `--focus-ring` conserve un
+focus visible dans chaque thème et dans la portée claire du header.
+
+Le shell propose les thèmes clair, système et sombre. Le navigateur stocke le choix sous `analytics-theme`. Un script
+du layout applique le choix explicite avant l’hydratation. Sans choix explicite, les tokens suivent
+`prefers-color-scheme`.
+
+Le header reste dans la portée claire `brand-header-surface` pour protéger le contraste du logo officiel. Le reste de
+l’application utilise les tokens du thème actif.
+
+## Bibliothèque de visualisation
+
+`src/components/data-visualization/index.ts` est le point d’entrée public. Il exporte les composants, les types d’état,
+les tons et les fonctions de formatage.
+
+```text
+Page ou feature serveur
+  → données et formats sérialisables
+  → @/components/data-visualization
+  → feuilles interactives clientes
+  → cards + kpi + charts + maps
+  → Framer Motion + Recharts + D3 Geo
+```
+
+Les dossiers ont des responsabilités distinctes :
+
+- `cards` fournit la surface `DataCard`.
+- `kpi` fournit les grands nombres, les tendances, les jauges et les grilles de métriques.
+- `charts` fournit les sparklines, les séries temporelles et les états partagés.
+- `maps` fournit la carte SVG choroplèthe, les repères, le zoom et le tableau accessible.
+- `data-visualization` fournit le point d’entrée public, les types et le formatage.
+
+`NumberFormat` décrit les options de `Intl.NumberFormat`. `AxisValueFormat` décrit un axe texte, numérique ou date.
+Ces formats contiennent uniquement des données sérialisables. L’API ne déclare aucune prop de callback.
+
+Une page serveur peut donc composer la bibliothèque. Les feuilles interactives s’exécutent côté client avec les
+propriétés transmises par React Server Components. Elles n’importent ni configuration serveur, ni repository, ni
+client Databricks.
+
+Le type `VisualizationState` distingue `ready`, `loading`, `empty` et `error`. Les composants utilisent `ready` par
+défaut. Les états vide et erreur restent des contrats d’interface. Ils ne modifient pas l’enveloppe des routes API.
+
+Recharts dessine les graphiques adaptatifs. Framer Motion gère les transitions et interroge
+`prefers-reduced-motion`. Les graphiques temporels fournissent un tableau repliable avec les valeurs exactes.
+
+`AnalyticsMap` reçoit une `FeatureCollection` GeoJSON et des valeurs indexées par zone. D3 Geo projette les formes dans
+un SVG local. La carte ne charge aucune tuile, ne demande aucun token et ne fait aucun appel réseau au runtime.
+
+La carte répartit ses responsabilités entre plusieurs fichiers internes :
+
+- `analytics-map.tsx` orchestre l’état client et expose `AnalyticsMap`.
+- `types.ts` contient les propriétés publiques et les contrats internes.
+- `map-geometry.ts` calcule les projections, les formes, les repères et les lignes du tableau.
+- `map-ui.tsx` dessine les couches SVG, les états, les infobulles, les contrôles et le tableau.
+- `use-element-width.ts` adapte le SVG avec `ResizeObserver`.
+
+Le SVG, les contrôles de zoom et les repères acceptent le focus clavier. Une vue agrandie se déplace avec les flèches
+ou par glisser au pointeur. Les régions restent hors de l’ordre de tabulation. Le tableau repliable donne les valeurs
+exactes de chaque région et de chaque repère.
+
+La route `/visualizations` compose la démonstration côté serveur avec des données synthétiques. `demo-map-data.ts`
+importe `server-only` et convertit le TopoJSON embarqué par `world-atlas` en GeoJSON. `page.tsx` transmet ensuite cette
+collection à `VisualizationsDemo`. Cette route n’appelle aucune API et ne contacte pas Databricks.
+
 ## Préparation data optionnelle
 
 La lecture directe reste le défaut. Lorsqu'une table dédiée est nécessaire, les contrats sous `data/contracts/`
@@ -125,5 +189,5 @@ serveur et remplacée dans la réponse par `{ error: { code, message, requestId 
 ## Extension
 
 Créer une feature avant de généraliser une abstraction. Extraire un module dans `src/lib` seulement lorsqu’il est sans
-vocabulaire métier et qu’au moins deux features ont le même besoin. Les modules optionnels (upload, charts, Genie,
-exports) doivent rester hors du socle tant qu’une application ne les demande pas.
+vocabulaire métier et qu’au moins deux features ont le même besoin. Les modules optionnels comme l’upload, Genie et
+les exports restent hors du socle tant qu’une application ne les demande pas.

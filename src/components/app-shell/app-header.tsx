@@ -1,6 +1,7 @@
 import Image from "next/image";
 
 import { SupportContact } from "@/components/app-shell/support-contact";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 export function AppHeader({
   appName,
@@ -14,7 +15,7 @@ export function AppHeader({
   supportSlackUrl: string;
 }) {
   return (
-    <header className="border-b border-line bg-surface">
+    <header className="brand-header-surface border-b border-line bg-surface">
       <div className="h-1 [background:var(--brand-gradient)]" aria-hidden="true" />
       <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 md:flex-row md:items-center md:justify-between md:py-5 lg:px-8">
         <div className="flex min-w-0 items-center gap-4">
@@ -31,7 +32,10 @@ export function AppHeader({
             <p className="mt-1 truncate text-sm font-light text-muted">{appDescription}</p>
           </div>
         </div>
-        <SupportContact name={supportName} slackUrl={supportSlackUrl} />
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <ThemeToggle />
+          <SupportContact name={supportName} slackUrl={supportSlackUrl} />
+        </div>
       </div>
     </header>
   );

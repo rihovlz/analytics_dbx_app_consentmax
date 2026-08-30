@@ -65,7 +65,7 @@ export function ConnectionCheckCard({ initialMode }: { initialMode: "demo" | "da
           disabled={state.status === "loading"}
           onClick={runCheck}
           aria-busy={state.status === "loading"}
-          className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-bold text-ink transition hover:-translate-y-0.5 hover:bg-[#ef9200] hover:shadow-floating disabled:cursor-wait disabled:opacity-60"
+          className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-bold text-on-brand transition hover:-translate-y-0.5 hover:brightness-95 hover:shadow-floating disabled:cursor-wait disabled:opacity-60"
         >
           <svg viewBox="0 0 20 20" className={`size-4 ${state.status === "loading" ? "animate-spin" : ""}`} fill="none" aria-hidden="true">
             <path d="M15.5 6.5A6 6 0 1 0 16 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
@@ -84,8 +84,8 @@ export function ConnectionCheckCard({ initialMode }: { initialMode: "demo" | "da
           <ErrorState title="Connexion non vérifiée" message={state.message} requestId={state.requestId} onRetry={runCheck} />
         ) : null}
         {state.status === "success" ? (
-          <div className="flex gap-3 rounded-xl border border-[#b8dfd3] bg-[#edf8f5] p-5 text-ink">
-            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-positive text-ink" aria-hidden="true">
+          <div className="flex gap-3 rounded-xl border border-positive-border bg-positive-soft p-5 text-ink">
+            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-positive text-on-positive" aria-hidden="true">
               <svg viewBox="0 0 20 20" className="size-4" fill="none">
                 <path d="m5 10 3 3 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>

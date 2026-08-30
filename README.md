@@ -4,7 +4,7 @@
 
 Golden path Next.js/TypeScript pour construire des Databricks Apps analytics. Il fournit un shell UI Valiuz, une
 configuration validée, une couche Databricks SQL centralisée, des erreurs publiques sûres, des logs structurés, des
-tests et un déploiement reproductible avec Databricks Asset Bundles.
+tests, une bibliothèque de visualisation et un déploiement reproductible avec Databricks Asset Bundles.
 
 ## Quick Start
 
@@ -21,7 +21,8 @@ npm run app:doctor
 npm run dev
 ```
 
-Ouvrir <http://localhost:3000>. Le mode démo est explicite et n’effectue aucun appel distant.
+Ouvrir <http://localhost:3000>. Le mode démo est explicite et n’effectue aucun appel distant. La page
+<http://localhost:3000/visualizations> présente tous les composants avec des données synthétiques.
 
 ## Parcours guidé pour une app interne
 
@@ -50,8 +51,9 @@ rien.
 
 ## Version du template
 
-`template/manifest.yml` donne la version courante et les capabilities du template. La version courante est `1.2.0`.
-La version `1.0.0` représente la baseline initiale et `1.1.0` le premier parcours de mise à niveau suivi.
+`template/manifest.yml` donne la version courante et les capabilities du template. La version courante est `1.3.0`.
+La version `1.0.0` représente la baseline initiale. Les versions suivantes ajoutent des parcours de mise à niveau
+suivis, l’historisation bornée et la bibliothèque de visualisation.
 
 `init-app` crée `.valiuz-template.yml` dans chaque nouvelle app. Ce fichier indique la version utilisée et les
 capabilities attendues. La version dans `package.json` reste la version du package applicatif. Elle est indépendante.
@@ -61,7 +63,7 @@ Ces commandes restent locales et ne modifient pas le code de l'app :
 ```bash
 npm run template:status
 npm run template:check
-npm run template:diff -- --from 1.1.0 --to 1.2.0
+npm run template:diff -- --from 1.2.0 --to 1.3.0
 npm run template:release:check -- --base origin/main
 ```
 
@@ -88,6 +90,49 @@ npm run init-app -- <nom> \
 
 Ne pas coder un contact personnel en dur dans un composant métier. Modifier `APP_SUPPORT_NAME` et
 `APP_SUPPORT_SLACK_URL` via l'initialisation afin que le support reste visible et cohérent dans toutes les pages.
+
+## Bibliothèque de visualisation
+
+Le point d’entrée public `@/components/data-visualization` exporte les composants, leurs types et les fonctions de
+formatage. Il expose `DataCard`, `BigNumberKPI`, `Sparkline`, `MiniAreaChart`, `CircularProgress`, `Gauge`,
+`MultiMetricCard`, `TimeSeriesChart`, `AnalyticsMap` et `ChartState`.
+
+`BigNumberKPI` accepte les variantes `plain`, `sparkline` et `gauge`. `MultiMetricCard` combine des valeurs, des
+tendances, des mini-barres et des sparklines. `TimeSeriesChart` gère plusieurs séries, une légende interactive, des
+infobulles et un tableau de valeurs. `AnalyticsMap` reçoit du GeoJSON, des valeurs par zone et des repères facultatifs.
+
+`NumberFormat` décrit un format numérique `Intl`. `AxisValueFormat` décrit un axe texte, numérique ou date.
+Ces contrats sont sérialisables et l’API publique ne déclare aucune prop de callback. Une page serveur peut ainsi
+préparer les données et composer les composants interactifs à travers la frontière React Server Components.
+
+Les composants de données utilisent un même état public :
+
+```ts
+type VisualizationState =
+  | { status: "ready" }
+  | { status: "loading"; label?: string }
+  | { status: "empty"; title?: string; message?: string }
+  | { status: "error"; title?: string; message: string };
+```
+
+L’état `ready` est la valeur par défaut. Les composants affichent des états distincts pour le chargement, l’absence de
+données et l’erreur. Importer `READY_VISUALIZATION_STATE` pour partager la valeur par défaut.
+
+Le thème propose les modes clair, système et sombre. Le choix reste dans `localStorage` sous la clé
+`analytics-theme`. Le contenu suit ce choix, mais le header Valiuz reste clair pour respecter le média officiel.
+Les composants respectent `prefers-reduced-motion`. Les graphiques temporels et la carte proposent aussi un tableau
+accessible avec les valeurs exactes.
+
+La carte produit un SVG avec D3 Geo. Elle ne charge aucune tuile, ne demande aucun token et ne fait aucun appel réseau
+au runtime. Son SVG, ses contrôles et ses repères acceptent le focus. Le zoom se déplace au pointeur ou avec les
+flèches du clavier. Les régions restent hors de l’ordre de tabulation, car le tableau accessible fournit leurs valeurs
+exactes.
+
+La page `/visualizations` compose la démonstration côté serveur et ne contacte pas Databricks. Le module
+`demo-map-data.ts` importe `server-only`, puis convertit l’atlas `world-atlas` embarqué en GeoJSON.
+
+Voir [le design system analytics](docs/design-system.md) pour les API de composition, les tokens et les règles
+d’accessibilité.
 
 ## Workflows d'assistance
 
@@ -236,7 +281,12 @@ de l’exécuter.
 
 ```text
 src/app/                         pages, layouts et routes HTTP
-src/components/                  shell et états UI génériques
+src/app/visualizations/          composition serveur et données synthétiques de démonstration
+src/components/                  shell, états UI et composants génériques
+src/components/data-visualization/ point d’entrée public, types et formatage
+src/components/{cards,charts,kpi}/ composants de visualisation réutilisables
+src/components/maps/            carte cliente, géométrie D3 et sous-composants internes
+src/components/theme/            sélection locale du thème clair, système ou sombre
 src/features/<feature>/          UI, contrat et logique applicative d’une feature
 src/features/<feature>/server/   queries, repository et service server-only
 src/lib/config/                  parsing et validation de l’environnement

@@ -25,7 +25,7 @@ export default function HomePage() {
           </p>
           <ul className="mt-7 flex flex-wrap gap-2.5" aria-label="Caractéristiques du socle">
             {["Données gouvernées", "UI accessible", "Déploiement reproductible"].map((item) => (
-              <li key={item} className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-3 py-1.5 text-sm font-medium">
+              <li key={item} className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium">
                 <svg viewBox="0 0 20 20" className="size-4 text-positive" fill="none" aria-hidden="true">
                   <path d="m5.5 10 3 3 6-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>

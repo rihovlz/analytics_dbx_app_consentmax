@@ -20,7 +20,7 @@ export function AppShell({
     <div className="min-h-screen">
       <a
         href="#main-content"
-        className="fixed left-4 top-4 z-50 inline-flex min-h-11 -translate-y-24 items-center rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white shadow-floating transition focus:translate-y-0"
+        className="fixed left-4 top-4 z-50 inline-flex min-h-11 -translate-y-24 items-center rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-canvas shadow-floating transition focus:translate-y-0"
       >
         Aller au contenu principal
       </a>
