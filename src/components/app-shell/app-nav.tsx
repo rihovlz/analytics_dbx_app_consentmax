@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 
 const links = [
   { href: "/", label: "Accueil" },
+  { href: "/visualizations", label: "Visualisations" },
   // feature:new inserts links above this line.
 ];
 
@@ -14,7 +15,10 @@ export function AppNav() {
     <nav aria-label="Navigation principale" className="sticky top-0 z-30 border-b border-line bg-surface">
       <div className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 sm:px-6 lg:px-8">
         {links.map((link) => {
-          const isActive = link.href === "/" ? pathname === "/" : pathname.startsWith(`${link.href}/`);
+          const isActive =
+            link.href === "/"
+              ? pathname === "/"
+              : pathname === link.href || pathname.startsWith(`${link.href}/`);
 
           return (
             <a
