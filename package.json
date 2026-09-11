@@ -48,7 +48,7 @@
     "@fontsource-variable/outfit": "5.3.0",
     "d3-geo": "3.1.1",
     "framer-motion": "13.1.1",
-    "next": "16.3.1",
+    "next": "16.3.3",
     "pino": "10.3.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
