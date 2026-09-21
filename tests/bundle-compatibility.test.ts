@@ -30,6 +30,14 @@ function bundleOutput(target: "dev" | "prod") {
           permission: "SELECT",
         },
       },
+      ...["analyses", "preferences"].map((kind) => ({
+        name: `user-state-${kind}`,
+        uc_securable: {
+          securable_full_name: `dev-dtm-operating.ci_user_state.${kind === "analyses" ? "saved_analyses_v1" : "user_preferences_v1"}`,
+          securable_type: "TABLE",
+          permission: "MODIFY",
+        },
+      })),
     ],
   };
   if (target === "dev") {

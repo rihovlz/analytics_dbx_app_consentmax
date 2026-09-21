@@ -2,7 +2,7 @@ schemaVersion: 1
 template:
   id: valiuz/analytics_dbx_app_template
   repository: https://github.com/valiuz/analytics_dbx_app_template
-  currentVersion: 1.4.0
+  currentVersion: 1.5.0
 requirements:
   node: ">=22.16 <23"
   databricksCli: ">=0.295.0"
@@ -43,6 +43,12 @@ versions:
     extends: 1.3.0
     capabilities:
       - genie-natural-language-analytics
+  "1.5.0":
+    sourceCommit: 26a1d0a64a9fed4d0a9cad1c7031a9d2c07eb95f
+    summary: Analyses et préférences personnelles sur deux tables Delta dans le datamart de développement.
+    extends: 1.4.0
+    capabilities:
+      - personal-user-state
 capabilities:
   guided-app-workflow:
     since: 1.0.0
@@ -257,6 +263,25 @@ capabilities:
       - type: packageScript
         name: test:e2e
         command: playwright test
+  personal-user-state:
+    since: 1.5.0
+    description: Bibliothèque et préférences privées, identité proxy et tables Delta déclarées à droits bornés.
+    probes:
+      - type: file
+        path: src/features/user-state/server/service.ts
+      - type: file
+        path: src/features/user-state/server/repository.ts
+      - type: file
+        path: src/features/user-state/save-analysis-button.tsx
+      - type: file
+        path: src/app/api/saved-analyses/[id]/route.ts
+      - type: file
+        path: src/app/api/user-preferences/route.ts
+      - type: file
+        path: docs/user-state.md
+      - type: packageScript
+        name: user-state:init
+        command: node scripts/init-user-state.mjs
 upgrades:
   - from: 1.0.0
     to: 1.1.0
@@ -270,3 +295,6 @@ upgrades:
   - from: 1.3.0
     to: 1.4.0
     path: template/upgrades/1.3.0-to-1.4.0.yml
+  - from: 1.4.0
+    to: 1.5.0
+    path: template/upgrades/1.4.0-to-1.5.0.yml

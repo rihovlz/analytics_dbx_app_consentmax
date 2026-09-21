@@ -78,7 +78,8 @@ pour les opérateurs, mais le bundle utilise son ID stable.
 Déclarer chaque table ou vue consommée dans `config/data-access.json`, avec un nom technique court, son identifiant
 `projet.schema.objet` et sa finalité. `npm run data:access:render` génère un binding `uc_securable` `SELECT`. Databricks
 accorde alors au service principal de l'app les privilèges minimaux sur l'objet et ses parents. La personne ou
-l'identité qui déploie doit être autorisée à accorder ces droits ; ne pas élargir le binding à `MODIFY`.
+l'identité qui déploie doit être autorisée à accorder ces droits ; ne pas élargir un binding analytique à `MODIFY`. La feature optionnelle [état personnel](user-state.md)
+déclare séparément ses deux tables et leurs bindings `MODIFY`, qui incluent `SELECT`.
 
 Le manifeste et `resources/data-access.generated.yml` sont versionnés ensemble. Le fichier généré contient la seule
 définition complète de `resources.apps.app`. Les targets de `databricks.yml` ajoutent seulement leur source de code.

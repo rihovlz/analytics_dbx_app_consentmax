@@ -104,6 +104,7 @@ process.stdout.write(
     ),
     `Declared sources: ${manifest.sources.length}`,
     ...manifest.sources.map((source) => `- ${source.fullName}`),
+    ...Object.values(manifest.personalState ?? {}).map((table) => `Personal state (MODIFY + SELECT): ${table}`),
   ].join("\n") + "\n",
 );
 

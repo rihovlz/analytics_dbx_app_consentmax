@@ -51,9 +51,9 @@ rien.
 
 ## Version du template
 
-`template/manifest.yml` donne la version courante et les capabilities du template. La version courante est `1.4.0`.
+`template/manifest.yml` donne la version courante et les capabilities du template. La version courante est `1.5.0`.
 La version `1.0.0` représente la baseline initiale. Les versions suivantes ajoutent les mises à niveau suivies,
-l’historisation bornée, les visualisations et l’assistant Genie OBO.
+l’historisation bornée, les visualisations, l’assistant Genie OBO et les analyses personnelles.
 
 `init-app` crée `.valiuz-template.yml` dans chaque nouvelle app. Ce fichier indique la version utilisée et les
 capabilities attendues. La version dans `package.json` reste la version du package applicatif. Elle est indépendante.
@@ -63,7 +63,7 @@ Ces commandes restent locales et ne modifient pas le code de l'app :
 ```bash
 npm run template:status
 npm run template:check
-npm run template:diff -- --from 1.3.0 --to 1.4.0
+npm run template:diff -- --from 1.4.0 --to 1.5.0
 npm run template:release:check -- --base origin/main
 ```
 
@@ -209,6 +209,27 @@ Pour une URL MCP telle que `.../api/2.0/mcp/genie/<space-id>`, copier uniquement
 Conserver les callbacks uniquement dans une session ou un stockage privé lié à l’utilisateur. Une composition partagée
 doit enregistrer la définition, puis relire les données avec l’identité de chaque lecteur. Ne jamais publier
 l’instantané OBO d’un autre utilisateur.
+
+## Analyses et préférences personnelles
+
+La capability optionnelle `personal-user-state` ajoute **Mes analyses** : enregistrer une définition de filtres,
+modifier son nom ou sa note, la rouvrir et la supprimer. Des préférences typées conservent la période par défaut
+et le tri de la bibliothèque. Le composant `SaveAnalysisButton` se compose dans une vue métier.
+
+Après `init-app`, préparer deux tables Delta dans le datamart de développement sélectionné :
+
+```bash
+npm run user-state:init -- --schema my_app_user_state
+```
+
+La commande génère localement le DDL et les bindings. Elle ne contacte pas Databricks. Les deux tables personnelles
+reçoivent un binding `MODIFY` incluant `SELECT` ; les sources analytiques gardent `SELECT`. Aucun service supplémentaire
+n’est nécessaire. La feature reste désactivée jusqu’à la configuration explicite de `USER_STATE_ENABLED`,
+`USER_STATE_ORIGIN` et `USER_STATE_NAMESPACE` dans `app.yaml`.
+
+Le serveur isole les données par application, environnement et identité proxy. Chaque modification ajoute une version ;
+la dernière selon l’horodatage serveur prévaut, sans fusion des éditions concurrentes. Les résultats SQL et Genie ne sont
+pas sauvegardés. Voir [l’analyse du pattern IKEA, la démo et le guide d’activation](docs/user-state.md).
 
 ## Workflows d'assistance
 

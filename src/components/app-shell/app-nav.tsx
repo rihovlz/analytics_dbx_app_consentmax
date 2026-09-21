@@ -9,13 +9,14 @@ const links = [
   // feature:new inserts links above this line.
 ];
 
-export function AppNav() {
+export function AppNav({ personalStateEnabled = false }: { personalStateEnabled?: boolean }) {
   const pathname = usePathname();
+  const navigation = personalStateEnabled ? [...links, { href: "/saved-analyses", label: "Mes analyses" }] : links;
 
   return (
     <nav aria-label="Navigation principale" className="sticky top-0 z-30 border-b border-line bg-surface">
       <div className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 sm:px-6 lg:px-8">
-        {links.map((link) => {
+        {navigation.map((link) => {
           const isActive =
             link.href === "/"
               ? pathname === "/"

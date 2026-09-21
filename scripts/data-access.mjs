@@ -87,7 +87,25 @@ export function validateDataAccessManifest(value, { allowPlaceholder = false, re
     return { name, fullName, purpose: purpose.trim() };
   });
 
-  return { project, sources };
+  let personalState;
+  if (value.personalState !== undefined) {
+    assertObject(value.personalState, "Personal state");
+    assertKnownKeys(value.personalState, ["analyses", "preferences"], "Personal state");
+    personalState = {};
+    for (const [kind, table] of [["analyses", "saved_analyses_v1"], ["preferences", "user_preferences_v1"]]) {
+      const fullName = value.personalState[kind];
+      if (typeof fullName !== "string") throw new Error(`Missing personal state table: ${kind}.`);
+      validateFullName(fullName, project);
+      if (fullName.split(".")[2] !== table || fullNames.has(fullName)) {
+        throw new Error(`Personal state ${kind} must use a dedicated ${table} table.`);
+      }
+      personalState[kind] = fullName;
+    }
+    if (personalState.analyses.split(".")[1] !== personalState.preferences.split(".")[1]) {
+      throw new Error("Personal state tables must use one dedicated schema.");
+    }
+  }
+  return { project, sources, ...(personalState ? { personalState } : {}) };
 }
 
 export async function loadDataAccessManifest(root, options) {
@@ -211,6 +229,9 @@ export async function loadGenieSpacesManifest(root) {
 function validateResourceNames(dataAccessManifest, genieSpacesManifest) {
   const resourceNames = new Set(["sql-warehouse"]);
   for (const source of dataAccessManifest.sources) resourceNames.add(`data-${source.name}`);
+  for (const kind of Object.keys(dataAccessManifest.personalState ?? {})) {
+    resourceNames.add(`user-state-${kind}`);
+  }
   for (const space of genieSpacesManifest.spaces) {
     if (resourceNames.has(space.key)) {
       throw new Error(`Genie resource key '${space.key}' conflicts with another app resource.`);
@@ -299,6 +320,16 @@ export function renderDataAccessBundle(manifest, genieSpacesManifest = { version
       `            securable_full_name: ${yamlString(source.fullName)}`,
       "            securable_type: TABLE",
       "            permission: SELECT",
+    );
+  }
+  for (const [kind, fullName] of Object.entries(manifest.personalState ?? {})) {
+    // An Apps MODIFY binding also grants SELECT; do not bind the same table twice.
+    lines.push(
+      `        - name: ${yamlString(`user-state-${kind}`)}`,
+      "          uc_securable:",
+      `            securable_full_name: ${yamlString(fullName)}`,
+      "            securable_type: TABLE",
+      "            permission: MODIFY",
     );
   }
   return `${lines.join("\n")}\n`;

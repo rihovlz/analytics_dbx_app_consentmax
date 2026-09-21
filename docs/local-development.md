@@ -239,3 +239,9 @@ méthodes en même temps. Revenir au profil OAuth dès que possible.
 - Table inaccessible : demander uniquement `SELECT` sur les objets nécessaires.
 - `SQL_QUERY_FAILED` : utiliser le `requestId` dans les logs structurés ; ne pas activer de log contenant le SQL complet,
   les paramètres ou le jeton.
+
+## Démo des analyses personnelles
+
+La commande et le parcours sont décrits dans [user-state.md](user-state.md#essayer-localement). Utiliser une origine
+loopback explicite et un port libre. Le mode mémoire perd son contenu au redémarrage. Le mode SQL personnel exige
+le proxy Databricks Apps ; ajouter soi-même un header en local ne constitue pas une identité autorisée.

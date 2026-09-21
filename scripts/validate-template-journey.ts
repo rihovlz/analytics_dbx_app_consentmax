@@ -163,6 +163,7 @@ async function initializeApp(fixtureRoot: string, environment: NodeJS.ProcessEnv
     fixtureRoot,
     environment,
   );
+  await runCommand(process.execPath, ["scripts/init-user-state.mjs", "--schema", "ci_user_state"], fixtureRoot, environment);
 }
 
 async function inspectGeneratedApp(fixtureRoot: string, environment: NodeJS.ProcessEnv): Promise<void> {
