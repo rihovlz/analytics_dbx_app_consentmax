@@ -221,7 +221,7 @@ identité de l'app
 ```
 
 Cette séparation permet de créer la table avant que le bundle applicatif ne lui attribue `SELECT`. Elle évite aussi de
-donner des droits d'écriture au service principal de l'app. Un contrat `direct` ne génère aucune ressource. Les modes
+donner des droits d'écriture analytiques au service principal de l'app. Un contrat `direct` ne génère aucune ressource. Les modes
 `notebook` et `pipeline` restent adaptés aux transformations propres à l'app ; une donnée partagée par plusieurs apps
 doit être maintenue dans un data product distinct.
 
@@ -248,3 +248,13 @@ erreur qui suit le début du flux utilise un événement SSE typé avec le même
 Créer une feature avant de généraliser une abstraction. Extraire un module dans `src/lib` seulement lorsqu’il est sans
 vocabulaire métier et qu’au moins deux features ont le même besoin. Les modules optionnels comme l’upload et les
 exports restent hors du socle tant qu’une application ne les demande pas. Genie reste isolé dans sa feature.
+
+## État personnel optionnel
+
+`src/features/user-state` regroupe contrats, composants, service, repository et requêtes. Les routes personnelles
+utilisent `withApiRoute` et imposent `private, no-store` sur les succès et les erreurs. L’identité est résolue côté
+serveur depuis le proxy Databricks ; aucune valeur owner du navigateur n’est acceptée.
+
+Deux tables Delta déclarées séparément des sources analytiques reçoivent les écritures. Elles stockent des versions
+de définitions et préférences, sans résultat analytique. La résolution par horodatage/UUID ne fournit pas de CAS.
+Le layout est dynamique pour lire le flag runtime. Voir [les contrats et limites](user-state.md).

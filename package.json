@@ -41,7 +41,8 @@
     "app:doctor": "node scripts/app-doctor.mjs",
     "preview:real": "node scripts/preview-real.mjs",
     "deploy": "node scripts/deploy.mjs",
-    "app:local": "databricks apps run-local --entry-point app.yaml"
+    "app:local": "databricks apps run-local --entry-point app.yaml",
+    "user-state:init": "node scripts/init-user-state.mjs"
   },
   "dependencies": {
     "@databricks/sql": "2.0.0",

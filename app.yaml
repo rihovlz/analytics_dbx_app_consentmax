@@ -27,3 +27,9 @@ env:
     value: "8"
   - name: GENIE_MAX_CONCURRENT_STREAMS_PER_USER
     value: "2"
+  - name: USER_STATE_ENABLED
+    value: "false"
+  - name: USER_STATE_ORIGIN
+    value: ""
+  - name: USER_STATE_NAMESPACE
+    value: "dev"

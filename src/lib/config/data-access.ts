@@ -15,6 +15,7 @@ const dataAccessSchema = z
   .object({
     project: z.string().refine(isAllowedDataProject, "unknown data project"),
     sources: z.array(sourceSchema).max(50),
+    personalState: z.object({ analyses: z.string(), preferences: z.string() }).strict().optional(),
   })
   .superRefine((manifest, context) => {
     const names = new Set<string>();
@@ -42,6 +43,19 @@ const dataAccessSchema = z
       }
       names.add(source.name);
       fullNames.add(source.fullName);
+    }
+    if (manifest.personalState) {
+      for (const [kind, fullName] of Object.entries(manifest.personalState)) {
+        const parts = fullName.split(".");
+        const expected = kind === "analyses" ? "saved_analyses_v1" : "user_preferences_v1";
+        if (parts.length !== 3 || parts[0] !== manifest.project || parts[2] !== expected
+          || parts.some((part) => !identifierSchema.safeParse(part).success) || fullNames.has(fullName)) {
+          context.addIssue({ code: "custom", path: ["personalState", kind], message: "Invalid personal state table" });
+        }
+      }
+      if (manifest.personalState.analyses.split(".")[1] !== manifest.personalState.preferences.split(".")[1]) {
+        context.addIssue({ code: "custom", path: ["personalState"], message: "Use one dedicated schema" });
+      }
     }
   });
 

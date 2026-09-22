@@ -8,12 +8,14 @@ export function AppShell({
   appDescription,
   supportName,
   supportSlackUrl,
+  personalStateEnabled = false,
   children,
 }: {
   appName: string;
   appDescription: string;
   supportName: string;
   supportSlackUrl: string;
+  personalStateEnabled?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -30,7 +32,7 @@ export function AppShell({
         supportName={supportName}
         supportSlackUrl={supportSlackUrl}
       />
-      <AppNav />
+      <AppNav personalStateEnabled={personalStateEnabled} />
       <main id="main-content" tabIndex={-1} className="mx-auto max-w-7xl px-4 py-8 outline-none sm:px-6 sm:py-10 lg:px-8">
         {children}
       </main>

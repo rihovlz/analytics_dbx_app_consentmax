@@ -60,7 +60,7 @@ export function assertBundleContract(value: unknown, target: "dev" | "prod"): vo
   );
   assert.deepEqual(
     appResources.map((resource) => resource.name),
-    ["sql-warehouse", fixtureGenieSpaceKey, fixtureSourceName],
+    ["sql-warehouse", fixtureGenieSpaceKey, fixtureSourceName, "user-state-analyses", "user-state-preferences"],
     "The app must keep its warehouse, Genie space and generated Unity Catalog binding.",
   );
   const genieBinding = asRecord(appResources[1].genie_space, "Genie space binding");
@@ -70,6 +70,12 @@ export function assertBundleContract(value: unknown, target: "dev" | "prod"): vo
   const dataBinding = asRecord(appResources[2].uc_securable, "Unity Catalog binding");
   assert.equal(dataBinding.securable_full_name, "dev-dtm-operating.analytics.bundle_source");
   assert.equal(dataBinding.permission, "SELECT");
+  for (const [index, table] of ["saved_analyses_v1", "user_preferences_v1"].entries()) {
+    const personal = asRecord(appResources[index + 3].uc_securable, "Personal state binding");
+    assert.equal(personal.securable_full_name, `dev-dtm-operating.ci_user_state.${table}`);
+    assert.equal(personal.securable_type, "TABLE");
+    assert.equal(personal.permission, "MODIFY");
+  }
 
   if (target === "dev") {
     assert.equal(app.source_code_path, "/Workspace/Users/ci@example.com/.bundle/ci-bundle-app/dev/files");
@@ -251,6 +257,7 @@ export async function validateBundleCliCompatibility(): Promise<void> {
     await copyTrackedFiles(sourceRoot, fixtureRoot, ["config/genie-spaces.json"]);
     await linkRepositoryNodeModules(sourceRoot, fixtureRoot);
     await initializeFixture(fixtureRoot, mockWorkspace.host);
+    await runCommand(process.execPath, ["scripts/init-user-state.mjs", "--schema", "ci_user_state"], { cwd: fixtureRoot });
     const configFile = join(fixtureRoot, ".databrickscfg");
     await writeFile(configFile, "", "utf8");
     const cli = process.env.DATABRICKS_CLI_PATH || "databricks";

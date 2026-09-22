@@ -20,6 +20,7 @@ ni credential, ni configuration du workspace, ni donnée métier.
 | `1.2.0` | `a1ed6bc333c8b8355641b17f74fe3ed0fb200815` | Historisation à coût borné et gouvernance automatique des releases et de la documentation |
 | `1.3.0` | `08058f189790546146dabec88a6a0897568b55e9` | Visualisations analytics réutilisables, page de démonstration et modes clair/sombre |
 | `1.4.0` | `19ade7c5882aeb3065453e0aaf3c02552a61fd6c` | Assistant Genie OBO, contexte de dashboard, résultats riches et épinglage composable |
+| `1.5.0` | `26a1d0a64a9fed4d0a9cad1c7031a9d2c07eb95f` | Analyses et préférences personnelles optionnelles sur tables Delta de développement |
 
 Le point historique est le SHA complet de la branche de base examinée pour préparer la version. Il sert à borner le
 diff, pas à reproduire seul le checkout final. Le manifeste et ses sondes définissent le contrat réel de la version.
@@ -35,7 +36,7 @@ npm run template:status
 npm run template:check
 ```
 
-Une nouvelle app reçoit la version `1.4.0`. `npm run check` inclut `template:check` et
+Une nouvelle app reçoit la version `1.5.0`. `npm run check` inclut `template:check` et
 `template:release:check`. Le second reconnaît une app initialisée et n'exige aucun bump pour ses features métier.
 
 ## App copiée avant le suivi de version
@@ -100,7 +101,7 @@ npm run app:doctor
 npm run check
 ```
 
-Une app `1.0.0` applique ensuite chaque guide dans l’ordre, jusqu’au guide `1.3.0 → 1.4.0`.
+Une app `1.0.0` applique ensuite chaque guide dans l’ordre, jusqu’au guide `1.4.0 → 1.5.0`.
 `template:status` propose la prochaine étape disponible au lieu de sauter une migration intermédiaire.
 
 ## Passage de 1.1.0 à 1.2.0
@@ -224,3 +225,27 @@ Le manifeste utilise le versionnage sémantique :
 - Une version patch corrige le contrat sans ajouter de capability.
 - Une version minor ajoute une capability compatible avec le parcours existant.
 - Une version major exige une migration qui peut modifier le contrat d'une app.
+
+## Passage de 1.4.0 à 1.5.0
+
+Cette version mineure ajoute `personal-user-state`, désactivé par défaut. Aucun stockage ni droit distant ne change
+pendant la mise à niveau du code. Le layout devient dynamique pour lire les options runtime après le build.
+
+```bash
+npm run template:diff -- --from 1.4.0 --to 1.5.0
+```
+
+Fusionner les contrats, les routes personnelles et les composants. Conserver la navigation et les filtres métier de
+l’app. Adapter les variantes strictes de définition et les préférences avant activation. La feature IKEA existante
+n’est pas migrée automatiquement ; conserver ses tables, ses versions et ses garanties de concurrence.
+
+Suivre [le guide personnel](user-state.md) pour préparer les deux tables dans le datamart choisi, relire les bindings
+et effectuer la recette distante. Les sources analytiques restent en lecture seule.
+
+```bash
+npm run template:check -- --to 1.5.0
+```
+
+Après validation, remplacer la version dans `.valiuz-template.yml`, ajouter `personal-user-state` aux capabilities
+et `1.4.0-to-1.5.0` à `appliedUpgrades`. Exécuter `npm run check`. La création des tables et le déploiement sont des
+mutations distinctes. Désactiver la feature pour un rollback ; ne pas effacer les données personnelles.

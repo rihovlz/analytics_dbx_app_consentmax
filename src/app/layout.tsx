@@ -3,9 +3,13 @@ import type { ReactNode } from "react";
 import "@fontsource-variable/outfit";
 
 import { AppShell } from "@/components/app-shell/app-shell";
+import { userStateEnabled } from "@/features/user-state/server/config";
 import { parseAppDisplayConfig } from "@/lib/config/server-config";
 
 import "./globals.css";
+
+// Optional capabilities are enabled by app.yaml at runtime, after CI builds.
+export const dynamic = "force-dynamic";
 
 export function generateMetadata(): Metadata {
   const config = parseAppDisplayConfig();
@@ -31,6 +35,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
           appDescription={config.appDescription}
           supportName={config.supportContact.name}
           supportSlackUrl={config.supportContact.slackUrl}
+          personalStateEnabled={userStateEnabled()}
         >
           {children}
         </AppShell>

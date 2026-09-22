@@ -37,8 +37,8 @@ Conserver les adaptations métier de l'app. Ne remplacer aucun dossier complet a
 7. Appliquer chaque changement guidé dans une branche dédiée, sans remplacer les composants métier, la navigation ou
    les styles propres à l'app.
 8. Exécuter `npm run template:check -- --to 1.4.0` avant de modifier l'état de l'app.
-9. Mettre `.valiuz-template.yml` à `1.4.0`, ajouter `genie-natural-language-analytics` et l'upgrade appliquée, puis
-   exécuter `npm run check`.
+9. Mettre `.valiuz-template.yml` à `1.4.0`, ajouter `genie-natural-language-analytics` et l'upgrade appliquée.
+10. Appliquer ensuite le guide `1.4.0 → 1.5.0`, ajouter `personal-user-state` et exécuter `npm run check`.
 
 Le diff ne contacte ni GitHub ni Databricks. Les commandes de déploiement restent des mutations distantes distinctes.
 
@@ -150,6 +150,9 @@ request ou du push. Un autre job exécute `npm run template:journey` après ces 
 y exécute `npm ci`. Il initialise ensuite l'app, son état de template, le cadrage, une source directe et une tranche
 KPI. Enfin, il exécute `app:doctor` et `npm run check`. Ce job n'utilise aucun workspace ou credential Databricks.
 
+Le parcours prépare aussi les deux tables personnelles avec `user-state:init`. La matrice CLI vérifie leurs bindings
+`MODIFY` en complément du binding analytique `SELECT`, toujours contre le serveur local.
+
 Un autre job CI initialise une app temporaire avec un contrat notebook borné. Il valide les bundles app et data pour
 les targets `dev` et `prod`. La matrice utilise les versions `0.295.0` et `1.14.1` du Databricks CLI. Un serveur HTTP
 local fournit les réponses minimales. Ce job n'utilise ni profil, ni credential réel, ni workspace distant.
@@ -186,3 +189,13 @@ explicite avant ce test. Vérifier le workspace, l’app, le Space et les deux i
 Pour revenir en arrière, utiliser le déclenchement manuel avec le SHA d'une révision connue, puis restaurer `main` par
 une pull request. Le déploiement reste ainsi associé à un commit immuable. Ne pas modifier manuellement le code source
 dans le workspace : cela rendrait l’état différent de Git.
+
+## Activer les analyses personnelles
+
+Suivre [user-state.md](user-state.md) avant d’activer `USER_STATE_ENABLED`. `user-state:init` prépare uniquement les
+fichiers locaux. Relire workspace, profil, app, warehouse, namespace et tables ; créer les deux tables avec l’identité
+du mainteneur avant de déployer leurs bindings `MODIFY` (incluant `SELECT`). Configurer l’origine HTTPS exacte.
+
+Le plan de déploiement liste les deux tables et leurs droits. Tester deux utilisateurs réels et la persistance après
+redémarrage ; le readiness analytique ne vérifie pas les écritures personnelles. Le rollback utilise le flag désactivé
+et conserve les tables. Aucun job de purge ou déploiement automatique n’est ajouté.
