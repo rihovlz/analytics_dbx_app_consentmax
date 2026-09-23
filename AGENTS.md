@@ -54,6 +54,9 @@ Avoid speculative abstractions. Extract a generic helper only when two real feat
   `npm run feature:new -- <slug>` for the first simple KPI slice, then review every generated query.
   Select capabilities during framing and use `app:capabilities` for their integration paths. A Genie, Files or workflow
   app does not require a generated KPI. Spec choices do not activate plugins or authorize resources.
+  Use `create-analytics-dbx-app` to coordinate creation and resumption. `app:orchestrate --json` reports the next local
+  step and relevant skills. Compare optional `docs/creation-progress.md` notes with current files; notes are neither
+  test evidence nor authorization. Continue authorized work through implementation and verification.
 - Use `npm run data:init -- <name>` to choose `direct`, `notebook` or `pipeline`. Default to `direct`. Notebook and
   pipeline modes belong to the separate `data/` bundle, write with the maintainer identity, and expose only their
   declared output to the app with `SELECT`.

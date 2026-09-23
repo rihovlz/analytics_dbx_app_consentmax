@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { copyFile, lstat, mkdir, readlink, symlink } from "node:fs/promises";
+import { copyFile, lstat, mkdir, readlink, stat, symlink } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
@@ -44,7 +44,7 @@ export async function copyTrackedFiles(
 
 export async function linkRepositoryNodeModules(sourceRoot: string, fixtureRoot: string): Promise<void> {
   const nodeModules = join(sourceRoot, "node_modules");
-  const metadata = await lstat(nodeModules).catch(() => undefined);
+  const metadata = await stat(nodeModules).catch(() => undefined);
   assert.ok(metadata?.isDirectory(), "Run npm ci before creating a fixture that shares dependencies.");
   await symlink(nodeModules, join(fixtureRoot, "node_modules"), "dir");
 }

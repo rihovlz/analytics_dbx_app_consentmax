@@ -59,6 +59,8 @@ changes:
       - config/appkit-capabilities.json
       - scripts/app-capabilities.mjs
       - scripts/app-skills.mjs
+      - scripts/app-orchestrate.mjs
+      - scripts/init-app.mjs
       - scripts/app-guide.mjs
       - scripts/app-spec.mjs
       - scripts/appkit-compatibility.mjs
@@ -79,6 +81,8 @@ changes:
       - Installer les skills amont hors du repository avec le CLI Databricks.
       - Conserver les features et le cadrage ; ajouter les capacités envisagées dans la spec puis régénérer le brief avec app:guide --non-interactive.
       - Consulter app:capabilities et app:skills ; les choix de cadrage ne montent aucun plugin.
+      - Ajouter app:orchestrate dans package.json et reprendre avec le skill de création, sans rejouer init-app.
+      - Conserver les notes de reprise existantes ; leur présence ne prouve ni test réussi ni autorisation.
       - Fusionner les workflows et conserver leur revue humaine.
       - Valider les capabilities 2.0.0 avant de modifier .valiuz-template.yml.
       - Ajouter appkit-native-runtime, upstream-compatibility et guided-appkit-capabilities puis déclarer 1.5.0-to-2.0.0 dans appliedUpgrades.

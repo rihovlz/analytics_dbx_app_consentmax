@@ -11,6 +11,11 @@ Le parcours de création utilise `config/appkit-capabilities.json` pour relier l
 Une intégration non SQL conserve route → service → repository/adaptateur, avec le contrat décrit dans
 [le guide des capacités](appkit-capabilities.md). Les skills de développement restent séparés des éventuels agents exécutés dans l'app.
 
+`app:orchestrate` compose les contrôles locaux, la spec et la présence des fichiers pour proposer une reprise.
+Il ne modifie rien et n'exécute pas les commandes proposées. Le skill de création conduit ensuite les actions autorisées.
+Les notes `docs/creation-progress.md` conservent les décisions et les résultats observés, sans servir de preuve automatique.
+Les générateurs et le runtime ne dépendent pas de ces notes.
+
 ```text
 Browser / React
       ↓ JSON agrégé

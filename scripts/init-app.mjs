@@ -17,6 +17,17 @@ const DEFAULT_SUPPORT_NAME = "Alexis";
 const DEFAULT_SUPPORT_SLACK_URL = "https://valiuz.slack.com/team/U01C3FT98HE";
 
 const args = process.argv.slice(2);
+if (args.includes("--help") || args.includes("-h")) {
+  stdout.write(`Usage: npm run init-app -- <name> [--non-interactive] [options]
+
+Initialise une nouvelle copie du template. Sans --non-interactive, les valeurs manquantes sont demandées.
+Options : --description, --support-name, --support-slack-url, --data-project (alias --catalog),
+          --schema, --host, --warehouse, --repository-url, --can-use-group, --can-manage-group.
+Chaque option attend une valeur. --help affiche cette aide sans modifier de fichier.
+Le mode démo fonctionne sans credentials. Confirmer les valeurs distantes avant tout accès réel.
+`);
+  process.exit(0);
+}
 const option = (name) => {
   const index = args.indexOf(`--${name}`);
   return index >= 0 ? args[index + 1] : undefined;

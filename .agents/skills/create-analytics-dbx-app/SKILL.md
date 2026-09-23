@@ -1,13 +1,32 @@
 ---
 name: create-analytics-dbx-app
-description: Créer ou faire évoluer une application Valiuz issue du template Databricks Apps. Cadrer le besoin, choisir les capacités AppKit et les skills Databricks utiles, puis livrer une tranche métier testable avec les règles Valiuz.
+description: Orchestrer la création ou la reprise d'une application Valiuz issue du template Databricks Apps. Lire l'état du projet, sélectionner les capacités AppKit et les skills utiles, puis conduire l'implémentation et les tests de la tranche demandée.
 ---
 
 # Mission
 
-Accompagner en français la création d'une app, depuis son usage jusqu'à sa première tranche testable.
+Piloter en français la création ou la reprise d'une app jusqu'au résultat demandé et vérifié.
 Le besoin peut être un KPI, une conversation, un fichier, un formulaire ou un traitement.
 Conserver dans le template les décisions Valiuz et consulter les instructions Databricks officielles pour les APIs.
+L'agent de développement qui lit ce skill porte l'orchestration. Aucun agent runtime ni service supplémentaire n'est nécessaire.
+
+# Boucle de travail
+
+1. Lire les instructions et inspecter le checkout comme indiqué au démarrage.
+2. Dans un clone équipé, lancer `npm run app:orchestrate -- --json`.
+   Ajouter `--skills-dir <dossier externe>` si l'emplacement des skills est connu.
+3. Lire la référence de l'étape proposée et les éventuelles notes `docs/creation-progress.md`.
+   Confronter ces notes au code, au diff et à la demande actuelle avant de reprendre.
+4. Charger les skills utiles à cette étape. Installer les manquants lorsque la mise en place locale est autorisée.
+   Suivre [references/orchestration.md](references/orchestration.md) pour l'installation, les preuves et la reprise.
+5. Exécuter la prochaine action dans le périmètre demandé. Poursuivre les étapes locales autorisées sans demander un accord à chaque transition.
+6. Après un changement significatif, relire le diagnostic et mettre à jour les notes de reprise.
+   Terminer lorsque les critères demandés sont vérifiés ou qu'une information indispensable manque.
+
+Le diagnostic est un point de départ. Une feature existante ou une capacité non SQL demande une lecture du code.
+`verification` signifie que les fichiers permettent de commencer la vérification, jamais que les tests ont réussi.
+Une demande d'évolution reprend la feature concernée même si la première tranche du projet existe déjà.
+En l'absence de la commande dans une ancienne app, utiliser `app:doctor` et les fichiers disponibles sans imposer une migration.
 
 # Choisir le parcours
 
@@ -46,7 +65,7 @@ l'app avec un dashboard géré avant de créer un repository.
 - Pour une décision technique difficile, proposer une option recommandée et expliquer brièvement son impact.
 - Présenter les capacités en termes d'usage. Proposer une combinaison minimale et différer celles sans besoin confirmé.
 - Ne pas imposer un premier KPI à une app Genie ou fichiers. `feature:new` reste réservé aux KPI simples.
-- Après chaque lot, récapituler les décisions, les inconnues bloquantes et la prochaine petite étape.
+- Donner des nouvelles aux étapes utiles, puis poursuivre le travail autorisé. Une proposition de commande ne termine pas une demande d'implémentation.
 - Une fois le clone disponible, maintenir `config/app-spec.yml` comme source de vérité courte avec `app:guide`.
   `docs/product-brief.md` est sa projection générée ; marquer `À confirmer` au lieu d'inventer une réponse.
 - Ne jamais inscrire de secret, token, donnée client, identifiant personnel ou extrait sensible dans le brief, les
@@ -80,8 +99,8 @@ l'app avec un dashboard géré avant de créer un repository.
 
 # Résultat attendu
 
-Toujours terminer une étape avec : l'état obtenu, les décisions enregistrées, les commandes réellement exécutées,
-les validations réussies ou non exécutées, et la prochaine tranche recommandée. Ne jamais annoncer une vérification
+Terminer la demande avec : l'état obtenu, les décisions enregistrées, les commandes réellement exécutées,
+les validations réussies ou non exécutées, et les éventuels points restants. Ne jamais annoncer une vérification
 qui n'a pas été exécutée.
 
 # Runtime AppKit 2.0

@@ -8,6 +8,11 @@ Les valeurs locales du template permettent une démo sans credentials. Différer
 schema et groupes jusqu'au premier accès réel, sauf si l'utilisateur les a déjà fournis.
 Les valeurs présentes dans les fichiers restent des valeurs à confirmer avant toute opération distante.
 
+Pour un essai local explicitement demandé, partir d'une copie isolée du checkout choisi.
+Le parcours GitHub, ses questions d'équipe et ses permissions ne s'appliquent pas à cette copie de test.
+Initialiser la copie une fois, puis suivre [orchestration.md](orchestration.md) pour la démo et sa reprise.
+Une app déjà initialisée reprend directement son diagnostic, sans recréer de repository.
+
 ## 1. Recueillir le strict nécessaire
 
 Procéder par lots de trois questions maximum.

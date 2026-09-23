@@ -95,6 +95,7 @@ async function initializeCleanGitCheckout(fixtureRoot: string, environment: Node
 }
 
 async function initializeApp(fixtureRoot: string, environment: NodeJS.ProcessEnv): Promise<void> {
+  await inspectCreationStage(fixtureRoot, environment, "bootstrap");
   await runCommand(
     process.execPath,
     [
@@ -114,6 +115,7 @@ async function initializeApp(fixtureRoot: string, environment: NodeJS.ProcessEnv
     fixtureRoot,
     environment,
   );
+  await inspectCreationStage(fixtureRoot, environment, "framing");
   await runCommand(
     process.execPath,
     [
@@ -128,6 +130,7 @@ async function initializeApp(fixtureRoot: string, environment: NodeJS.ProcessEnv
     fixtureRoot,
     environment,
   );
+  await inspectCreationStage(fixtureRoot, environment, "data");
   await runCommand(
     process.execPath,
     [
@@ -144,6 +147,7 @@ async function initializeApp(fixtureRoot: string, environment: NodeJS.ProcessEnv
     fixtureRoot,
     environment,
   );
+  await inspectCreationStage(fixtureRoot, environment, "implementation");
   await runCommand(
     process.execPath,
     [
@@ -163,7 +167,23 @@ async function initializeApp(fixtureRoot: string, environment: NodeJS.ProcessEnv
     fixtureRoot,
     environment,
   );
+  await inspectCreationStage(fixtureRoot, environment, "verification");
   await runCommand(process.execPath, ["scripts/init-user-state.mjs", "--schema", "ci_user_state"], fixtureRoot, environment);
+}
+
+async function inspectCreationStage(fixtureRoot: string, environment: NodeJS.ProcessEnv, phase: string): Promise<void> {
+  const specBefore = await readFile(join(fixtureRoot, "config/app-spec.yml"), "utf8");
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const output = await execFileAsync(process.execPath, ["scripts/app-orchestrate.mjs", "--json"], {
+      cwd: fixtureRoot, env: environment, encoding: "utf8", maxBuffer: 4 * 1024 * 1024,
+    });
+    const plan = asRecord(JSON.parse(output.stdout), "orchestration plan");
+    assert.equal(plan.phase, phase);
+    assert.equal(plan.readOnly, true);
+    assert.equal(asRecord(plan.verification, "verification").status, "not-run");
+  }
+  assert.equal(await readFile(join(fixtureRoot, "config/app-spec.yml"), "utf8"), specBefore);
+  process.stdout.write(`Orchestrator resumes at '${phase}' without changing the specification.\n`);
 }
 
 async function inspectGeneratedApp(fixtureRoot: string, environment: NodeJS.ProcessEnv): Promise<void> {

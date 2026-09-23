@@ -23,6 +23,7 @@ npm run dev
 
 Ouvrir <http://localhost:3000>. Le mode démo est explicite et n’effectue aucun appel distant. La page
 <http://localhost:3000/visualizations> présente tous les composants avec des données synthétiques.
+`npm run init-app -- --help` affiche les options sans lancer l'initialisation ni modifier les fichiers.
 
 ## Parcours guidé pour une app interne
 
@@ -39,6 +40,18 @@ Le parcours reste volontairement léger pour une app maintenue par une seule per
 Une app Genie seule peut choisir `npm run app:guide -- --type assistant --capabilities genie`.
 Elle n'a pas à générer un KPI. Les choix de cadrage n'activent aucun plugin, droit ou ressource.
 Voir [le parcours des capacités AppKit](docs/appkit-capabilities.md) pour les intégrations disponibles et leurs limites.
+
+Avec un assistant de développement, demander par exemple :
+
+> Utilise create-analytics-dbx-app pour créer une mini-app de suivi des commandes en démo, puis teste le parcours.
+
+Le skill orchestre le cadrage, la sélection des skills, l'implémentation et les contrôles dans le périmètre demandé.
+`npm run app:orchestrate` propose l'étape de reprise depuis les fichiers actuels, sans les modifier.
+Ajouter `-- --json --skills-dir /chemin/vers/les/skills` pour obtenir le plan détaillé et les skills manquants utiles à l'étape.
+L'agent peut installer ces skills avec le CLI officiel lorsque la mise en place locale est autorisée.
+Il conserve les décisions et les preuves dans `docs/creation-progress.md` de l'app, sans remplacer la spec.
+Une feature présente reste à tester ; le diagnostic ne certifie ni son fonctionnement ni les accès distants.
+Voir [le fonctionnement de l'orchestrateur](.agents/skills/create-analytics-dbx-app/references/orchestration.md).
 
 Exemple minimal après avoir confirmé une table existante :
 
@@ -240,7 +253,7 @@ Le repository fournit des workflows compatibles avec le standard ouvert Agent Sk
 
 | Skill | Usage |
 | --- | --- |
-| `create-analytics-dbx-app` | Cadrer l'usage, initialiser une démo Valiuz, choisir les capacités AppKit et les skills amont, puis livrer une première tranche |
+| `create-analytics-dbx-app` | Orchestrer une création ou une reprise, préparer les skills utiles, implémenter et vérifier la tranche demandée |
 | `design-cost-aware-data-history` | Concevoir une historisation avec reprise bornée ou hot/cold, sans imposer un recalcul complet |
 | `github-engineer` | Isoler une tâche dans une branche ou un worktree, publier une pull request et nettoyer prudemment le travail fusionné |
 | `prepare-template-release` | Décider la version SemVer d'une évolution du template et synchroniser manifeste, migration, tests et documentation |
@@ -363,6 +376,7 @@ avant la lecture source si le checkout local ne correspond pas à la préparatio
 | `npm run build` | build Vite et serveur AppKit |
 | `npm run check` | manifeste, lint, types, tests unitaires et build de production |
 | `npm run app:guide` | cadre l'app et synchronise le brief produit |
+| `npm run app:orchestrate` | propose la reprise, les références et les skills utiles depuis l'état du projet, sans mutation |
 | `npm run app:capabilities -- --all` | présente les capacités AppKit, ressources, guides et tests à prévoir, sans activation |
 | `npm run app:skills` | propose les skills amont utiles et leur installation externe, sans l'exécuter |
 | `npm run app:spec:check` | vérifie la spec et le brief |
@@ -429,6 +443,7 @@ La boundary attendue est : `UI → service de feature → repository → SqlExec
 Après avoir déclaré la source, lancer `npm run feature:new -- <slug>`. Le générateur demande le KPI minimal, crée la
 tranche complète et met à jour la navigation, la spec et le brief. Relire systématiquement la requête générée : elle
 ne couvre volontairement que `count`, `sum` et `avg` sur une colonne simple.
+La carte générée distingue une absence de valeur (« Aucune donnée ») d'une valeur numérique égale à zéro.
 
 Pour une tranche plus riche, conserver la même structure : contrat et composant dans `src/features/<nom>/`, logique
 métier dans `server/service.ts`, accès aux données dans `server/repository.ts`, route avec `withApiRoute`, puis tests

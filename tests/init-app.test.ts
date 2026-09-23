@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { copyFile, mkdir, mkdtemp, readFile, symlink, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
@@ -193,4 +193,15 @@ test("bootstrap rejects a data project outside the Valiuz allowlist", async () =
       ),
     /Command failed/,
   );
+});
+
+test("bootstrap help exits without prompting or changing the copied application", async (t) => {
+  const root = await prepareRoot("databricks-app-help-");
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const paths = operationalFiles.filter((file) => file !== ".valiuz-template.yml");
+  const before = await Promise.all(paths.map((file) => readFile(join(root, file), "utf8")));
+  const output = execFileSync(process.execPath, ["scripts/init-app.mjs", "--help"], { cwd: root, encoding: "utf8", timeout: 5000 });
+  assert.match(output, /Usage: npm run init-app/);
+  assert.deepEqual(await Promise.all(paths.map((file) => readFile(join(root, file), "utf8"))), before);
+  await assert.rejects(readFile(join(root, ".valiuz-template.yml")), { code: "ENOENT" });
 });

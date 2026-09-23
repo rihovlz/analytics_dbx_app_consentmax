@@ -9,7 +9,7 @@ Packages AppKit et AppKit UI : `0.76.1`. Node.js : `22.16.0`.
 | Commande | Résultat |
 | --- | --- |
 | `npm run check` | Capabilities, release, configuration, lint, types, tests et build validés |
-| `npm test` | 140 tests réussis, sans credential ni donnée distante |
+| `npm test` | 146 tests réussis, sans credential ni donnée distante |
 | `APP_MODE=databricks npm run build` | Build sans credentials runtime réussi |
 | `npm run test:e2e` | 8 parcours Chromium réussis sur le serveur de développement |
 | `E2E_PRODUCTION=1 npm run test:e2e` | 8 parcours réussis sur le serveur compilé |
@@ -61,6 +61,46 @@ Le validateur du skill `skill-creator` accepte les trois skills locaux modifiés
 `app:skills --directory <dossier-externe> --check` accepte les six empreintes installées.
 La matrice CLI ajoute 1.12.1 après validation locale des quatre bundles ; les validations 0.295.0 et 1.14.1 viennent de l'étape runtime.
 Les tests navigateur ont été exécutés lors de cette étape runtime. L'évolution du parcours de création ne modifie ni le serveur ni l'UI.
+
+## Orchestration et essai sur une mini-app
+
+`create-analytics-dbx-app` pilote la création et la reprise. `app:orchestrate` propose l'étape et les skills utiles depuis les fichiers.
+Le diagnostic reste en lecture seule. Les notes de reprise ne valent ni réussite de test ni autorisation.
+Les skills absents sont des candidats à une installation ciblée ; les entrées différentes ne sont pas écrasées automatiquement.
+
+Après cette évolution, `npm run check` passe avec 146 tests, le lint, le typecheck et le build.
+Le parcours `template:journey` passe avec 148 tests dans une copie propre installée avec `npm ci`.
+Il examine deux fois chaque reprise : bootstrap, cadrage, source, implémentation et vérification, sans modifier la spec.
+`template:migration` passe aussi avec la fixture métier 1.5. Le validateur du skill accepte l'entrée et ses références locales sont présentes.
+
+Un essai indépendant a créé une mini-app de suivi des commandes avec un montant synthétique de 1 200 EUR.
+Il a suivi le skill, généré une feature, précisé sa période de démo et sa source synthétique, puis adapté sa présentation mobile.
+Les reprises après cadrage, génération et recette conservent les fichiers applicatifs, sans rejouer l'initialisation ou le générateur.
+La copie passe ses 149 tests unitaires, son lint, son typecheck et son build.
+La recette Chromium sur le serveur compilé passe 14 tests, dont six propres à la mini-app :
+
+- Navigation, clavier, accès direct et montant de démo.
+- Chargement avec le bouton temporairement désactivé.
+- Absence de valeur affichée explicitement.
+- Zéro conservé comme valeur numérique.
+- Erreur compréhensible et nouvelle tentative.
+- Affichage mobile.
+
+Les captures desktop, mobile, chargement, vide et erreur sont conservées dans les preuves locales de l'essai.
+Les captures desktop et mobile ont été inspectées. Les interceptions HTTP des tests utilisent uniquement des données synthétiques.
+La première tentative sur le serveur de développement de cette copie a subi des redémarrages, puis un refus de connexion.
+Après remplacement du lien de dépendances par une installation propre avec `npm ci`, les six tests ciblés passent aussi en développement.
+Ce contrôle a pris 22 secondes, installation comprise. Le défaut initial ne s'est pas reproduit ; sa cause précise reste indéterminée.
+
+L'essai a conduit à trois corrections du template : l'état vide des futurs KPI, l'aide `init-app --help` sans saisie,
+et les fixtures imbriquées qui partagent leurs dépendances par lien symbolique.
+Le lien `node_modules` est aussi ignoré par Git, comme un dossier de dépendances normal.
+Le générateur distingue désormais une absence de valeur d'un zéro. La copie a démontré l'échec avant correction et la réussite après correction.
+Les tests de reprise, de sélection des skills, d'aide et de dépendances liées sont déterministes et sans accès distant.
+
+La décision de release reste **2.0.0** sur cette branche non publiée, comparée à la baseline 1.5.0.
+La capability `guided-appkit-capabilities`, ses sondes et le guide de migration décrivent l'orchestration.
+Les intégrations Databricks réelles et l'installation effective d'un skill manquant n'ont pas été exercées dans cet essai.
 
 L’illustration du README a été adaptée avec l’outil `imagegen` intégré.
 Le [fichier livré](assets/databricks-app-boilerplate-v2.png) et son [prompt exact](assets/databricks-app-boilerplate-v2.prompt.md) sont conservés.

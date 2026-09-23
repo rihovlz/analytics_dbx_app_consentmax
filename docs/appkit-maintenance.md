@@ -61,6 +61,12 @@ Il ne compare pas les références annexes et ne prouve pas que l'assistant a ch
 Sans dossier explicite, l'installation reste non vérifiée. Ajouter `--check` à `app:skills` pour échouer sur toute entrée non conforme.
 Les contrôles CI et la démo ne dépendent pas d'une installation personnelle.
 
+Pour une création ou une reprise, `app:orchestrate --json --skills-dir <dossier>` sélectionne les skills utiles à l'étape.
+Son champ `missingInstall` propose uniquement les entrées absentes, sans exécuter l'installation.
+L'agent examine l'aide du CLI installé, cible son assistant, installe dans le périmètre autorisé et relance le diagnostic.
+Les entrées modifiées, invalides ou non revues demandent une lecture ; elles ne sont pas réinstallées automatiquement.
+La reprise suit [la référence d'orchestration](../.agents/skills/create-analytics-dbx-app/references/orchestration.md).
+
 Installer la guidance avec le [CLI Databricks officiel](https://github.com/databricks/databricks-agent-skills) :
 
 ```bash

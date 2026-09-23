@@ -40,9 +40,11 @@ npm run template:check
 Une nouvelle app reçoit la version `2.0.0`. `npm run check` inclut `template:check` et
 `template:release:check`. Le second reconnaît une app initialisée et n'exige aucun bump pour ses features métier.
 
-La release 2.0.0 inclut le parcours de capacités et de skills.
+La release 2.0.0 inclut le parcours de capacités, de skills et l'orchestration de la création ou de la reprise.
 La migration du runtime impose une version majeure par rapport à la base 1.5.0.
 Les anciennes specs restent lisibles. Fusionner les scripts de cadrage et régénérer le brief pour adopter le nouveau champ `capabilities`.
+Ajouter la commande `app:orchestrate` et sa référence au skill de création. Aucun changement de schéma ni nouveau service n'est nécessaire.
+Les notes de reprise sont facultatives ; elles ne remplacent ni les contrats métier ni les tests.
 
 ## App copiée avant le suivi de version
 
