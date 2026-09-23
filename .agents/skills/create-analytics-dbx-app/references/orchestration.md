@@ -8,8 +8,8 @@ Les commandes de diagnostic proposent des actions. L'agent les examine et réali
 `app:orchestrate` assemble les contrôles de `app:doctor`, la spec, les fichiers des features et les skills nécessaires.
 Il reste local et en lecture seule. `--json` expose les diagnostics, la référence à lire et les installations proposées.
 Il ne lit aucun profil Databricks et ne lance ni installation, ni test, ni appel au workspace.
-L'entrée courte `npm run app -- next` délègue au même diagnostic. `app prompt --role <profil>` produit un texte
-de démarrage à copier, sans lancer d'agent. Les profils orientent les questions et peuvent changer au cours du projet.
+L'entrée courte `npm run app -- next` délègue au même diagnostic. `app prompt --idea <besoin>` produit un texte
+de démarrage à copier, sans lancer d'agent. Une seule personne peut suivre tout le parcours.
 Pour une migration demandée, lire `docs/migration-2.0.md` et utiliser le bilan depuis le checkout cible avant cette boucle.
 
 | Phase | Action de l'agent |
@@ -27,6 +27,17 @@ Les intégrations non SQL restent `review-required` jusqu'à leur revue par l'ag
 Une phase inchangée peut être normale après un test. Comparer les preuves au critère demandé au lieu de boucler sur la commande.
 Après un échec identique sans nouvelle information, diagnostiquer sa cause avant de retenter.
 Si une information bloque une capacité, poursuivre les actions indépendantes utiles.
+
+Le champ `workflow` rend visibles les sept étapes du [parcours complet](analytics-workflow.md), même quand la prochaine
+commande concerne le code. `declared` décrit une déclaration, `needs-input` une information absente,
+`review-required` une revue à conduire, `not-applicable` une étape sans objet pour les capacités retenues.
+`not-run` signifie que ce bilan n'exécute pas la vérification. Il reste ainsi après un test lancé par ailleurs.
+`workflow.data` expose les contrats locaux lisibles et leurs valeurs déclarées ; une erreur de lecture produit
+`unavailable` et les diagnostics restent à corriger. Ni un contrat, ni une fréquence déclarée, ni une note
+« validé » ne prouvent la qualité des données réelles.
+
+Utiliser les `localSkills` aussi au début de la tranche : la revue des KPI intervient dès les sources et la conception.
+Le choix `direct` est normal ; le champ préparation n'oblige pas à créer une ressource.
 
 ## Préparer les skills au moment utile
 
@@ -54,9 +65,11 @@ Créer ou mettre à jour `docs/creation-progress.md` dans l'application après u
 Conserver les notes existantes. Ce document contient seulement :
 
 - L'objectif courant et les critères d'acceptation.
+- Le niveau de résultat demandé : démo, données réelles ou mise en service.
 - Les décisions, hypothèses et limites de la démo.
 - Les fichiers ou routes réalisés et ce qui reste à faire.
 - Les commandes exécutées, leur résultat et la révision testée, avec les modifications locales encore présentes.
+- Les preuves de calcul et de qualité, leurs limites et les contrôles distants non exécutés.
 - La prochaine action et les informations réellement bloquantes.
 
 La spec et ses déclarations restent les sources de vérité. Ne pas dupliquer leur contenu dans les notes.

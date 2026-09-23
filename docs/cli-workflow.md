@@ -8,30 +8,38 @@ Les commandes historiques restent compatibles. Le menu délègue aux mêmes scri
 Copier ce prompt dans l'assistant ouvert sur le projet :
 
 > Utilise create-analytics-dbx-app pour construire une petite app Valiuz de suivi des commandes.
-> Commence en démo, aide-moi à préciser les utilisateurs et les KPI, puis implémente et teste une première tranche.
-> Reprends les informations déjà présentes et pose seulement les questions manquantes.
+> Je m'occupe du besoin, des données et de l'app. Prends en charge le parcours complet, en commençant par une démo testée.
+> Réutilise ce qui est connu, recommande les choix techniques et pose seulement les questions bloquantes.
 
-Pour produire une variante adaptée au métier :
+Pour produire un prompt adapté au besoin :
 
 ```bash
-npm run app -- prompt --role data-analyst --idea "Suivre les commandes par période"
-npm run app -- prompt --role analytics-engineer --idea "Exposer une marge dont le calcul est vérifiable"
-npm run app -- prompt --role data-engineer --idea "Suivre la fraîcheur et la complétude des sources"
+npm run app -- prompt --idea "Suivre les commandes par période"
 ```
 
 La commande affiche du texte à copier. Elle ne lance aucun agent et ne lit aucun credential.
-Le profil ajuste les questions ; il n'active pas de plugin ni de préparation.
-Un même projet peut être repris par les trois métiers, sans réinitialisation.
+Le parcours couvre les responsabilités DA, AE et DE pour une seule personne, sans choix de profil.
+L'option historique `--role data-analyst|analytics-engineer|data-engineer` reste disponible pour approfondir un sujet
+dans une itération. Elle conserve les autres étapes ; sa valeur par défaut est `full-cycle`.
 `init` refuse une app déjà nommée ou suivie par `.valiuz-template.yml`, avant toute écriture.
 
-| Profil | Point de départ | Première preuve utile |
-| --- | --- | --- |
-| Data analyst | Utilisateurs, décision, KPI et filtres | Une lecture compréhensible avec états chargement, vide et erreur |
-| Analytics engineer | Grain, métriques, jointures et contrats SQL | Un calcul testé sur des fixtures et une requête bornée, liée et validée |
-| Data engineer | Sources, fraîcheur, volumes et accès | Une lecture directe suffisante ou une préparation justifiée et bornée |
+L'agent conduit les étapes utiles au résultat demandé :
 
-Le skill `create-analytics-dbx-app` conduit le travail. Il charge les skills Databricks utiles à l'étape,
-conserve les règles Valiuz et vérifie les résultats. Les plugins AppKit exécutés dans l'app sont une décision distincte.
+1. Préciser la décision et une première tranche utile.
+2. Identifier les sources et contrôler leur qualité.
+3. Définir les KPI et vérifier leurs calculs.
+4. Préparer les données seulement si une lecture directe ne suffit pas.
+5. Construire l'interface, ses filtres et les états nécessaires.
+6. Tester la tranche et les contrôles locaux.
+7. Préparer la connexion réelle, la livraison et le suivi ; les actions distantes dépendent du périmètre autorisé.
+
+L'agent remplit les commandes depuis les réponses connues, propose les plugins utiles et consulte les skills adaptés.
+Vous précisez les décisions métier manquantes. Il conserve la reprise dans `docs/creation-progress.md` et propose une
+seule prochaine action. Voir [les consignes du parcours](../.agents/skills/create-analytics-dbx-app/references/analytics-workflow.md).
+
+Le résultat distingue **démo testée**, **données réelles validées** et **mise en service vérifiée**.
+Un faux exécuteur qui retourne 42 ne valide pas le SQL. Un contrat de fraîcheur ne prouve pas la fraîcheur mesurée.
+Une demande de démo peut être terminée sans connexion distante ; l'agent indique les preuves encore nécessaires.
 
 ## Reprendre sans chercher la bonne commande
 
@@ -44,6 +52,8 @@ npm run app -- feature --help
 ```
 
 `next` examine les fichiers et propose une action. Il ne l'exécute pas et n'affirme pas que les tests passent.
+Il affiche aussi les étapes du parcours, les modes data et les grains déclarés. Le JSON inclut `workflow.steps`
+et `workflow.data` pour l'agent. Les états « à examiner » restent à confronter aux preuves de session, même après un test.
 Pour un JSON utilisable dans un script, employer `npm run --silent app -- next --json`.
 `capabilities` expose les intégrations et leurs prérequis. `skills` contrôle uniquement le dossier indiqué, sans installation.
 Les déclarations de la spec n'activent ni ressource, ni droit, ni plugin.
@@ -69,7 +79,7 @@ Les commandes `dev` et `check` exécutent respectivement le serveur et les valid
 
 Pour Genie, des fichiers ou une autre intégration, commencer par `guide` et `capabilities`.
 Les étapes `data` et `feature` ne sont nécessaires que pour une tranche KPI. Le générateur reste limité à `count`, `sum` et `avg`.
-Une pipeline n'est pas un prérequis pour un data engineer : le mode `direct` suffit souvent.
+Le mode `direct` reste le choix par défaut, quel que soit le sujet pris en charge par la personne.
 Les préparations locales n'exécutent aucun SQL distant. Leur déploiement et leur exécution suivent le runbook de préparation.
 
 ## Préparer une migration 1.4 ou 1.5

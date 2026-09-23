@@ -342,7 +342,7 @@ capabilities:
         command: node --import tsx scripts/validate-v2-migration.ts
   guided-appkit-capabilities:
     since: 2.0.0
-    description: Guide la création, la reprise et le bilan de migration en CLI, cadre les capacités AppKit et sélectionne les skills amont sans activer de ressource.
+    description: Guide une personne du besoin aux données et à la mise en service, reprend le projet et prépare sa migration sans activer de ressource.
     probes:
       - type: file
         path: config/appkit-capabilities.json
@@ -358,6 +358,8 @@ capabilities:
         command: node scripts/app-skills.mjs
       - type: file
         path: .agents/skills/create-analytics-dbx-app/references/orchestration.md
+      - type: file
+        path: .agents/skills/create-analytics-dbx-app/references/analytics-workflow.md
       - type: packageScript
         name: app:orchestrate
         command: node scripts/app-orchestrate.mjs

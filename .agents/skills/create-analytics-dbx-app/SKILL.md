@@ -9,13 +9,16 @@ Piloter en français la création ou la reprise d'une app jusqu'au résultat dem
 Le besoin peut être un KPI, une conversation, un fichier, un formulaire ou un traitement.
 Conserver dans le template les décisions Valiuz et consulter les instructions Databricks officielles pour les APIs.
 L'agent de développement qui lit ce skill porte l'orchestration. Aucun agent runtime ni service supplémentaire n'est nécessaire.
+Par défaut, une seule personne porte analyse, métriques, préparation et app. Elle exprime le besoin ; l'agent choisit
+les commandes et les skills au moment utile. Ne pas lui demander de choisir entre DA, AE et DE.
 
 # Boucle de travail
 
 1. Lire les instructions et inspecter le checkout comme indiqué au démarrage.
 2. Dans un clone équipé, lancer `npm run app:orchestrate -- --json`.
    Ajouter `--skills-dir <dossier externe>` si l'emplacement des skills est connu.
-3. Lire la référence de l'étape proposée et les éventuelles notes `docs/creation-progress.md`.
+3. Pour une création analytics, lire [le parcours complet](references/analytics-workflow.md), puis la référence
+   de l'étape proposée et les éventuelles notes `docs/creation-progress.md`.
    Confronter ces notes au code, au diff et à la demande actuelle avant de reprendre.
 4. Charger les skills utiles à cette étape. Installer les manquants lorsque la mise en place locale est autorisée.
    Suivre [references/orchestration.md](references/orchestration.md) pour l'installation, les preuves et la reprise.
@@ -31,9 +34,10 @@ Pour une migration explicitement demandée, suivre le parcours ci-dessous avant 
 
 # Choisir le parcours
 
-- Pour démarrer depuis le terminal ou adapter le cadrage au métier, lire [le parcours CLI](../../../docs/cli-workflow.md).
+- Pour démarrer depuis le terminal, lire [le parcours CLI](../../../docs/cli-workflow.md).
   `npm run app` donne l'aide ; `app next` est l'alias de `app:orchestrate`.
-  Le métier oriente les questions, pas les droits ou ressources. Un data engineer n'a pas besoin d'une pipeline par défaut.
+  `app prompt --idea <besoin>` couvre tout le parcours. L'option historique `--role` accentue une priorité,
+  sans retirer les autres étapes ni changer les droits ou ressources.
 - Pour migrer volontairement une app 1.4 ou 1.5, lire [le guide de migration](../../../docs/migration-2.0.md).
   Utiliser `app migrate --app-dir <app>` depuis un checkout cible relu et installé, distinct de l'app.
   Comparer la version déclarée au code ; le bilan ne certifie pas la compatibilité. Préserver la révision de rollback.

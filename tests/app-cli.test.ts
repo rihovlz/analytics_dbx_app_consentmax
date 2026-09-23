@@ -34,24 +34,24 @@ async function snapshot(root: string): Promise<string> {
   return hash.digest("hex");
 }
 
-test("CLI help and role prompts work before initialization without installing or creating files", async (t) => {
+test("CLI starts a complete workflow without choosing a role and preserves optional focuses without side effects", async (t) => {
   const root = await temporaryApp(t);
   const help = run([], root);
   assert.equal(help.status, 0, help.stderr);
   assert.match(help.stdout, /init <nom>/);
   assert.match(help.stdout, /migrate --app-dir/);
-  for (const role of ["data-analyst", "analytics-engineer", "data-engineer"]) {
-    const result = run(["prompt", "--role", role, "--idea", "Suivi commandes $(touch unexpected) `touch unexpected`", "--json"], root);
+  for (const role of [undefined, "full-cycle", "data-analyst", "analytics-engineer", "data-engineer"]) {
+    const result = run(["prompt", ...(role ? ["--role", role] : []), "--idea", "Suivi commandes $(touch unexpected) `touch unexpected`", "--json"], root);
     assert.equal(result.status, 0, result.stderr);
     const prompt = JSON.parse(result.stdout);
-    assert.equal(prompt.role, role);
+    assert.equal(prompt.role, role ?? "full-cycle");
     assert.equal(prompt.readOnly, true);
     assert.match(prompt.prompt, /create-analytics-dbx-app/);
     assert.match(prompt.prompt, /sans la réinitialiser/);
     assert.match(prompt.prompt, /chargement\/vide\/erreur/);
     assert.match(prompt.prompt, /\$\(touch unexpected\)/);
-    if (role === "data-engineer") assert.match(prompt.prompt, /lecture directe/);
-    if (role === "analytics-engineer") assert.match(prompt.prompt, /grain/);
+    assert.match(prompt.prompt, /lecture directe/);
+    assert.match(prompt.prompt, /données réelles/);
   }
   for (const command of ["init", "guide", "data", "feature", "dev", "check", "next", "doctor", "skills", "capabilities", "migrate", "prompt"]) {
     assert.equal(run([command, "--help"], root).status, 0);

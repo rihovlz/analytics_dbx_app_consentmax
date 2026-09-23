@@ -17,7 +17,9 @@ Les notes `docs/creation-progress.md` conservent les décisions et les résultat
 Les générateurs et le runtime ne dépendent pas de ces notes.
 
 `npm run app` expose une entrée commune qui délègue aux commandes existantes, sans moteur de workflow supplémentaire.
-Les profils de `app prompt` ajustent le cadrage, sans configurer le runtime.
+`app prompt --idea <besoin>` couvre le parcours complet pour une personne. Les anciens `--role` restent des priorités facultatives.
+Le champ `workflow` de `app next` expose les revues du besoin à la mise en service et les contrats data déclarés.
+Il ne calcule aucun état de réussite depuis les notes ou la présence de fichiers. La revue KPI intervient dès la conception.
 `app migrate` lit une ancienne app et les guides du checkout cible. Il n'exécute ni ses scripts ni un portage automatique.
 Les inventaires statiques et versions déclarées restent à vérifier par l'agent. Voir [le parcours CLI](cli-workflow.md).
 

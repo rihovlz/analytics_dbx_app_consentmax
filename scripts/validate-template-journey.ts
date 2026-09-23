@@ -96,12 +96,10 @@ async function initializeCleanGitCheckout(fixtureRoot: string, environment: Node
 
 async function initializeApp(fixtureRoot: string, environment: NodeJS.ProcessEnv): Promise<void> {
   await runCommand("npm", ["run", "app"], fixtureRoot, environment);
-  for (const role of ["data-analyst", "analytics-engineer", "data-engineer"]) {
-    const output = await execFileAsync(process.execPath, ["scripts/app.mjs", "prompt", "--role", role, "--json"], { cwd: fixtureRoot, env: environment, encoding: "utf8" });
-    const prompt = JSON.parse(output.stdout);
-    assert.equal(prompt.role, role);
-    assert.equal(prompt.readOnly, true);
-  }
+  const output = await execFileAsync(process.execPath, ["scripts/app.mjs", "prompt", "--idea", "Suivre les commandes, de la source au KPI", "--json"], { cwd: fixtureRoot, env: environment, encoding: "utf8" });
+  const prompt = JSON.parse(output.stdout);
+  assert.equal(prompt.role, "full-cycle");
+  assert.equal(prompt.readOnly, true);
   await inspectCreationStage(fixtureRoot, environment, "bootstrap");
   await runCommand(
     process.execPath,
@@ -188,6 +186,16 @@ async function inspectCreationStage(fixtureRoot: string, environment: NodeJS.Pro
     assert.equal(plan.phase, phase);
     assert.equal(plan.readOnly, true);
     assert.equal(asRecord(plan.verification, "verification").status, "not-run");
+    const workflow = asRecord(plan.workflow, "workflow");
+    const steps = asArray(workflow.steps, "workflow steps").map((item) => asRecord(item, "step"));
+    assert.equal(steps.find((step) => step.id === "delivery")?.status, "not-run");
+    if (phase === "verification") {
+      assert.equal(steps.find((step) => step.id === "metrics")?.status, "review-required");
+      const data = asRecord(workflow.data, "data contracts");
+      const contracts = asArray(data.contracts, "contracts").map((item) => asRecord(item, "contract"));
+      assert.equal(contracts[0]?.mode, "direct");
+      assert.equal(contracts[0]?.grain, "Une ligne synthétique");
+    }
   }
   assert.equal(await readFile(join(fixtureRoot, "config/app-spec.yml"), "utf8"), specBefore);
   process.stdout.write(`Orchestrator resumes at '${phase}' without changing the specification.\n`);

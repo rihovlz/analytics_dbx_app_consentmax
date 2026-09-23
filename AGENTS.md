@@ -57,7 +57,9 @@ Avoid speculative abstractions. Extract a generic helper only when two real feat
   Use `create-analytics-dbx-app` to coordinate creation and resumption. `app:orchestrate --json` reports the next local
   step and relevant skills. Compare optional `docs/creation-progress.md` notes with current files; notes are neither
   test evidence nor authorization. Continue authorized work through implementation and verification.
-  `npm run app` provides CLI help and role prompts; `app next` delegates to the same orchestration diagnostic.
+  One person can own analysis, data preparation and the app. `app prompt --idea <need>` covers the full workflow;
+  the agent chooses commands and skills from known requirements. Optional `--role` values only emphasize a topic.
+  `app next` delegates to the same diagnostic and lists workflow reviews without certifying data quality or test results.
   For an explicitly requested migration, run `app migrate --app-dir <old app>` from a reviewed target template checkout.
   Treat its version and inventory as unverified; follow `docs/migration-2.0.md` without reinitializing the old app.
 - Use `npm run data:init -- <name>` to choose `direct`, `notebook` or `pipeline`. Default to `direct`. Notebook and

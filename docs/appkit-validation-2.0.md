@@ -9,7 +9,7 @@ Packages AppKit et AppKit UI : `0.76.1`. Node.js : `22.16.0`.
 | Commande | Résultat |
 | --- | --- |
 | `npm run check` | Capabilities, release, configuration, lint, types, tests et build validés |
-| `npm test` | 153 tests réussis, sans credential ni donnée distante |
+| `npm test` | 154 tests réussis, sans credential ni donnée distante |
 | `APP_MODE=databricks npm run build` | Build sans credentials runtime réussi |
 | `npm run test:e2e` | 8 parcours Chromium réussis sur le serveur de développement |
 | `E2E_PRODUCTION=1 npm run test:e2e` | 8 parcours réussis sur le serveur compilé |
@@ -135,6 +135,29 @@ Le serveur et les copies temporaires de cet essai sont arrêtés et supprimés. 
 Les deux skills modifiés passent le validateur `skill-creator`. Les liens documentaires locaux sont valides.
 La décision reste **major 2.0.0**, non publiée. Le release check compare toujours la branche à `origin/main` en 1.5.0.
 Les tests navigateur de l'étape précédente restent la preuve UI ; cette évolution CLI ne les a pas relancés.
+
+## Parcours complet pour une personne
+
+Le prompt par défaut couvre le besoin, les sources et leur qualité, les KPI, la préparation utile, l'interface,
+les tests et la mise en service. Aucun choix de métier n'est requis. Les anciennes options `--role` restent compatibles.
+Le skill réutilise les réponses connues et distingue démo testée, données réelles validées et livraison vérifiée.
+
+`app next` expose les revues du parcours et les contrats data déclarés. La revue KPI est proposée dès la conception.
+Une préparation notebook sélectionne la guidance Bundles sans activer le plugin Jobs ni exécuter de SQL.
+Un contrat illisible reste un diagnostic à corriger. Des fichiers complets ou des notes positives ne certifient
+ni les calculs, ni la qualité réelle, ni le déploiement.
+
+Vérifications exécutées après ce changement :
+
+- `npm run check` : 154 tests, lint, typecheck, contrats et build réussis.
+- `npm run template:journey` : copie propre, prompt sans profil, reprise et KPI généré ; 156 tests et build réussis.
+- `npm run template:migration` : fixtures 1.4 et 1.5, tests métier, lint, typecheck et builds réussis.
+- `npm run bundle:compatibility` : CLI 1.12.1, bundles app et data dev/prod contre le serveur local.
+- Validateur `skill-creator` : skill de création valide ; 49 liens Markdown locaux vérifiés.
+
+La vérification porte sur les commandes et leurs contrats. Elle ne constitue pas un nouvel essai conversationnel
+indépendant de l'agent. Aucun test navigateur ni accès aux données réelles n'a été relancé pour cette évolution du parcours.
+La décision reste **major 2.0.0**, non publiée, face à la base 1.5.0.
 
 ## Revue documentaire et réserve distante
 

@@ -12,6 +12,8 @@ cadrer plutôt les entrées, les sorties, l'identité et les effets de chaque ac
 
 Choisir le prochain lot selon les inconnues qui bloquent réellement l'avancement. Poser au maximum trois questions par
 message.
+Les listes ci-dessous sont des aides à la décision, pas un formulaire à faire remplir. Une même personne peut porter
+le besoin, les données et l'app. Recommander les choix techniques et remplir les commandes depuis les informations connues.
 
 ### Résultat métier
 
@@ -91,8 +93,8 @@ politique de l'équipe l'autorise. Les credentials, extraits clients et données
 
 Une tranche MVP doit relier un besoin utilisateur à un chemin complet : page, route, service, repository, requête ou
 fixture, contrat validé et test. Choisir la plus petite tranche qui réduit un risque important, par exemple valider un
-KPI prioritaire avec une seule source et un seul filtre. Faire confirmer ses critères d'acceptation avant de passer à
-l'implémentation.
+KPI prioritaire avec une seule source et un seul filtre. Réutiliser les critères déjà donnés ; demander une précision
+seulement si leur ambiguïté peut changer le résultat. Poursuivre l'implémentation locale autorisée.
 
 Le KPI est un exemple, pas un passage obligatoire. Une app Genie peut commencer par une question avec contexte de dashboard.
 Une app Files peut commencer par un import validé en démo. Le critère de succès de la spec sert de première preuve.

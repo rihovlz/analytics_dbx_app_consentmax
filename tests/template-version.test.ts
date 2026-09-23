@@ -41,6 +41,9 @@ test("declares the historical baselines and the current 2.0.0 template", async (
   assert.ok(manifest.capabilities["guided-appkit-capabilities"].probes.some(
     (probe: { type: string; name?: string }) => probe.type === "packageScript" && probe.name === "app",
   ));
+  assert.ok(manifest.capabilities["guided-appkit-capabilities"].probes.some(
+    (probe: { type: string; path?: string }) => probe.type === "file" && probe.path === ".agents/skills/create-analytics-dbx-app/references/analytics-workflow.md",
+  ));
 
   const genieProbes = JSON.stringify(manifest.capabilities["genie-natural-language-analytics"].probes);
   assert.match(genieProbes, /validateGenieEnvironmentReferences/);

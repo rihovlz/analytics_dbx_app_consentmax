@@ -50,6 +50,9 @@ page ou composant de feature
 
 Commencer par une fixture de démo déterministe lorsque le contrat métier est validé mais que l'accès distant ne l'est
 pas encore. La fixture doit être synthétique et ne contenir aucune ligne issue d'un client.
+Faire intervenir `validate-analytics-kpis` pendant la définition et la revue du calcul.
+Un faux exécuteur valide les contrats et le transport ; il ne prouve pas que le SQL calcule correctement le KPI.
+Appliquer la distinction des preuves du [parcours complet](analytics-workflow.md).
 
 ## Tester la tranche
 
@@ -95,6 +98,10 @@ Après chaque tranche :
 3. Mettre à jour le brief et ordonner le backlog selon valeur, risque et dépendances.
 4. Proposer une seule prochaine tranche, avec son critère d'acceptation.
 5. Demander un retour ciblé sur le chiffre, la requête et l'usage avant d'élargir l'interface.
+
+Réutiliser un retour ou un critère déjà donné. Pour une demande qui couvre plusieurs tranches, poursuivre le travail
+autorisé ; poser une question seulement lorsqu'une décision métier manque. Distinguer dans le résultat final
+démo testée, données réelles validées et mise en service vérifiée.
 
 Pour un premier déploiement Git-backed, provisionner d'abord l'app sans la démarrer afin d'obtenir son service
 principal, puis faire configurer son credential Git en lecture. Un déploiement normal doit épingler le commit exact et

@@ -26,7 +26,7 @@ Ouvrir <http://localhost:3000>. Le mode démo est explicite et n’effectue aucu
 `npm run init-app -- --help` affiche les options sans lancer l'initialisation ni modifier les fichiers.
 `npm run app -- <commande> --help` donne l'aide du parcours. Les anciennes commandes npm restent disponibles.
 L'initialisation refuse une app existante ; utiliser `app next` pour la reprendre ou le guide de migration pour changer de version.
-Voir [le parcours CLI par métier](docs/cli-workflow.md) pour un essai complet et les variantes analyst, analytics engineer et data engineer.
+Voir [le parcours CLI complet](docs/cli-workflow.md) pour un essai guidé par une seule personne, du besoin aux données et à l'app.
 
 ## Parcours guidé pour une app interne
 
@@ -47,11 +47,12 @@ Voir [le parcours des capacités AppKit](docs/appkit-capabilities.md) pour les i
 Avec un assistant de développement, demander par exemple :
 
 > Utilise create-analytics-dbx-app pour construire une petite app Valiuz de suivi des commandes.
-> Commence en démo, aide-moi à préciser les utilisateurs et les KPI, puis implémente et teste une première tranche.
-> Reprends les informations déjà présentes et pose seulement les questions manquantes.
+> Je m'occupe du besoin, des données et de l'app. Prends en charge le parcours complet, en commençant par une démo testée.
+> Réutilise ce qui est connu, recommande les choix techniques et pose seulement les questions bloquantes.
 
-`npm run app -- prompt --role data-analyst --idea "Suivre les commandes"` produit une variante à copier dans l'assistant.
-Les profils `analytics-engineer` et `data-engineer` adaptent le cadrage, sans imposer de ressource supplémentaire.
+`npm run app -- prompt --idea "Suivre les commandes"` produit une variante à copier dans l'assistant.
+Le parcours couvre besoin, sources et qualité, KPI, préparation utile, interface, tests et mise en service.
+L'agent choisit les commandes et consulte les skills au moment utile. Aucun choix de métier n'est nécessaire.
 
 Le skill orchestre le cadrage, la sélection des skills, l'implémentation et les contrôles dans le périmètre demandé.
 `npm run app:orchestrate` propose l'étape de reprise depuis les fichiers actuels, sans les modifier.
@@ -59,6 +60,8 @@ Ajouter `-- --json --skills-dir /chemin/vers/les/skills` pour obtenir le plan d�
 L'agent peut installer ces skills avec le CLI officiel lorsque la mise en place locale est autorisée.
 Il conserve les décisions et les preuves dans `docs/creation-progress.md` de l'app, sans remplacer la spec.
 Une feature présente reste à tester ; le diagnostic ne certifie ni son fonctionnement ni les accès distants.
+`app next` montre aussi les revues du parcours complet et les contrats data déclarés.
+Le résultat distingue une démo testée, des données réelles validées et une mise en service vérifiée.
 Voir [le fonctionnement de l'orchestrateur](.agents/skills/create-analytics-dbx-app/references/orchestration.md).
 
 Exemple minimal après avoir confirmé une table existante :
@@ -394,7 +397,7 @@ avant la lecture source si le checkout local ne correspond pas à la préparatio
 | `npm run build` | build Vite et serveur AppKit |
 | `npm run check` | manifeste, lint, types, tests unitaires et build de production |
 | `npm run app:guide` | cadre l'app et synchronise le brief produit |
-| `npm run app` | entrée CLI commune : aide, prompts par métier, génération, reprise et bilan de migration |
+| `npm run app` | entrée CLI commune : aide, prompt du parcours complet, génération, reprise et bilan de migration |
 | `npm run app:orchestrate` | propose la reprise, les références et les skills utiles depuis l'état du projet, sans mutation |
 | `npm run app:capabilities -- --all` | présente les capacités AppKit, ressources, guides et tests à prévoir, sans activation |
 | `npm run app:skills` | propose les skills amont utiles et leur installation externe, sans l'exécuter |

@@ -41,7 +41,7 @@ Une nouvelle app reçoit la version `2.0.0`. `npm run check` inclut `template:ch
 `template:release:check`. Le second reconnaît une app initialisée et n'exige aucun bump pour ses features métier.
 
 La release 2.0.0 inclut le parcours de capacités, de skills et l'orchestration de la création ou de la reprise.
-Elle ajoute l'entrée `npm run app`, les prompts par métier et un bilan de migration depuis un checkout cible.
+Elle ajoute l'entrée `npm run app`, un prompt pour tout le parcours et un bilan de migration depuis un checkout cible.
 La migration du runtime impose une version majeure par rapport à la base 1.5.0.
 Les anciennes specs restent lisibles. Fusionner les scripts de cadrage et régénérer le brief pour adopter le nouveau champ `capabilities`.
 Ajouter la commande `app:orchestrate` et sa référence au skill de création. Aucun changement de schéma ni nouveau service n'est nécessaire.
@@ -286,4 +286,8 @@ Dans le repository source avec son historique 1.4 et 1.5, `npm run template:migr
 
 Les sondes `fileAnyOf` reconnaissent les emplacements 1.x et 2.0 des capabilities conservées.
 Les nouvelles capabilities vérifient le runtime AppKit, sa maintenance et le parcours guidé des capacités et skills.
+Le parcours de création suppose une personne pour le besoin, les données et l'app. `app prompt --idea <besoin>`
+ne demande aucun profil ; les anciennes valeurs de `--role` restent des priorités facultatives.
+`app next` expose aussi les revues métier, qualité, calcul, préparation, interface, tests et livraison.
+Fusionner les références du skill et conserver les contrats et notes existants, sans relancer l'initialisation.
 Le rollback conserve les tables et redéploie la révision précédente.

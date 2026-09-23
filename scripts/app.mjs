@@ -18,24 +18,29 @@ const commands = {
 };
 
 const roles = {
-  "data-analyst": "Je suis data analyst. Aide-moi à préciser la décision, les KPI, les filtres et la lecture des résultats.",
-  "analytics-engineer": "Je suis analytics engineer. Aide-moi à préciser le grain, les définitions de métriques, les jointures et les tests de calcul.",
-  "data-engineer": "Je suis data engineer. Aide-moi à préciser les sources, la fraîcheur et les volumes ; garder une lecture directe si elle suffit, sinon justifier une préparation bornée.",
+  "full-cycle": null,
+  "data-analyst": "Pour cette itération, approfondis la décision, les KPI, les filtres et la lecture des résultats.",
+  "analytics-engineer": "Pour cette itération, approfondis le grain, les définitions de métriques, les jointures et les tests de calcul.",
+  "data-engineer": "Pour cette itération, approfondis les sources, la fraîcheur et les volumes.",
 };
 
-export function creationPrompt({ role = "data-analyst", idea = "une app de suivi des commandes" } = {}) {
+export function creationPrompt({ role = "full-cycle", idea = "une app de suivi des commandes" } = {}) {
   if (!Object.hasOwn(roles, role)) throw new Error(`Profil inconnu. Choisir : ${Object.keys(roles).join(", ")}.`);
   if (!idea.trim()) throw new Error("Décrire le besoin avec --idea <texte>.");
   return [
     "Utilise create-analytics-dbx-app pour créer ou faire évoluer une app Valiuz dans ce projet.",
-    roles[role],
+    "Je porte le besoin, l'analyse et la préparation des données ainsi que l'app. Accompagne-moi sur tout le parcours.",
+    ...(roles[role] ? [roles[role]] : []),
     `Mon besoin : ${idea.trim()}`,
     "Commence par lire l'état du projet ; reprends une app existante sans la réinitialiser.",
-    "Réutilise les réponses connues et pose au plus trois questions utiles à la fois.",
+    "Prends en charge les étapes utiles : cadrage, sources et qualité, définitions des KPI, préparation des données, interface, tests et préparation de la mise en service.",
+    "Réutilise les réponses connues, recommande les choix techniques et pose au plus trois questions bloquantes à la fois.",
+    "Privilégie une lecture directe ; ne propose une préparation que si le besoin la justifie.",
     "Pour une nouvelle app, réalise d'abord une petite tranche en démo avec des données synthétiques explicites.",
     "Propose seulement les capacités AppKit utiles et consulte les skills Databricks correspondants hors du code de l'app.",
-    "Implémente la tranche, vérifie le calcul, les états chargement/vide/erreur et les contrôles locaux, puis indique les commandes exécutées et la prochaine étape.",
-    "Les accès réels et toute publication ou mutation distante restent à confirmer pour leurs cibles précises.",
+    "Implémente la tranche, vérifie le calcul, les états chargement/vide/erreur et les contrôles locaux. Distingue la démo testée, les chiffres validés sur données réelles et l'app déployée.",
+    "Garde les décisions et preuves utiles à la reprise, puis indique le résultat et une seule prochaine action.",
+    "Prépare les accès réels et la livraison dans le périmètre demandé ; avant une action distante, vérifie les accords déjà donnés pour ses cibles précises.",
   ].join("\n");
 }
 
@@ -46,7 +51,7 @@ function printHelp(command) {
     return;
   }
   if (command === "prompt") {
-    process.stdout.write(`npm run app -- prompt [--role ${Object.keys(roles).join("|")}] [--idea <texte>] [--json]\nAffiche un prompt à copier dans votre assistant ; ne lance aucun agent et ne modifie rien.\n`);
+    process.stdout.write(`npm run app -- prompt [--idea <texte>] [--json] [--role ${Object.keys(roles).join("|")}]\nParcours complet par défaut. --role conserve une priorité facultative, sans retirer les autres étapes.\nAffiche un prompt à copier dans votre assistant ; ne lance aucun agent et ne modifie rien.\n`);
     return;
   }
   if (command === "migrate") {
@@ -56,7 +61,7 @@ function printHelp(command) {
   process.stdout.write([
     "Parcours Valiuz — npm run app -- <commande>",
     "",
-    "Démarrer : prompt [--role data-analyst|analytics-engineer|data-engineer] [--idea <texte>]",
+    "Démarrer : prompt --idea <besoin> (un seul parcours, du besoin à la mise en service)",
     "Reprendre : next [--json] (diagnostic en lecture seule)",
     "",
     "1. init <nom>     Initialiser une nouvelle copie, une seule fois",
@@ -70,7 +75,7 @@ function printHelp(command) {
     "Migration : migrate --app-dir <ancienne app> (lecture seule, depuis le template cible)",
     "",
     "Aide : npm run app -- <commande> --help",
-    "Guide et exemples par métier : docs/cli-workflow.md",
+    "Guide du parcours complet : docs/cli-workflow.md",
     "Les commandes historiques restent disponibles. Aucun déploiement n'est lancé par ce menu.",
     "",
   ].join("\n"));
@@ -93,7 +98,7 @@ export async function runApp(args, root = process.cwd()) {
       else throw new Error("Usage : npm run app -- prompt [--role <profil>] [--idea <texte>] [--json]");
     }
     const prompt = creationPrompt(options);
-    process.stdout.write(`${json ? JSON.stringify({ schemaVersion: 1, readOnly: true, role: options.role ?? "data-analyst", prompt }, null, 2) : prompt}\n`);
+    process.stdout.write(`${json ? JSON.stringify({ schemaVersion: 1, readOnly: true, role: options.role ?? "full-cycle", prompt }, null, 2) : prompt}\n`);
     return 0;
   }
   if (command === "migrate") {

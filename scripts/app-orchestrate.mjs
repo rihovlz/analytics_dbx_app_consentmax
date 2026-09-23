@@ -7,6 +7,7 @@ import { inspectApp } from "./app-doctor.mjs";
 import { loadAppSpec } from "./app-spec.mjs";
 import { capabilityPlan } from "./app-capabilities.mjs";
 import { planAgentSkills } from "./app-skills.mjs";
+import { loadDataContracts } from "./data-preparation.mjs";
 
 const referenceRoot = ".agents/skills/create-analytics-dbx-app/references";
 const stages = {
@@ -22,6 +23,37 @@ const stages = {
 async function isFile(root, file) {
   try { return (await stat(join(root, file))).isFile(); }
   catch (error) { if (error.code === "ENOENT") return false; throw error; }
+}
+
+function describeWorkflow(spec, data) {
+  const analytics = !spec || spec.capabilities.includes("analytics");
+  const missingFraming = ["audience", "decision", "success"].filter((key) => !spec || spec.app[key] === "À confirmer");
+  const prepared = data.contracts.filter((contract) => contract.mode !== "direct");
+  return {
+    reference: `${referenceRoot}/analytics-workflow.md`,
+    // These are declarations and review instructions, never inferred test results.
+    steps: [
+      { id: "need", label: "Besoin et critères", status: missingFraming.length ? "needs-input" : "declared",
+        action: "Réutiliser le brief et préciser seulement les critères manquants.", missing: missingFraming },
+      { id: "data", label: "Sources et qualité", status: "review-required",
+        action: analytics
+          ? "Vérifier grain, clés, jointures, nulls et fraîcheur ; une source déclarée ou fictive ne prouve pas sa qualité."
+          : "Vérifier les entrées, ressources et identités utiles à la capacité retenue, sans imposer une table SQL." },
+      { id: "metrics", label: "Définitions et calculs", status: analytics ? "review-required" : "not-applicable",
+        action: "Relier formule, population, période, exclusions et cas limites à une preuve ; le faux exécuteur ne valide pas le SQL." },
+      { id: "preparation", label: "Préparation proportionnée", status: analytics || prepared.length ? "review-required" : "not-applicable",
+        action: prepared.length
+          ? "Relire la préparation déclarée, son coût et ses bornes ; son exécution distante reste distincte."
+          : "Garder la lecture directe si elle suffit ; ne créer une préparation que pour un besoin établi." },
+      { id: "experience", label: "Interface et usages", status: "review-required",
+        action: "Construire la tranche utile avec contexte des chiffres, filtres et états chargement, vide, erreur et retard pertinents." },
+      { id: "verification", label: "Vérification locale", status: "not-run",
+        action: "Exécuter les contrôles et le parcours utilisateur ; relever les commandes, résultats et fichiers testés." },
+      { id: "delivery", label: "Mise en service et suivi", status: "not-run",
+        action: "Selon l'objectif demandé, préparer accès réels, cible dev, smoke tests, rollback et suivi de fraîcheur ; réutiliser les autorisations existantes." },
+    ],
+    data,
+  };
 }
 
 export async function planCreation(root, options = {}) {
@@ -58,7 +90,19 @@ export async function planCreation(root, options = {}) {
   const incomplete = features.some((feature) => feature.missing.length);
   if (incomplete && !failure && !["bootstrap", "framing"].includes(phase)) phase = "repair";
   const selected = capabilityPlan(spec?.capabilities ?? []);
+  let data;
+  try {
+    const { contracts } = await loadDataContracts(root, { allowPlaceholder: true });
+    data = { status: "declared", contracts: contracts.map(({ name, appSource, mode, grain, keys, refresh, freshnessHours, replay }) => ({
+      path: `data/contracts/${name}.yml`, appSource, mode, grain, keys, refresh, freshnessHours, boundedReplay: Boolean(replay),
+    })) };
+  } catch {
+    data = { status: "unavailable", contracts: [] };
+  }
   const neededNames = new Set(stages[phase].skills);
+  if (["data", "implementation", "verification"].includes(phase) && data.contracts.some((contract) => contract.mode !== "direct")) {
+    neededNames.add("databricks-dabs");
+  }
   if (["integration", "verification"].includes(phase)) {
     for (const capability of selected) for (const name of capability.skills) neededNames.add(name);
   }
@@ -87,13 +131,15 @@ export async function planCreation(root, options = {}) {
     reference: `${referenceRoot}/${stages[phase].reference}`,
     checkpoint: { path: "docs/creation-progress.md", present: await isFile(root, "docs/creation-progress.md"), authoritative: false },
     known: spec ? { app: spec.app, capabilities: spec.capabilities } : null,
+    workflow: describeWorkflow(spec, data),
     features,
     integrationReview: selected.filter((item) => item.id !== "analytics").map(({ id, guide, stability, checks }) => ({ id, guide, stability, checks, status: "review-required" })),
     upstream,
-    localSkills: phase === "verification" ? [
-      ...(spec?.features.length ? ["validate-analytics-kpis"] : []),
-      "test-analytics-app-e2e", "review-analytics-app-docs",
-    ] : [],
+    localSkills: [
+      ...(spec?.capabilities.includes("analytics") && ["data", "implementation", "verification"].includes(phase) ? ["validate-analytics-kpis"] : []),
+      ...(data.contracts.some((contract) => contract.boundedReplay) && ["data", "implementation", "verification"].includes(phase) ? ["design-cost-aware-data-history"] : []),
+      ...(phase === "verification" ? ["test-analytics-app-e2e", "review-analytics-app-docs"] : []),
+    ],
     verification: { status: "not-run", commands: ["npm run check", "git diff --check"], note: "Ce plan ne lance aucun test. La présence des fichiers ne prouve ni le fonctionnement ni les accès distants." },
     diagnostics,
   };
@@ -115,6 +161,11 @@ async function main() {
     ...(plan.command ? [`Commande proposée : ${plan.command}`] : []),
     `Guide : ${plan.reference}`,
     `Notes de reprise : ${plan.checkpoint.present ? plan.checkpoint.path : "absentes"} (à confronter au code).`,
+    "Parcours complet (déclarations et revues, sans certification) :",
+    ...plan.workflow.steps.filter((step) => step.status !== "not-applicable").map((step) =>
+      `  ${step.label} : ${({ "needs-input": "à préciser", declared: "déclaré", "review-required": "à examiner", "not-run": "non vérifié par ce bilan" })[step.status]}`),
+    ...plan.workflow.data.contracts.map((contract) => `  ${contract.appSource} : ${contract.mode} ; grain déclaré : ${contract.grain} ; fraîcheur attendue : ${contract.freshnessHours} h (non mesurée).`),
+    `Parcours de l'agent : ${plan.workflow.reference}`,
     ...plan.features.map((feature) => `${feature.slug}: ${feature.status}${feature.missing.length ? ` — absents : ${feature.missing.join(", ")}` : ""}`),
     ...plan.upstream.needed.map((skill) => `${skill.name}: ${skill.status}`),
     ...(plan.upstream.warning ? [plan.upstream.warning] : []),

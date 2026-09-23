@@ -87,6 +87,8 @@ changes:
       - Consulter app:capabilities et app:skills ; les choix de cadrage ne montent aucun plugin.
       - Ajouter app:orchestrate dans package.json et reprendre avec le skill de création, sans rejouer init-app.
       - Ajouter le script npm app avec node scripts/app.mjs ; conserver les anciennes commandes et suivre docs/cli-workflow.md.
+      - Fusionner le parcours analytics-workflow.md du skill ; utiliser app prompt --idea pour couvrir besoin, données, KPI, préparation, interface, tests et livraison avec une personne.
+      - Conserver les anciens --role comme priorités facultatives ; le champ workflow de app next expose des revues et déclarations, pas une certification.
       - Conserver le refus de réinitialiser une app nommée ou suivie ; init-app ne sert pas à changer sa version.
       - Conserver les notes de reprise existantes ; leur présence ne prouve ni test réussi ni autorisation.
       - Fusionner les workflows et conserver leur revue humaine.
