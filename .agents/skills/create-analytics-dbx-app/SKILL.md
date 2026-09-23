@@ -1,16 +1,18 @@
 ---
 name: create-analytics-dbx-app
-description: Créer et faire évoluer pas à pas une application analytics Valiuz issue du template Databricks Apps, depuis le repository GitHub et son clone local jusqu'au cadrage des données, requêtes, KPI et fonctionnalités.
+description: Créer ou faire évoluer une application Valiuz issue du template Databricks Apps. Cadrer le besoin, choisir les capacités AppKit et les skills Databricks utiles, puis livrer une tranche métier testable avec les règles Valiuz.
 ---
 
 # Mission
 
-Accompagner un membre de l'équipe en français pour démarrer puis construire une application de dashboard, cockpit ou
-suivi de chiffres. Transformer les zones floues en décisions explicites, garder une trace courte des choix et avancer
-par tranches verticales testables.
+Accompagner en français la création d'une app, depuis son usage jusqu'à sa première tranche testable.
+Le besoin peut être un KPI, une conversation, un fichier, un formulaire ou un traitement.
+Conserver dans le template les décisions Valiuz et consulter les instructions Databricks officielles pour les APIs.
 
 # Choisir le parcours
 
+- Pour choisir les capacités AppKit et consulter les bons skills amont, lire
+  [references/appkit-capabilities.md](references/appkit-capabilities.md). Le faire pendant le cadrage, puis lors d'un nouveau besoin.
 - Pour créer le repository Valiuz, attribuer l'équipe, préparer le dossier local et initialiser le template, lire
   [references/bootstrap.md](references/bootstrap.md).
 - Pour cadrer le besoin, les KPI, les sources et les requêtes, lire
@@ -24,8 +26,11 @@ par tranches verticales testables.
 - Pour implémenter une tranche fonctionnelle ou poursuivre une application initialisée, lire
   [references/delivery.md](references/delivery.md).
 
-Un nouveau projet suit bootstrap, cadrage, découverte/préparation puis livraison. Un projet déjà initialisé commence au
-premier parcours encore incomplet. Ne pas rejouer `npm run init-app` si les placeholders ont déjà été remplacés.
+Pour un nouveau projet, identifier d'abord l'utilisateur, son action et son critère de succès.
+Initialiser ensuite une démo locale, choisir les capacités utiles, puis traiter les accès nécessaires à la première tranche.
+Un projet existant commence à la première étape manquante. Ne pas rejouer `init-app` ni `databricks apps init` sur un clone initialisé.
+Une demande explicite d'app Valiuz conserve ce choix. Pour un simple besoin de reporting encore ouvert, comparer brièvement
+l'app avec un dashboard géré avant de créer un repository.
 
 # Démarrage obligatoire
 
@@ -39,6 +44,8 @@ premier parcours encore incomplet. Ne pas rejouer `npm run init-app` si les plac
 - Poser une à trois questions courtes à la fois. Ne jamais envoyer tout le questionnaire en une seule fois.
 - Ne pas redemander une information déjà disponible dans les fichiers, GitHub ou les réponses précédentes.
 - Pour une décision technique difficile, proposer une option recommandée et expliquer brièvement son impact.
+- Présenter les capacités en termes d'usage. Proposer une combinaison minimale et différer celles sans besoin confirmé.
+- Ne pas imposer un premier KPI à une app Genie ou fichiers. `feature:new` reste réservé aux KPI simples.
 - Après chaque lot, récapituler les décisions, les inconnues bloquantes et la prochaine petite étape.
 - Une fois le clone disponible, maintenir `config/app-spec.yml` comme source de vérité courte avec `app:guide`.
   `docs/product-brief.md` est sa projection générée ; marquer `À confirmer` au lieu d'inventer une réponse.
@@ -59,14 +66,13 @@ premier parcours encore incomplet. Ne pas rejouer `npm run init-app` si les plac
 - Chaque table ou vue consommée est déclarée dans `config/data-access.json` et appartient au projet sélectionné.
 - Une app interne mono-mainteneur reste en mode `direct` tant qu'une table ou vue existante suffit. Ne créer un Job ou
   une pipeline que pour une préparation explicitement requise ; l'app garde uniquement `SELECT` sur la sortie.
-- Le contenu versionné reste neutre vis-à-vis des assistants de développement : aucun nom de produit ou de fournisseur
-  d'assistant, fichier de configuration propre à un outil ou texte promotionnel ne doit entrer dans le repository.
-  Le standard ouvert `.agents/skills` est autorisé.
+- Les skills locaux restent au format ouvert `.agents/skills`. Installer les skills amont hors du code de l'app avec le CLI officiel.
+  Consigner leurs noms et révisions ; conserver les adaptations Valiuz dans les références locales, sans modifier les fichiers amont.
 - Ne pas interpoler d'entrée utilisateur dans le SQL. Paramétrer les requêtes, borner leur durée et leur volume, puis
   valider les lignes avec Zod.
-- Demander une autorisation explicite juste avant toute mutation distante. Cela comprend la création du repository,
+- Vérifier qu'une autorisation explicite couvre toute mutation distante. Cela comprend la création du repository,
   l'ajout de l'équipe, un push, une pull request, un changement de paramètres GitHub, un grant, un SQL d'écriture ou un
-  déploiement Databricks.
+  déploiement Databricks. Réutiliser un accord déjà donné pour les mêmes cibles et le même périmètre.
 - Avant une mutation distante, afficher l'hôte, l'organisation ou workspace, le repository ou app, la branche, le
   warehouse, le projet/catalogue et le schema qui s'appliquent. N'afficher que les champs pertinents à l'opération.
 - En cas de réussite partielle, s'arrêter, décrire exactement l'état créé et proposer une reprise. Ne jamais supprimer
@@ -80,8 +86,10 @@ qui n'a pas été exécutée.
 
 # Runtime AppKit 2.0
 
-Lire `docs/appkit-maintenance.md` et le registre `config/appkit-compatibility.json`.
-Consulter la guidance Databricks installée hors du repository pour Apps, auth, SQL et Bundles.
-Conserver les règles Valiuz du repository et les exceptions documentées des adaptateurs.
-Une migration de runtime demande les parcours consommateur et E2E.
-Dans le repository source avec son historique Git, valider aussi la fixture de migration 1.5.
+`npm run app:capabilities` expose les choix de la spec, les ressources, les guides et les tests à prévoir.
+`npm run app:skills` propose les skills amont du socle et ceux utiles aux capacités retenues.
+Ces commandes sont locales et en lecture seule. Aucun choix dans le brief n'active un plugin ou une ressource.
+
+Avant une intégration, lire la page correspondante dans les docs du package installé avec `npx --no-install appkit docs`.
+Lire les exceptions de `docs/appkit-maintenance.md`. Les contrats Valiuz priment sur les exemples génériques de scaffolding.
+Une migration de runtime demande les parcours consommateur et E2E ; la fixture 1.5 s'exécute dans le repository source.

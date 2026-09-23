@@ -22,7 +22,7 @@ export async function inspectAppKitCompatibility(root, { execute = spawnSync } =
   const version = cli.stdout?.match(/\b(\d+\.\d+\.\d+)\b/)?.[1];
   report(record.databricksCli.includes(version) ? "pass" : "warn", "Matrice CLI",
     record.databricksCli.includes(version) ? `Version testée ${version}.` : "CLI absent ou hors de la matrice testée.");
-  report("pass", "Guidance Databricks",
-    `Skills revus : ${record.skills.release} (${record.skills.reviewedRevision}). Installation externe ; aucune modification automatique.`);
+  report("pass", "Référence guidance Databricks",
+    `Révision de référence : ${record.skills.release} (${record.skills.reviewedRevision}). L’installation est examinée séparément.`);
   return results;
 }

@@ -2,9 +2,10 @@ import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { parse, stringify } from "yaml";
+import { capabilityPlan, validateCapabilities } from "./app-capabilities.mjs";
 
 const APP_NAME_PLACEHOLDER = "__PACKAGE_NAME__";
-const appTypes = ["dashboard", "cockpit", "suivi"];
+const appTypes = ["dashboard", "cockpit", "suivi", "assistant", "workflow"];
 const featureSlugPattern = /^[a-z0-9][a-z0-9-]*$/;
 const identifierPattern = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
@@ -88,6 +89,10 @@ export function validateAppSpec(value, { allowPlaceholder = false } = {}) {
     if (slugs.has(feature.slug)) throw new Error(`Feature '${feature.slug}' is duplicated.`);
     slugs.add(feature.slug);
   }
+  const selectedCapabilities = validateCapabilities(value.capabilities);
+  if (features.length && !selectedCapabilities.includes("analytics")) {
+    throw new Error("Existing KPI features require the analytics capability. Keep it while these features exist.");
+  }
   return {
     version: 1,
     app: {
@@ -97,6 +102,7 @@ export function validateAppSpec(value, { allowPlaceholder = false } = {}) {
       decision: requiredText(value.app.decision, "App decision"),
       success: requiredText(value.app.success, "App success criterion"),
     },
+    capabilities: selectedCapabilities,
     features,
   };
 }
@@ -120,14 +126,18 @@ export async function writeAppSpec(root, spec) {
 }
 
 export function renderProductBrief(spec) {
+  const selected = capabilityPlan(spec.capabilities);
+  const capabilitySections = selected.length
+    ? selected.map((item) => `- **${item.id}** : ${item.label}. ${item.stability === "beta" ? "Bêta : décision explicite requise avant intégration. " : ""}Guide : [${item.guide}](../${item.guide}).`).join("\n")
+    : "Aucune capacité choisie ; préciser le besoin avant de construire la première tranche.";
   const featureSections = spec.features.length
     ? spec.features
         .map(
           (feature) => `### ${feature.title}\n\n- Question : ${feature.question}\n- Source : \`${feature.source}\`\n- KPI : ${feature.metric.label} (${feature.metric.aggregation}${feature.metric.column === "*" ? "" : ` de \`${feature.metric.column}\``}, ${feature.metric.unit})\n- Critère d’acceptation : ${feature.acceptance}`,
         )
         .join("\n\n")
-    : "À confirmer avec la première tranche verticale.";
-  return `# Brief produit\n\n## Objectif et utilisateurs\n\n- Type : ${spec.app.type}\n- Utilisateurs : ${spec.app.audience}\n- Décision à faciliter : ${spec.app.decision}\n- Critère de succès : ${spec.app.success}\n\n## KPI, sources et fonctionnalités\n\n${featureSections}\n\n## Accès, confidentialité et exploitation\n\nÀ confirmer avant le premier accès à des données réelles.\n\n## Backlog\n\nConstruire et faire valider une tranche à la fois.\n`;
+    : "Aucun KPI généré. La première tranche suit les capacités et le critère de succès ci-dessus.";
+  return `# Brief produit\n\n## Objectif et utilisateurs\n\n- Type : ${spec.app.type}\n- Utilisateurs : ${spec.app.audience}\n- Décision à faciliter : ${spec.app.decision}\n- Critère de succès : ${spec.app.success}\n\n## Capacités envisagées\n\nCes choix cadrent le besoin ; ils n’activent ni plugin, ni ressource, ni droit.\n\n${capabilitySections}\n\n## KPI, sources et fonctionnalités\n\n${featureSections}\n\n## Accès, confidentialité et exploitation\n\nÀ confirmer avant le premier accès à des données réelles.\n\n## Backlog\n\nConstruire et faire valider une tranche à la fois.\n`;
 }
 
 export async function syncProductBrief(root, spec) {

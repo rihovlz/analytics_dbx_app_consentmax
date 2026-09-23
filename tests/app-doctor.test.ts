@@ -4,8 +4,11 @@ import { copyFile, mkdir, mkdtemp, readFile, symlink, writeFile } from "node:fs/
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
+const { renderProductBrief } = await import(new URL("../scripts/app-spec.mjs", import.meta.url).href) as {
+  renderProductBrief: (spec: Record<string, unknown>) => string;
+};
 
-const productBrief = "# Brief produit\n\n## Objectif et utilisateurs\n\n- Type : dashboard\n- Utilisateurs : Analyste\n- Décision à faciliter : Suivre les ventes\n- Critère de succès : Usage hebdomadaire\n\n## KPI, sources et fonctionnalités\n\nÀ confirmer avec la première tranche verticale.\n\n## Accès, confidentialité et exploitation\n\nÀ confirmer avant le premier accès à des données réelles.\n\n## Backlog\n\nConstruire et faire valider une tranche à la fois.\n";
+const productBrief = renderProductBrief({ app: { type: "dashboard", audience: "Analyste", decision: "Suivre les ventes", success: "Usage hebdomadaire" }, features: [] });
 
 test("app doctor reports the next useful action without exposing environment values", async () => {
   const root = await mkdtemp(join(tmpdir(), "app-doctor-"));
@@ -15,6 +18,10 @@ test("app doctor reports the next useful action without exposing environment val
     "scripts/app-doctor.mjs",
     "scripts/appkit-compatibility.mjs",
     "scripts/app-spec.mjs",
+    "scripts/app-capabilities.mjs",
+    "scripts/app-skills.mjs",
+    "scripts/app-guide.mjs",
+    "config/appkit-capabilities.json",
     "scripts/data-access.mjs",
     "scripts/data-preparation.mjs",
     "scripts/template-manifest.mjs",
@@ -71,4 +78,11 @@ test("app doctor reports the next useful action without exposing environment val
   assert.equal(results.find((item) => item.name === "Étape recommandée")?.next, "npm run data:init -- <nom>");
   assert.doesNotMatch(JSON.stringify(results), /DATABRICKS_TOKEN|CLIENT_SECRET/);
   assert.match(await readFile(join(root, "docs/product-brief.md"), "utf8"), /Suivre les ventes/);
+
+  execFileSync(process.execPath, ["scripts/app-guide.mjs", "--non-interactive", "--type", "assistant", "--capabilities", "genie"], { cwd: root });
+  const genieOnly = spawnSync(process.execPath, ["scripts/app-doctor.mjs", "--json"], { cwd: root, encoding: "utf8", env: { ...process.env, PATH: "" } });
+  assert.equal(genieOnly.status, 0, genieOnly.stderr);
+  const next = JSON.parse(genieOnly.stdout) as Array<{ name: string; next?: string }>;
+  assert.equal(next.find((item) => item.name === "Étape recommandée")?.next, "npm run app:capabilities");
+  assert.equal(next.some((item) => ["Première tranche", "Première source"].includes(item.name)), false);
 });

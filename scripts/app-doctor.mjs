@@ -10,6 +10,8 @@ import { loadAppSpec, renderProductBrief } from "./app-spec.mjs";
 import { renderDataAccess } from "./data-access.mjs";
 import { renderDataPreparation } from "./data-preparation.mjs";
 import { inspectAppKitCompatibility } from "./appkit-compatibility.mjs";
+import { capabilityPlan } from "./app-capabilities.mjs";
+import { inspectAgentSkills } from "./app-skills.mjs";
 import { inspectTemplateVersion } from "./template-status.mjs";
 
 function result(status, name, detail, next) {
@@ -30,7 +32,7 @@ function commandAvailable(command, args, execute) {
   return !commandResult.error && commandResult.status === 0;
 }
 
-export async function inspectApp(root, { execute = spawnSync, nodeVersion = process.versions.node } = {}) {
+export async function inspectApp(root, { execute = spawnSync, nodeVersion = process.versions.node, skillsDirectory } = {}) {
   const results = [];
   let spec;
   let accessManifest;
@@ -124,17 +126,23 @@ export async function inspectApp(root, { execute = spawnSync, nodeVersion = proc
         ? result("warn", "Cadrage", "Le public, la décision ou le succès attendu reste à confirmer.")
         : result("pass", "Cadrage", `${spec.features.length} tranche(s) décrite(s).`),
     );
-    if (spec.features.length === 0) {
+    if (spec.features.length === 0 && spec.capabilities.includes("analytics")) {
       results.push(result("warn", "Première tranche", "Aucune feature métier n’est encore définie."));
     }
+    const optional = capabilityPlan(spec.capabilities).filter((item) => item.availability === "optional");
+    results.push(result(optional.length || !spec.capabilities.length ? "warn" : "pass", "Capacités envisagées",
+      `${spec.capabilities.join(", ") || "Aucune"}. Choix de cadrage ; ce contrôle ne prouve pas leur activation.${optional.length ? ` Intégration à examiner : ${optional.map((item) => item.id).join(", ")}.` : ""}`,
+      "npm run app:capabilities"));
   } catch (error) {
     results.push(result("fail", "Cadrage", error instanceof Error ? error.message : "Spécification invalide.", "npm run app:guide"));
   }
 
+  results.push(...await inspectAgentSkills(root, { capabilityIds: spec?.capabilities, skillsDirectory }));
+
   try {
     accessManifest = await renderDataAccess({ root, check: true, allowPlaceholder: true });
     results.push(result("pass", "Accès aux données", `${accessManifest.sources.length} source(s) déclarée(s) dans ${accessManifest.project}.`));
-    if (accessManifest.sources.length === 0) {
+    if (accessManifest.sources.length === 0 && spec?.capabilities.includes("analytics")) {
       results.push(result("warn", "Première source", "Aucune table ou vue n’est déclarée."));
     }
   } catch (error) {
@@ -208,16 +216,13 @@ export async function inspectApp(root, { execute = spawnSync, nodeVersion = proc
   }
 
   const firstFailure = results.find((item) => item.status === "fail" && item.next);
-  const next = firstFailure?.next
-    ?? (isTemplate
-      ? "npm run init-app -- <nom>"
-      : framingIncomplete || !spec
-        ? "npm run app:guide"
-        : !accessManifest || accessManifest.sources.length === 0
-          ? "npm run data:init -- <nom>"
-          : spec.features.length === 0
-            ? "npm run feature:new -- <slug>"
-            : "npm run check");
+  let next = "npm run check";
+  if (firstFailure) next = firstFailure.next;
+  else if (isTemplate) next = "npm run init-app -- <nom>";
+  else if (framingIncomplete || !spec || !spec.capabilities.length) next = "npm run app:guide";
+  else if (!spec.capabilities.includes("analytics")) next = "npm run app:capabilities";
+  else if (!accessManifest || accessManifest.sources.length === 0) next = "npm run data:init -- <nom>";
+  else if (spec.features.length === 0) next = "npm run feature:new -- <slug>";
   const nextStatus = firstFailure ? "fail" : next === "npm run check" ? "pass" : "warn";
   results.push(result(nextStatus, "Étape recommandée", "Continuer avec une seule action.", next));
 
@@ -232,10 +237,10 @@ function parseOptions(argv) {
       options[value.slice(2)] = true;
       continue;
     }
-    if (value !== "--profile") throw new Error(`Unknown option: ${value}`);
+    if (!["--profile", "--skills-dir"].includes(value)) throw new Error(`Unknown option: ${value}`);
     const supplied = argv[index + 1];
-    if (!supplied || supplied.startsWith("--")) throw new Error("--profile requires a value.");
-    options.profile = supplied;
+    if (!supplied || supplied.startsWith("--")) throw new Error(`${value} requires a value.`);
+    options[value === "--profile" ? "profile" : "skillsDirectory"] = supplied;
     index += 1;
   }
   return options;
@@ -243,7 +248,7 @@ function parseOptions(argv) {
 
 async function main() {
   const options = parseOptions(process.argv.slice(2));
-  const results = await inspectApp(process.cwd());
+  const results = await inspectApp(process.cwd(), { skillsDirectory: options.skillsDirectory });
   if (options.json) {
     stdout.write(`${JSON.stringify(results, null, 2)}\n`);
   } else {

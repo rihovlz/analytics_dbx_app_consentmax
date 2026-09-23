@@ -17,6 +17,8 @@
     "check": "npm run template:check && npm run template:release:check && npm run app:spec:check && npm run data:access:check && npm run data:prepare:check && npm run lint && npm run typecheck && npm test && npm run build",
     "init-app": "node scripts/init-app.mjs",
     "app:guide": "node scripts/app-guide.mjs",
+    "app:capabilities": "node scripts/app-capabilities.mjs",
+    "app:skills": "node scripts/app-skills.mjs",
     "app:spec:check": "node scripts/app-guide.mjs --check",
     "feature:new": "node scripts/new-feature.mjs",
     "data:init": "node scripts/init-data.mjs",

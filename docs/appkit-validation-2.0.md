@@ -9,14 +9,14 @@ Packages AppKit et AppKit UI : `0.76.1`. Node.js : `22.16.0`.
 | Commande | Résultat |
 | --- | --- |
 | `npm run check` | Capabilities, release, configuration, lint, types, tests et build validés |
-| `npm test` | 135 tests réussis, sans credential ni donnée distante |
+| `npm test` | 140 tests réussis, sans credential ni donnée distante |
 | `APP_MODE=databricks npm run build` | Build sans credentials runtime réussi |
 | `npm run test:e2e` | 8 parcours Chromium réussis sur le serveur de développement |
 | `E2E_PRODUCTION=1 npm run test:e2e` | 8 parcours réussis sur le serveur compilé |
 | `npm run template:journey` | Checkout propre, `npm ci`, initialisation, source directe, KPI généré, doctor et validations réussis |
 | `npm run template:migration` | Fixture 1.5 initialisée avec KPI métier, état personnel et styles personnalisés : portage, tests métier et build réussis |
-| `npm run bundle:compatibility` | Bundles app/data dev/prod validés avec les CLI 0.295.0 et 1.14.1, contre un serveur local |
-| `npm run template:release:check -- --base origin/main` | Passage 1.5.0 → 2.0.0 et deux nouvelles capabilities validés |
+| `npm run bundle:compatibility` | Bundles app/data dev/prod validés avec les CLI 0.295.0, 1.12.1 et 1.14.1, contre un serveur local |
+| `npm run template:release:check -- --base origin/main` | Passage 1.5.0 → 2.0.0 et trois nouvelles capabilities validés |
 | `npm run upstream:check` | Comparaisons GitHub en lecture seule réussies |
 | `git diff --check` | Aucun défaut d’espacement |
 
@@ -43,6 +43,24 @@ Les [exceptions AppKit](appkit-maintenance.md) restent explicites : Genie, séma
 Genie conserve son transport actuel jusqu’à preuve de parité AppKit pour l’annulation, les reprises et les logs.
 Le contrôle amont a relevé 0 commit template et 43 commits skills depuis les révisions revues, sans les avancer.
 La guidance Databricks 0.2.10 a été installée hors du repository avec le CLI supporté.
+
+## Parcours de création et skills
+
+Le complément de parcours reste inclus dans la release 2.0.0, avant sa publication.
+Les six points d'entrée installés correspondent octet pour octet à la révision source revue 0.2.10.
+`databricks-app-design` et `databricks-data-discovery` complètent les quatre skills du socle initial.
+Les skills officiels restent hors du template ; les adaptations Valiuz sont dans le skill local et ses références.
+
+Les nouveaux tests couvrent une app Genie sans KPI, les choix optionnels et bêta, les valeurs invalides et la conservation des choix.
+Ils vérifient aussi les skills absents, modifiés, invalides ou non examinés, sans installation automatique.
+Le catalogue a été comparé aux pages des plugins livrées dans AppKit 0.76.1.
+
+Après ces changements, `npm run check`, `template:journey`, `template:migration` et `bundle:compatibility` ont été relancés avec succès.
+Le parcours consommateur compte 142 tests avec le KPI généré. La migration conserve les features lors de l'ajout du champ `capabilities`.
+Le validateur du skill `skill-creator` accepte les trois skills locaux modifiés.
+`app:skills --directory <dossier-externe> --check` accepte les six empreintes installées.
+La matrice CLI ajoute 1.12.1 après validation locale des quatre bundles ; les validations 0.295.0 et 1.14.1 viennent de l'étape runtime.
+Les tests navigateur ont été exécutés lors de cette étape runtime. L'évolution du parcours de création ne modifie ni le serveur ni l'UI.
 
 L’illustration du README a été adaptée avec l’outil `imagegen` intégré.
 Le [fichier livré](assets/databricks-app-boilerplate-v2.png) et son [prompt exact](assets/databricks-app-boilerplate-v2.prompt.md) sont conservés.

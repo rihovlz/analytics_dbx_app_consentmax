@@ -52,6 +52,8 @@ Avoid speculative abstractions. Extract a generic helper only when two real feat
   `MODIFY` bindings (including `SELECT`). Follow `docs/user-state.md` before activation.
 - Keep `config/app-spec.yml` and `docs/product-brief.md` synchronized with `npm run app:guide`. Prefer
   `npm run feature:new -- <slug>` for the first simple KPI slice, then review every generated query.
+  Select capabilities during framing and use `app:capabilities` for their integration paths. A Genie, Files or workflow
+  app does not require a generated KPI. Spec choices do not activate plugins or authorize resources.
 - Use `npm run data:init -- <name>` to choose `direct`, `notebook` or `pipeline`. Default to `direct`. Notebook and
   pipeline modes belong to the separate `data/` bundle, write with the maintainer identity, and expose only their
   declared output to the app with `SELECT`.
@@ -126,5 +128,10 @@ Keep AppKit and AppKit UI on matching exact versions. Update the compatibility r
 Do not expose generic plugin endpoints or enable result caching without an explicit identity and freshness contract.
 Install upstream Databricks skills outside application source with the supported CLI.
 Keep local skills focused on Valiuz governance, design, data contracts and releases.
+Use `app:skills` to identify the core and optional skills for the chosen capabilities. An explicit external directory
+allows read-only entrypoint checks; an unchecked installation must not be reported as verified.
+Read the relevant installed upstream guide on demand. Preserve Valiuz APIs, branding, Genie OBO and private personal state
+when generic upstream scaffolding examples differ. See the creation skill's AppKit capability reference.
+Beta capabilities require a documented adoption decision before implementation; selecting one in the brief is not that decision.
 Run `npm run template:journey`, `npm run bundle:compatibility` and `npm run test:e2e` for runtime changes.
 In the template source with its 1.5 Git history, also run `npm run template:migration`.

@@ -36,6 +36,12 @@ d'écriture, ni nouveau job, ni copie locale de résultats. Ne jamais afficher o
 
 ## Explorer du général au précis
 
+Consulter `databricks-data-discovery` lorsqu'il est installé. Genie One peut aider à trouver des sources ou proposer du SQL.
+Son périmètre couvre les données visibles par l'identité ; une consigne de catalogue dans un prompt ne l'isole pas.
+Utiliser cette voie uniquement lorsque ce périmètre entre dans l'autorisation donnée et que la sortie reste non sensible.
+Sinon, conserver les contrôles explicites ci-dessous. Une source suggérée reste candidate jusqu'à validation et déclaration Valiuz.
+Vérifier la commande disponible avec le CLI local ; ne pas installer un MCP pour reproduire une capacité CLI existante.
+
 Utiliser le mécanisme de requête en lecture seule déjà disponible dans l'environnement. Préférer successivement :
 
 1. les métadonnées `information_schema` pour inventorier un nombre borné d'objets et de colonnes ;

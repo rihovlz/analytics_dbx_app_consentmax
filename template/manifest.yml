@@ -56,6 +56,7 @@ versions:
     capabilities:
       - appkit-native-runtime
       - upstream-compatibility
+      - guided-appkit-capabilities
 capabilities:
   guided-app-workflow:
     since: 1.0.0
@@ -339,6 +340,22 @@ capabilities:
       - type: packageScript
         name: template:migration
         command: node --import tsx scripts/validate-v2-migration.ts
+  guided-appkit-capabilities:
+    since: 2.0.0
+    description: Cadre les capacités AppKit par usage et oriente vers les skills amont externes sans activer de ressource.
+    probes:
+      - type: file
+        path: config/appkit-capabilities.json
+      - type: file
+        path: .agents/skills/create-analytics-dbx-app/references/appkit-capabilities.md
+      - type: file
+        path: docs/appkit-capabilities.md
+      - type: packageScript
+        name: app:capabilities
+        command: node scripts/app-capabilities.mjs
+      - type: packageScript
+        name: app:skills
+        command: node scripts/app-skills.mjs
 upgrades:
   - from: 1.0.0
     to: 1.1.0

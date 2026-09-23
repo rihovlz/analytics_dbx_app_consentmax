@@ -20,8 +20,8 @@ ni credential, ni configuration du workspace, ni donnée métier.
 | `1.2.0` | `a1ed6bc333c8b8355641b17f74fe3ed0fb200815` | Historisation à coût borné et gouvernance automatique des releases et de la documentation |
 | `1.3.0` | `08058f189790546146dabec88a6a0897568b55e9` | Visualisations analytics réutilisables, page de démonstration et modes clair/sombre |
 | `1.4.0` | `19ade7c5882aeb3065453e0aaf3c02552a61fd6c` | Assistant Genie OBO, contexte de dashboard, résultats riches et épinglage composable |
-| `2.0.0` | `8b779bcb363a7c57bdea12342964601d0acdfef4` | Runtime AppKit, routes React, adaptateurs bornés et maintenance amont |
 | `1.5.0` | `26a1d0a64a9fed4d0a9cad1c7031a9d2c07eb95f` | Analyses et préférences personnelles optionnelles sur tables Delta de développement |
+| `2.0.0` | `8b779bcb363a7c57bdea12342964601d0acdfef4` | Runtime AppKit, routes React, adaptateurs bornés, parcours de capacités et skills amont |
 
 Le point historique est le SHA complet de la branche de base examinée pour préparer la version. Il sert à borner le
 diff, pas à reproduire seul le checkout final. Le manifeste et ses sondes définissent le contrat réel de la version.
@@ -39,6 +39,10 @@ npm run template:check
 
 Une nouvelle app reçoit la version `2.0.0`. `npm run check` inclut `template:check` et
 `template:release:check`. Le second reconnaît une app initialisée et n'exige aucun bump pour ses features métier.
+
+La release 2.0.0 inclut le parcours de capacités et de skills.
+La migration du runtime impose une version majeure par rapport à la base 1.5.0.
+Les anciennes specs restent lisibles. Fusionner les scripts de cadrage et régénérer le brief pour adopter le nouveau champ `capabilities`.
 
 ## App copiée avant le suivi de version
 
@@ -265,5 +269,5 @@ npm run template:diff -- --from 1.5.0 --to 2.0.0
 Dans le repository source du template avec son historique 1.5, `npm run template:migration` vérifie la fixture métier.
 
 Les sondes `fileAnyOf` reconnaissent les emplacements 1.x et 2.0 des capabilities conservées.
-Les nouvelles capabilities vérifient les fichiers du runtime AppKit et sa maintenance.
+Les nouvelles capabilities vérifient le runtime AppKit, sa maintenance et le parcours guidé des capacités et skills.
 Le rollback conserve les tables et redéploie la révision précédente.

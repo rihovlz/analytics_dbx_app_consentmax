@@ -18,6 +18,10 @@ product séparé plutôt que de l'enfouir dans le repository de l'app.
 Utiliser le skill `design-cost-aware-data-history` si la source expire, si une période passée doit être corrigée ou si
 le coût quotidien impose une fenêtre chaude. Ce skill distingue une reprise notebook bornée d'un data product hot/cold.
 
+Consulter `databricks-dabs` pour le bundle, puis `databricks-jobs` ou `databricks-pipelines` selon le mode, s'ils sont installés.
+Le plugin AppKit `jobs` sert au lancement et au suivi depuis l'app. Il n'est pas requis pour une préparation dans `data/`.
+Créer un Job de préparation ne donne pas à l'app le droit de le lancer.
+
 ## Créer le contrat
 
 Lancer `npm run data:init -- <nom>`. Faire préciser au maximum trois éléments à la fois : mode et source, sortie et

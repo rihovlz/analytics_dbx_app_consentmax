@@ -6,6 +6,11 @@ Le template sépare le socle de plateforme des futures fonctionnalités métier.
 services et des repositories sans modifier l’authentification, le logging ou le client SQL. Les abstractions restent
 volontairement courtes : une interface `SqlExecutor`, un wrapper HTTP et une taxonomie d’erreurs.
 
+Le parcours de création utilise `config/appkit-capabilities.json` pour relier les usages aux capacités et aux skills amont.
+`config/app-spec.yml` garde les capacités envisagées. Ce cadrage ne configure pas le runtime et ne crée aucune ressource.
+Une intégration non SQL conserve route → service → repository/adaptateur, avec le contrat décrit dans
+[le guide des capacités](appkit-capabilities.md). Les skills de développement restent séparés des éventuels agents exécutés dans l'app.
+
 ```text
 Browser / React
       ↓ JSON agrégé

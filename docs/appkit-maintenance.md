@@ -43,19 +43,40 @@ Les logs applicatifs gardent seulement le nom de requête, sa durée, son identi
 
 ## Skills et plugins d’agents
 
-Les plugins runtime npm et les skills d’agents sont des dépendances différentes.
-Installer la guidance stable avec le [CLI Databricks officiel](https://github.com/databricks/databricks-agent-skills) :
+Les plugins runtime npm, les skills de développement et les skills d'agents embarqués sont trois éléments distincts.
+Les skills Valiuz sont livrés sous `.agents/skills`. Ils orientent vers les guides Databricks et gardent les décisions locales.
+Les skills amont restent installés hors du code copié dans les applications ; ils ne sont ni copiés ni réécrits dans le template.
+
+`npm run app:skills` propose le socle de six skills et les spécialistes utiles aux capacités de `config/app-spec.yml`.
+La commande n'installe rien. Pour examiner un dossier externe :
 
 ```bash
-databricks aitools install --agents codex --scope global --skills-only \
-  --skills databricks-core,databricks-apps,databricks-dabs,databricks-dbsql
+npm run app:skills -- --directory /chemin/vers/les/skills
+npm run app:doctor -- --skills-dir /chemin/vers/les/skills
 ```
 
-Cette installation reste hors du code copié dans les applications.
-Le registre indique la release 0.2.10 et sa révision source.
+Le contrôle compare le nom et l'empreinte SHA-256 de chaque `SKILL.md` avec le registre.
+Il distingue absence, entrée invalide, différence, présence non revue et correspondance.
+Il ne compare pas les références annexes et ne prouve pas que l'assistant a chargé le skill.
+Sans dossier explicite, l'installation reste non vérifiée. Ajouter `--check` à `app:skills` pour échouer sur toute entrée non conforme.
+Les contrôles CI et la démo ne dépendent pas d'une installation personnelle.
+
+Installer la guidance avec le [CLI Databricks officiel](https://github.com/databricks/databricks-agent-skills) :
+
+```bash
+databricks aitools install --scope global --skills-only \
+  --skills databricks-core,databricks-apps,databricks-dabs,databricks-dbsql,databricks-app-design,databricks-data-discovery
+```
+
+Vérifier `databricks aitools install --help` ; ajouter `--agents <assistant>` pour choisir un seul outil.
+Cette commande installe des skills, sans ajouter de hooks ou de plugin d'assistant.
+Les nouveaux skills deviennent disponibles pour l'assistant au prochain tour ou après rechargement de son catalogue.
+Le registre indique la release revue 0.2.10 et sa révision source. Le CLI peut installer une version plus récente.
+Examiner les différences avant d'avancer les révisions et empreintes ; ne pas remplacer une empreinte pour faire passer le contrôle.
 Les skills Valiuz ajoutent les règles de marque, les catalogues autorisés, les KPI et les releases.
 Le plan de migration Valiuz prime sur les suggestions de scaffolding générique.
 Il conserve les APIs de features et Delta personnel sans ajouter Lakebase.
+Le [parcours des capacités](appkit-capabilities.md) décrit la sélection des plugins et les étapes d'intégration.
 
 La [documentation AppKit livrée avec les packages](https://developers.databricks.com/docs/appkit/v0/plugins/server) décrit les APIs exactes.
 Les [plugins GA](https://developers.databricks.com/docs/appkit/v0/plugins/stability) sont préférés.

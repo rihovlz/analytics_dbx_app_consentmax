@@ -69,6 +69,9 @@ Rechercher notamment :
 - changement de source, requête, KPI, timeout, limite de lignes ou groupe d'accès ;
 - changement de déploiement, workflow, target ou procédure de smoke test ;
 - exemple qui ne compile plus ou commande qui n'existe plus.
+- capacité présentée comme active alors que seul son besoin figure dans la spec ;
+- skill amont annoncé comme installé sans contrôle d'un dossier externe ;
+- plugin proposé sans ressource, identité, test ou guide correspondant à la version du package.
 
 Ne pas conclure que la documentation est à jour uniquement parce qu'aucun fichier Markdown n'a changé.
 

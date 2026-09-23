@@ -28,13 +28,17 @@ Ouvrir <http://localhost:3000>. Le mode démo est explicite et n’effectue aucu
 
 Le parcours reste volontairement léger pour une app maintenue par une seule personne :
 
-1. `npm run app:guide` consigne utilisateurs, décision et succès attendu dans `config/app-spec.yml` et synchronise
-   `docs/product-brief.md`.
-2. `npm run data:init -- <nom>` choisit `direct`, `notebook` ou `pipeline`. Utiliser `direct` tant qu'une table ou vue
-   existante suffit.
-3. `npm run feature:new -- <slug>` crée une première tranche verticale : page, carte KPI, route, service, repository,
-   requête paramétrée, fixture démo et tests.
+1. `npm run app:guide` consigne utilisateurs, décision, succès et capacités envisagées dans `config/app-spec.yml`.
+   Il synchronise `docs/product-brief.md` et propose Analytics, Genie, Files, Serving, Jobs ou les autres capacités utiles.
+2. `npm run app:capabilities` décrit les ressources et tests de chaque choix. `npm run app:skills` propose les skills
+   Databricks correspondants, à installer hors du code de l'app.
+3. Pour un KPI, `npm run data:init -- <nom>` déclare la source, puis `npm run feature:new -- <slug>` génère la tranche.
+   Garder le mode `direct` si une table existante suffit. Pour une autre capacité, suivre son guide d'intégration.
 4. `npm run app:doctor` indique la prochaine action utile. `npm run check` valide ensuite l'ensemble localement.
+
+Une app Genie seule peut choisir `npm run app:guide -- --type assistant --capabilities genie`.
+Elle n'a pas à générer un KPI. Les choix de cadrage n'activent aucun plugin, droit ou ressource.
+Voir [le parcours des capacités AppKit](docs/appkit-capabilities.md) pour les intégrations disponibles et leurs limites.
 
 Exemple minimal après avoir confirmé une table existante :
 
@@ -236,7 +240,7 @@ Le repository fournit des workflows compatibles avec le standard ouvert Agent Sk
 
 | Skill | Usage |
 | --- | --- |
-| `create-analytics-dbx-app` | Créer le repository Valiuz, initialiser le clone, découvrir les sources Databricks et cadrer progressivement KPI, requêtes et fonctionnalités |
+| `create-analytics-dbx-app` | Cadrer l'usage, initialiser une démo Valiuz, choisir les capacités AppKit et les skills amont, puis livrer une première tranche |
 | `design-cost-aware-data-history` | Concevoir une historisation avec reprise bornée ou hot/cold, sans imposer un recalcul complet |
 | `github-engineer` | Isoler une tâche dans une branche ou un worktree, publier une pull request et nettoyer prudemment le travail fusionné |
 | `prepare-template-release` | Décider la version SemVer d'une évolution du template et synchroniser manifeste, migration, tests et documentation |
@@ -248,6 +252,11 @@ Les descriptions des skills permettent leur sélection implicite. `AGENTS.md` im
 `prepare-template-release` et `review-analytics-app-docs` à la fin d'une feature du template : il n'est pas nécessaire
 de les rappeler dans chaque session. Le bootstrap pose au maximum trois questions à la fois. Toute mutation GitHub ou
 Databricks demande une autorisation explicite.
+
+Les skills Valiuz sont inclus dans le template. Les six skills Databricks recommandés restent externes : Core, Apps,
+App Design, Data Discovery, DBSQL et Bundles. Les spécialistes Jobs, Model Serving, Lakebase et Vector Search sont proposés selon le besoin.
+`npm run app:skills -- --directory /chemin/vers/les/skills` vérifie les points d'entrée sans les modifier.
+Le clonage seul n'installe aucun skill amont. Voir [l'installation et la maintenance](docs/appkit-maintenance.md#skills-et-plugins-dagents).
 
 ## Infrastructure Valiuz préremplie
 
@@ -354,6 +363,8 @@ avant la lecture source si le checkout local ne correspond pas à la préparatio
 | `npm run build` | build Vite et serveur AppKit |
 | `npm run check` | manifeste, lint, types, tests unitaires et build de production |
 | `npm run app:guide` | cadre l'app et synchronise le brief produit |
+| `npm run app:capabilities -- --all` | présente les capacités AppKit, ressources, guides et tests à prévoir, sans activation |
+| `npm run app:skills` | propose les skills amont utiles et leur installation externe, sans l'exécuter |
 | `npm run app:spec:check` | vérifie la spec et le brief |
 | `npm run feature:new -- <slug>` | génère une tranche KPI complète à relire |
 | `npm run data:init -- <nom>` | déclare une source directe ou prépare un starter notebook/pipeline |

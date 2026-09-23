@@ -58,5 +58,7 @@ les actions distantes non exécutées.
 Lire `docs/appkit-maintenance.md` et le registre `config/appkit-compatibility.json`.
 Consulter la guidance Databricks installée hors du repository pour Apps, auth, SQL et Bundles.
 Conserver les règles Valiuz du repository et les exceptions documentées des adaptateurs.
+Lorsque l'accompagnement évolue, synchroniser le catalogue des capacités, la spec, le brief, les références de skills et le parcours consommateur.
+Vérifier les empreintes des points d'entrée avant de modifier la révision de guidance revue. Ne pas confondre cette révision avec l'installation du poste.
 Une migration de runtime demande les parcours consommateur et E2E.
 Dans le repository source avec son historique Git, valider aussi la fixture de migration 1.5.

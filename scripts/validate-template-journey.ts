@@ -123,6 +123,7 @@ async function initializeApp(fixtureRoot: string, environment: NodeJS.ProcessEnv
       "--audience", "Responsable analytics",
       "--decision", "Suivre la qualité du parcours template",
       "--success", "Le parcours local passe en CI",
+      "--capabilities", "analytics,genie",
     ],
     fixtureRoot,
     environment,
@@ -196,6 +197,16 @@ async function inspectGeneratedApp(fixtureRoot: string, environment: NodeJS.Proc
   const packageJson = asRecord(JSON.parse(await readFile(join(fixtureRoot, "package.json"), "utf8")), "package.json");
   assert.equal(packageJson.name, fixtureAppName);
   assert.match(await readFile(join(fixtureRoot, "config/app-spec.yml"), "utf8"), /slug: journey-kpi/);
+  const capabilityPlan = JSON.parse((await execFileAsync(process.execPath, ["scripts/app-capabilities.mjs", "--json"], {
+    cwd: fixtureRoot, env: environment, encoding: "utf8",
+  })).stdout);
+  assert.equal(capabilityPlan.activatesPlugins, false);
+  assert.deepEqual(capabilityPlan.capabilities.map((item: { id: string }) => item.id), ["analytics", "genie"]);
+  const skillPlan = JSON.parse((await execFileAsync(process.execPath, ["scripts/app-skills.mjs", "--json"], {
+    cwd: fixtureRoot, env: environment, encoding: "utf8",
+  })).stdout);
+  assert.equal(skillPlan.readOnly, true);
+  assert.equal(skillPlan.skills.every((item: { status: string }) => item.status === "unchecked"), true);
   assert.match(await readFile(join(fixtureRoot, "config/data-access.json"), "utf8"), /"name": "journey-source"/);
   assert.match(
     await readFile(join(fixtureRoot, "src/features/journey-kpi/server/queries.ts"), "utf8"),

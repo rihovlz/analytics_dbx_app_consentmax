@@ -117,7 +117,7 @@ const feature = {
   },
   acceptance: answers.acceptance,
 };
-const validatedSpec = validateAppSpec({ ...spec, features: [...spec.features, feature] }, { allowPlaceholder: true });
+const validatedSpec = validateAppSpec({ ...spec, capabilities: [...new Set([...spec.capabilities, "analytics"])], features: [...spec.features, feature] }, { allowPlaceholder: true });
 const generated = templates(feature, source);
 const conflicts = [];
 for (const relativePath of generated.keys()) if (await exists(join(root, relativePath))) conflicts.push(relativePath);

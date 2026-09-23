@@ -83,6 +83,11 @@ En local, `PORT` vaut 3000 par défaut ; `DATABRICKS_APP_PORT` reste prioritaire
 
 ## Valider et déclarer la migration
 
+Fusionner les scripts de cadrage, `config/appkit-capabilities.json` et les références de skills locales.
+Conserver les valeurs métier de `config/app-spec.yml`. Sans champ `capabilities`, la spec garde le parcours Analytics.
+Exécuter `npm run app:guide -- --non-interactive` pour ajouter ce choix et régénérer le brief sans perdre les features.
+Examiner `npm run app:capabilities` et `npm run app:skills`. Aucun plugin n'est activé par ces commandes.
+
 1. Exécuter lint, typecheck, tests unitaires et build.
 2. Exécuter `npm run test:e2e` et vérifier les thèmes, le clavier et le mobile.
    Après le build, exécuter aussi `E2E_PRODUCTION=1 npm run test:e2e` pour les fichiers statiques de production.
@@ -90,7 +95,7 @@ En local, `PORT` vaut 3000 par défaut ; `DATABRICKS_APP_PORT` reste prioritaire
 3. Exécuter `npm run bundle:compatibility`.
 4. Exécuter `npm run template:check -- --to 2.0.0`.
 5. Après succès, déclarer la version 2.0.0 dans `.valiuz-template.yml`.
-6. Ajouter les capabilities `appkit-native-runtime` et `upstream-compatibility`.
+6. Ajouter les capabilities `appkit-native-runtime`, `upstream-compatibility` et `guided-appkit-capabilities`.
 7. Ajouter `1.5.0-to-2.0.0` dans `appliedUpgrades`.
 8. Exécuter `npm run app:doctor` et `npm run check`.
 9. Après autorisation, déployer en développement et effectuer la recette distante.
