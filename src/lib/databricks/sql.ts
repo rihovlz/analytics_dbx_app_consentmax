@@ -1,3 +1,4 @@
+import { AppKitSqlExecutor, getAnalyticsQuery } from "./appkit-executor";
 import type IOperation from "@databricks/sql/dist/contracts/IOperation";
 
 import { getServerConfig, type DatabricksConfig } from "@/lib/config/server-config";
@@ -81,5 +82,7 @@ export function getSqlExecutor(): SqlExecutor {
   if (config.mode !== "databricks") {
     throw new ConfigurationError("SQL execution is disabled in demo mode");
   }
-  return new DatabricksSqlExecutor(config);
+  const driver = new DatabricksSqlExecutor(config);
+  const analytics = getAnalyticsQuery();
+  return analytics ? new AppKitSqlExecutor(config, analytics, driver) : driver;
 }

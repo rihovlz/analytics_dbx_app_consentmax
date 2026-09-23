@@ -1,9 +1,19 @@
-import { defineConfig } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals";
+import js from "@eslint/js";
+import tseslint from "typescript-eslint";
+import globals from "globals";
 
-export default defineConfig([
-  ...nextVitals,
+export default tseslint.config(
+  { ignores: ["dist/**", "node_modules/**", ".npm-cache/**"] },
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
   {
-    ignores: [".next/**", "node_modules/**", ".npm-cache/**"]
-  }
-]);
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+    rules: {
+      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+    },
+  },
+  {
+    files: ["**/*.mjs"],
+    rules: { "@typescript-eslint/no-require-imports": "off" },
+  },
+);

@@ -18,8 +18,8 @@ test("Valiuz icon is also used as the browser favicon", async () => {
 
 test("shell exposes the 2026 brand tokens and self-hosted typeface", async () => {
   const [styles, layout, header] = await Promise.all([
-    readFile("src/app/globals.css", "utf8"),
-    readFile("src/app/layout.tsx", "utf8"),
+    readFile("src/client/globals.css", "utf8"),
+    readFile("src/client/main.tsx", "utf8"),
     readFile("src/components/app-shell/app-header.tsx", "utf8"),
   ]);
 

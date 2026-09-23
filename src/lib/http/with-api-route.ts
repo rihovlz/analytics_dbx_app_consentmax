@@ -1,5 +1,3 @@
-import { NextResponse } from "next/server";
-
 import { normalizeError, type AppError } from "@/lib/errors/app-error";
 import { createRequestContext, type RequestContext } from "@/lib/logging/request-context";
 
@@ -49,7 +47,7 @@ export function withApiRoute<T, TRouteContext = undefined>(
       if (result instanceof Response) {
         return attachRequestId(result, context.requestId);
       }
-      return NextResponse.json(result, { headers: { "x-request-id": context.requestId } });
+      return Response.json(result, { headers: { "x-request-id": context.requestId } });
     } catch (error) {
       const normalized = normalizeError(error);
       context.log.error(
@@ -67,7 +65,7 @@ export function withApiRoute<T, TRouteContext = undefined>(
       if (metadata.retryAfterMs !== undefined) {
         headers.set("retry-after", String(Math.ceil(metadata.retryAfterMs / 1_000)));
       }
-      return NextResponse.json(
+      return Response.json(
         {
           error: {
             code: normalized.code,

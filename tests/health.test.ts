@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { GET } from "../src/app/api/health/route";
+import { GET } from "../src/server/routes/health/route";
 
 test("health endpoint is shallow and returns the public contract", async () => {
   const response = await GET(new Request("http://localhost/health"));

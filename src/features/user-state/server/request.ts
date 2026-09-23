@@ -6,6 +6,8 @@ import type { UserStateConfig } from "./config";
 export function resolveOwner(request: Request, config: UserStateConfig): string {
   // No owner field, query argument, email fallback or client-selected demo identity.
   const raw = config.mode === "demo" ? "local-demo-user" : request.headers.get("x-forwarded-user");
+  // Reject control characters in the identity supplied by the trusted proxy.
+  // eslint-disable-next-line no-control-regex
   if (!raw?.trim() || raw.length > 512 || /[\u0000-\u001f\u007f]/.test(raw)) {
     throw new AppError("Missing proxy identity", "USER_STATE_AUTH_REQUIRED", 401,
       "Connectez-vous à l’application pour accéder à vos analyses.");

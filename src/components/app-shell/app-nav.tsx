@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { Link, useLocation } from "react-router-dom";
 
 const links = [
   { href: "/", label: "Accueil" },
@@ -10,7 +10,7 @@ const links = [
 ];
 
 export function AppNav({ personalStateEnabled = false }: { personalStateEnabled?: boolean }) {
-  const pathname = usePathname();
+  const { pathname } = useLocation();
   const navigation = personalStateEnabled ? [...links, { href: "/saved-analyses", label: "Mes analyses" }] : links;
 
   return (
@@ -23,9 +23,9 @@ export function AppNav({ personalStateEnabled = false }: { personalStateEnabled?
               : pathname === link.href || pathname.startsWith(`${link.href}/`);
 
           return (
-            <a
+            <Link
               key={link.href}
-              href={link.href}
+              to={link.href}
               aria-current={isActive ? "page" : undefined}
               className={`relative min-h-12 whitespace-nowrap px-3 py-3 text-sm font-medium transition-colors ${
                 isActive ? "text-ink" : "text-muted hover:text-ink"
@@ -35,7 +35,7 @@ export function AppNav({ personalStateEnabled = false }: { personalStateEnabled?
               {isActive ? (
                 <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-brand" aria-hidden="true" />
               ) : null}
-            </a>
+            </Link>
           );
         })}
       </div>
