@@ -19,7 +19,7 @@ export async function inspectAppKitCompatibility(root, { execute = spawnSync } =
       matches && installed === version ? `Version testée ${version}.` : `Écart avec la version testée ${version}. Relire le registre et npm ci.`);
   }
   const cli = execute("databricks", ["--version"], { encoding: "utf8" });
-  const version = cli.stdout?.match(/\b(\d+\.\d+\.\d+)\b/)?.[1];
+  const version = cli.status === 0 ? cli.stdout?.match(/\bv?(\d+\.\d+\.\d+)\b/)?.[1] : undefined;
   report(record.databricksCli.includes(version) ? "pass" : "warn", "Matrice CLI",
     record.databricksCli.includes(version) ? `Version testée ${version}.` : "CLI absent ou hors de la matrice testée.");
   report("pass", "Référence guidance Databricks",

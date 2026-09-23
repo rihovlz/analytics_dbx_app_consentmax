@@ -3,7 +3,13 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { parse } from "yaml";
 
-test("AppKit and UI versions match the reviewed record and committed lockfile", async () => {
+const { inspectAppKitCompatibility } = await import(new URL("../scripts/appkit-compatibility.mjs", import.meta.url).href) as {
+  inspectAppKitCompatibility: (root: string, options: {
+    execute: (command: string, args: string[]) => { status: number; stdout: string };
+  }) => Promise<Array<{ name: string; status: string }>>;
+};
+
+test("AppKit versions and prefixed CLI versions match the reviewed compatibility record", async () => {
   const record = JSON.parse(await readFile("config/appkit-compatibility.json", "utf8"));
   const pkg = JSON.parse(await readFile("package.json", "utf8"));
   const lock = JSON.parse(await readFile("package-lock.json", "utf8"));
@@ -14,6 +20,20 @@ test("AppKit and UI versions match the reviewed record and committed lockfile", 
   }
   assert.match(record.skills.reviewedRevision, /^[a-f0-9]{40}$/);
   assert.ok(record.exceptions.every((item: { reason?: string; removeWhen?: string }) => item.reason && item.removeWhen));
+  for (const prefix of ["v", ""]) {
+    const results = await inspectAppKitCompatibility(process.cwd(), {
+      execute: (command, args) => {
+        assert.equal(command, "databricks");
+        assert.deepEqual(args, ["--version"]);
+        return { status: 0, stdout: `Databricks CLI ${prefix}${record.databricksCli[0]}\n` };
+      },
+    });
+    assert.equal(results.find((item) => item.name === "Matrice CLI")?.status, "pass");
+  }
+  for (const response of [{ status: 0, stdout: "Databricks CLI v99.0.0" }, { status: 1, stdout: `v${record.databricksCli[0]}` }]) {
+    const results = await inspectAppKitCompatibility(process.cwd(), { execute: () => response });
+    assert.equal(results.find((item) => item.name === "Matrice CLI")?.status, "warn");
+  }
 });
 
 test("weekly upstream review has read-only permissions and no auto-merge", async () => {
