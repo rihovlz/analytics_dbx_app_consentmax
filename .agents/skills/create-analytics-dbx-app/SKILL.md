@@ -77,3 +77,11 @@ premier parcours encore incomplet. Ne pas rejouer `npm run init-app` si les plac
 Toujours terminer une étape avec : l'état obtenu, les décisions enregistrées, les commandes réellement exécutées,
 les validations réussies ou non exécutées, et la prochaine tranche recommandée. Ne jamais annoncer une vérification
 qui n'a pas été exécutée.
+
+# Runtime AppKit 2.0
+
+Lire `docs/appkit-maintenance.md` et le registre `config/appkit-compatibility.json`.
+Consulter la guidance Databricks installée hors du repository pour Apps, auth, SQL et Bundles.
+Conserver les règles Valiuz du repository et les exceptions documentées des adaptateurs.
+Une migration de runtime demande les parcours consommateur et E2E.
+Dans le repository source avec son historique Git, valider aussi la fixture de migration 1.5.

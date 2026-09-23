@@ -95,8 +95,8 @@ le propriétaire est calculé à partir de `x-forwarded-user`. L’identité n�
 Le serveur doit rester derrière le proxy Databricks Apps, sans exposition directe de son port.
 Voir [les en-têtes transmis par le proxy](https://docs.databricks.com/gcp/en/dev-tools/databricks-apps/http-headers).
 
-Configurer les trois variables dans `app.yaml`, puis activer après la recette distante. Le layout est rendu à la
-requête afin que l’activation runtime ne soit pas figée pendant le build CI. Un changement d’app ou de namespace
+Configurer les trois variables dans `app.yaml`, puis activer après la recette distante. Le shell charge le flag depuis
+`/api/config` au démarrage du navigateur ; le build CI ne fige pas son activation. Un changement d’app ou de namespace
 isole les anciennes données ; préparer une migration explicite pour conserver leur accès.
 
 ## Tables et concurrence

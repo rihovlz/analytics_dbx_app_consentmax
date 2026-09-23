@@ -33,7 +33,7 @@ visualisation utilisent les tokens `--chart-*`, dont les valeurs diffèrent des 
 
 ## Thèmes et surfaces
 
-`src/app/globals.css` définit les tokens sémantiques des thèmes clair et sombre. `tailwind.config.ts` expose les tons de
+`src/client/globals.css` définit les tokens sémantiques des thèmes clair et sombre. `tailwind.config.ts` expose les tons de
 tracé avec les noms `chart-brand`, `chart-positive`, `chart-negative`, `chart-purple`, `chart-slate` et
 `chart-neutral`. Utiliser ces noms dans les composants. Ne pas coder une couleur de thème directement dans une classe.
 
@@ -41,7 +41,7 @@ Le token `--focus-ring` définit le contour global des boutons, liens et champs.
 redéfinit aussi ce token pour conserver son contraste sur le fond clair.
 
 `ThemeToggle` propose les choix clair, système et sombre. Il conserve le choix dans `localStorage` avec la clé
-`analytics-theme`. Le layout applique un choix explicite avant l’hydratation. Le choix système laisse la requête média
+`analytics-theme`. Le script HTML applique un choix explicite avant le premier rendu React. Le choix système laisse la requête média
 `prefers-color-scheme` piloter les tokens.
 
 Le header porte toujours la classe `brand-header-surface`. Cette classe maintient un fond clair, même avec le thème
@@ -84,7 +84,7 @@ Les types publics incluent `DataTone`, `DataTrend`, `NumberFormat`, `AxisValueFo
 propriétés. `NumberFormat` décrit les options de `Intl.NumberFormat`. `AxisValueFormat` décrit un texte, un nombre ou
 une date avec des options `Intl`.
 
-Ces formats sont sérialisables à travers React Server Components. `TimeSeriesChart` les reçoit avec `valueFormat`,
+Ces formats sont sérialisables entre les APIs et React. `TimeSeriesChart` les reçoit avec `valueFormat`,
 `xFormat` et `tooltipLabelFormat`. `AnalyticsMap` reçoit `valueFormat`. L’API publique ne déclare aucune prop de
 callback.
 
@@ -144,9 +144,9 @@ remplissage à une série principale afin de conserver la lisibilité.
 d’aucun service cartographique. Elle ne charge aucune tuile, ne demande aucun token et ne fait aucun appel réseau au
 runtime. Le mode `heatmap` ajoute des halos aux repères. Il ne remplace pas une couche géostatistique calculée.
 
-La page `/visualizations` compose chaque exemple côté serveur avec des données synthétiques. Le module
-`demo-map-data.ts` importe `server-only` et convertit l’atlas TopoJSON embarqué par `world-atlas` en GeoJSON. Cette page
-ne lit aucune source Databricks.
+La page `/visualizations` charge des données synthétiques via `/api/visualizations`.
+Le module serveur `visualization-demo.ts` convertit l’atlas TopoJSON embarqué par `world-atlas` en GeoJSON.
+Cette page ne lit aucune source Databricks.
 
 ## Expérience conversationnelle Genie
 

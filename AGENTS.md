@@ -11,14 +11,17 @@ unrelated work.
 ## Architecture and Boundaries
 
 ```text
-src/app + src/components
+src/client + src/components
+  → src/server/routes (Express + withApiRoute)
   → src/features/<feature>/server/service.ts
   → src/features/<feature>/server/repository.ts
   → src/lib/databricks/SqlExecutor
   → Databricks SQL / Unity Catalog
 ```
 
-- Add a page in `src/app/<route>/page.tsx`.
+- Add a page in `src/client/pages/<route>/page.tsx` and register it in `src/client/routes.tsx`.
+- Register feature APIs in `src/server/routes.ts` with `expressRoute` and `withApiRoute`.
+- Read the installed AppKit docs and `docs/appkit-maintenance.md` before changing runtime adapters.
 - Add the shared Valiuz shell and neutral UI in `src/components`; keep business UI inside its feature.
 - Add business orchestration in `src/features/<feature>/server/service.ts`.
 - Add SQL and row contracts in that feature’s `queries.ts` and `repository.ts`.
@@ -93,7 +96,7 @@ only after applying a declared template upgrade. Always report the version decis
 
 ## Deployment and Git
 
-Use a feature branch and a pull request. Keep commits focused; do not commit generated `.next`, caches or credentials.
+Use a feature branch and a pull request. Keep commits focused; do not commit generated `dist`, caches or credentials.
 Do not push, merge, deploy, grant permissions, dispatch workflows or change GitHub settings without explicit user
 authorization. Do not use destructive cleanup to resolve unrelated changes.
 
@@ -117,12 +120,11 @@ A change is done only when:
 - remote changes were explicitly authorized and smoke-checked;
 - the final diff and status are understood and the handoff lists any unvalidated item.
 
-<!-- BEGIN:nextjs-agent-rules -->
+## Upstream compatibility
 
-# This is NOT the Next.js you know
-
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
-
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
-<!-- END:nextjs-agent-rules -->
+Keep AppKit and AppKit UI on matching exact versions. Update the compatibility record after review.
+Do not expose generic plugin endpoints or enable result caching without an explicit identity and freshness contract.
+Install upstream Databricks skills outside application source with the supported CLI.
+Keep local skills focused on Valiuz governance, design, data contracts and releases.
+Run `npm run template:journey`, `npm run bundle:compatibility` and `npm run test:e2e` for runtime changes.
+In the template source with its 1.5 Git history, also run `npm run template:migration`.

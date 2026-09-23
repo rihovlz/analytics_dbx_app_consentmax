@@ -9,15 +9,15 @@ peuvent pas être configurées ensemble.
 
 Le runtime Databricks Apps n'utilise ni le profil du développeur ni son jeton. La plateforme injecte
 `DATABRICKS_HOST`, `DATABRICKS_CLIENT_ID` et `DATABRICKS_CLIENT_SECRET` pour le service principal de l'app. Ces variables
-runtime ne sont pas nécessaires pendant le build Next.js. La CI utilise une identité distincte via GitHub OIDC.
+runtime ne sont pas nécessaires pendant le build Vite. La CI utilise une identité distincte via GitHub OIDC.
 Suivre [local-development.md](local-development.md) pour configurer ces parcours.
 
 Une préparation notebook ou pipeline utilise l'identité du mainteneur qui exécute `data:prepare`. Cette identité peut
 lire la source et créer ou remplacer la sortie. Ces droits d'écriture ne sont jamais transmis au service principal de
 l'app, qui conserve uniquement `CAN_USE` sur le warehouse et `SELECT` sur la sortie déclarée.
 
-Le code ne journalise ni ne renvoie ces variables. N’ajouter aucune variable `NEXT_PUBLIC_*` contenant un host privé,
-un identifiant de ressource ou un credential.
+Le code ne journalise ni ne renvoie ces variables. N’exposer aucune variable Vite contenant un host privé, un identifiant de ressource ou un credential.
+Le contrat public de `/api/config` contient uniquement les valeurs d’affichage validées.
 
 ## Identité utilisateur pour Genie
 

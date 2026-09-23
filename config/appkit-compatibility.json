@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "reviewedOn": "2026-09-23",
+  "packages": {
+    "@databricks/appkit": "0.76.1",
+    "@databricks/appkit-ui": "0.76.1"
+  },
+  "node": "22.16.0",
+  "databricksCli": [
+    "0.295.0",
+    "1.14.1"
+  ],
+  "skills": {
+    "repository": "databricks/databricks-agent-skills",
+    "release": "0.2.10",
+    "reviewedRevision": "3d79814688e28765db0153eddcf6ec74972c75b4",
+    "names": [
+      "databricks-core",
+      "databricks-apps",
+      "databricks-dabs",
+      "databricks-dbsql"
+    ]
+  },
+  "templates": {
+    "repository": "databricks/appkit",
+    "reviewedRevision": "9c687aaffd4feca49dcbe22e720ce05e611773e6",
+    "paths": [
+      "template",
+      "packages/appkit/src/plugins",
+      "packages/appkit-ui"
+    ]
+  },
+  "exceptions": [
+    {
+      "id": "genie-transport",
+      "implementation": "src/features/genie/server/client.ts",
+      "reason": "0.76.1 does not forward AbortSignal to submission/result calls; the SDK submission retry and raw error logging do not meet our no-replay and safe-log contract.",
+      "removeWhen": "Programmatic Genie proves single submission, bounded cancellation, sanitized errors, read-only retries and the 500-row contract through compatibility tests."
+    },
+    {
+      "id": "driver-semantics",
+      "implementation": "src/lib/databricks/sql.ts",
+      "reason": "Private personal-state writes, null bindings, native scalar types, explicit driver transport and standalone CLI diagnostics retain @databricks/sql. AppKit leaves JSON_ARRAY scalar values as strings and parses JSON-looking STRING cells.",
+      "removeWhen": "AppKit preserves bound nulls, native scalar types, exact STRING values, private write semantics and diagnostic authentication."
+    },
+    {
+      "id": "startup-demo",
+      "implementation": "src/server/workspace-client.ts",
+      "reason": "AppKit resolves workspace identity even with only its server plugin. Demo injects a fail-closed client with two synthetic metadata responses.",
+      "removeWhen": "Upstream server-only startup supports offline mode without identity resolution."
+    },
+    {
+      "id": "cli-profile",
+      "implementation": "src/server/workspace-client.ts",
+      "reason": "0.76.1 ignores profile when host is also passed. Local OAuth uses the existing named CLI token provider for each operation.",
+      "removeWhen": "Upstream supports named CLI U2M credentials, host verification and token refresh together."
+    },
+    {
+      "id": "http-policy",
+      "implementation": "src/server/http-policy.ts",
+      "reason": "AppKit extend() runs after JSON parsing and its raw-body hook cannot match dynamic IDs. A small server subclass installs express.raw before the upstream parser through serverApplication; the rest of the server stays upstream. Generic analytics and automatic UI recorder routes remain disabled.",
+      "removeWhen": "Upstream provides a public pre-parser middleware hook and route-exposure options with the same byte limits and UTF-8 semantics."
+    }
+  ]
+}

@@ -2,12 +2,12 @@ schemaVersion: 1
 template:
   id: valiuz/analytics_dbx_app_template
   repository: https://github.com/valiuz/analytics_dbx_app_template
-  currentVersion: 1.5.0
+  currentVersion: 2.0.0
 requirements:
   node: ">=22.16 <23"
   databricksCli: ">=0.295.0"
 versions:
-  "1.0.0":
+  1.0.0:
     sourceCommit: 05d914c6863c92304b1bc662e40c17e0f97b2c29
     summary: Baseline du template avant les améliorations de compatibilité du 30 août 2026.
     capabilities:
@@ -16,7 +16,7 @@ versions:
       - optional-data-preparation
       - valiuz-app-shell
       - databricks-app-bundle
-  "1.1.0":
+  1.1.0:
     sourceCommit: 5df063bd0dc7b3664f1bf2cbe624119ddf5568ac
     summary: Compatibilité Databricks renforcée, parcours consommateur propre et suivi de version du template.
     extends: 1.0.0
@@ -24,31 +24,38 @@ versions:
       - databricks-deployment-compatibility
       - clean-template-consumer-journey
       - template-version-tracking
-  "1.2.0":
+  1.2.0:
     sourceCommit: a1ed6bc333c8b8355641b17f74fe3ed0fb200815
     summary: Historisation à coût borné et gouvernance automatique des versions et de la documentation.
     extends: 1.1.0
     capabilities:
       - cost-aware-data-history
       - feature-release-governance
-  "1.3.0":
+  1.3.0:
     sourceCommit: 08058f189790546146dabec88a6a0897568b55e9
     summary: Composants de visualisation analytics réutilisables, accessibles et compatibles clair/sombre.
     extends: 1.2.0
     capabilities:
       - reusable-analytics-visualizations
-  "1.4.0":
+  1.4.0:
     sourceCommit: 19ade7c5882aeb3065453e0aaf3c02552a61fd6c
     summary: Assistant Genie conversationnel avec OBO, contexte de dashboard, résultats riches et épinglage composable.
     extends: 1.3.0
     capabilities:
       - genie-natural-language-analytics
-  "1.5.0":
+  1.5.0:
     sourceCommit: 26a1d0a64a9fed4d0a9cad1c7031a9d2c07eb95f
     summary: Analyses et préférences personnelles sur deux tables Delta dans le datamart de développement.
     extends: 1.4.0
     capabilities:
       - personal-user-state
+  2.0.0:
+    sourceCommit: 8b779bcb363a7c57bdea12342964601d0acdfef4
+    summary: Runtime AppKit, Vite et React Router, adaptateurs bornés et maintenance amont.
+    extends: 1.5.0
+    capabilities:
+      - appkit-native-runtime
+      - upstream-compatibility
 capabilities:
   guided-app-workflow:
     since: 1.0.0
@@ -112,13 +119,18 @@ capabilities:
         text: quoteQualifiedIdentifier(source.fullName)
       - type: fileNotContains
         path: databricks.yml
-        text: "\nresources:\n  apps:"
+        text: |-
+
+          resources:
+            apps:
       - type: fileContains
         path: resources/data-access.generated.yml
         text: "      name: ${var.app_name}"
-      - type: fileContains
-        path: src/app/page.tsx
+      - type: fileAnyOf
         text: parseAppDisplayConfig
+        paths:
+          - src/app/page.tsx
+          - src/server/routes.ts
       - type: packageScript
         name: bundle:compatibility
         command: node --import tsx scripts/validate-bundle-cli.ts
@@ -226,11 +238,15 @@ capabilities:
       - type: fileContains
         path: src/components/data-visualization/index.ts
         text: AnalyticsMap
-      - type: file
-        path: src/app/visualizations/page.tsx
-      - type: fileContains
-        path: src/app/globals.css
-        text: ':root[data-theme="dark"]'
+      - type: fileAnyOf
+        paths:
+          - src/app/visualizations/page.tsx
+          - src/client/pages/visualizations/page.tsx
+      - type: fileAnyOf
+        text: :root[data-theme="dark"]
+        paths:
+          - src/app/globals.css
+          - src/client/globals.css
   genie-natural-language-analytics:
     since: 1.4.0
     description: Ajoute un chat Genie OBO réutilisable, des résultats riches, le contexte de dashboard et des cartes épinglables.
@@ -244,10 +260,14 @@ capabilities:
       - type: fileContains
         path: src/features/genie/server/identity.ts
         text: x-forwarded-access-token
-      - type: file
-        path: src/app/api/genie/[alias]/messages/route.ts
-      - type: file
-        path: src/app/genie/page.tsx
+      - type: fileAnyOf
+        paths:
+          - src/app/api/genie/[alias]/messages/route.ts
+          - src/server/routes/genie/[alias]/messages/route.ts
+      - type: fileAnyOf
+        paths:
+          - src/app/genie/page.tsx
+          - src/client/pages/genie/page.tsx
       - type: fileContains
         path: scripts/data-access.mjs
         text: validateGenieEnvironmentReferences
@@ -273,15 +293,52 @@ capabilities:
         path: src/features/user-state/server/repository.ts
       - type: file
         path: src/features/user-state/save-analysis-button.tsx
-      - type: file
-        path: src/app/api/saved-analyses/[id]/route.ts
-      - type: file
-        path: src/app/api/user-preferences/route.ts
+      - type: fileAnyOf
+        paths:
+          - src/app/api/saved-analyses/[id]/route.ts
+          - src/server/routes/saved-analyses/[id]/route.ts
+      - type: fileAnyOf
+        paths:
+          - src/app/api/user-preferences/route.ts
+          - src/server/routes/user-preferences/route.ts
       - type: file
         path: docs/user-state.md
       - type: packageScript
         name: user-state:init
         command: node scripts/init-user-state.mjs
+  appkit-native-runtime:
+    since: 2.0.0
+    description: Démarre AppKit, sert des routes React et protège les APIs des features.
+    probes:
+      - type: fileContains
+        path: src/server/index.ts
+        text: createApp
+      - type: file
+        path: vite.config.ts
+      - type: file
+        path: src/client/routes.tsx
+      - type: file
+        path: src/shared/app-config.ts
+      - type: file
+        path: src/lib/databricks/appkit-executor.ts
+      - type: packageScript
+        name: build
+        command: vite build && node scripts/build-server.mjs
+  upstream-compatibility:
+    since: 2.0.0
+    description: Versions épinglées, exceptions explicites et revue humaine des mises à jour.
+    probes:
+      - type: file
+        path: config/appkit-compatibility.json
+      - type: file
+        path: .github/dependabot.yml
+      - type: file
+        path: .github/workflows/upstream-check.yml
+      - type: file
+        path: docs/appkit-maintenance.md
+      - type: packageScript
+        name: template:migration
+        command: node --import tsx scripts/validate-v2-migration.ts
 upgrades:
   - from: 1.0.0
     to: 1.1.0
@@ -298,3 +355,6 @@ upgrades:
   - from: 1.4.0
     to: 1.5.0
     path: template/upgrades/1.4.0-to-1.5.0.yml
+  - from: 1.5.0
+    to: 2.0.0
+    path: template/upgrades/1.5.0-to-2.0.0.yml

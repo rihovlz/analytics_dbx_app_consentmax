@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { copyFile, mkdir, mkdtemp, readFile, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -13,6 +13,7 @@ test("app doctor reports the next useful action without exposing environment val
     "config/data-projects.json",
     "config/genie-spaces.json",
     "scripts/app-doctor.mjs",
+    "scripts/appkit-compatibility.mjs",
     "scripts/app-spec.mjs",
     "scripts/data-access.mjs",
     "scripts/data-preparation.mjs",
@@ -58,6 +59,7 @@ test("app doctor reports the next useful action without exposing environment val
   await writeFile(join(root, "docs/product-brief.md"), productBrief, "utf8");
   await symlink(join(process.cwd(), "node_modules"), join(root, "node_modules"), "dir");
 
+  execFileSync(process.execPath, ["--input-type=module", "-e", 'import {renderDataAccess} from "./scripts/data-access.mjs"; await renderDataAccess({root:process.cwd()});'], { cwd: root });
   const command = spawnSync(process.execPath, ["scripts/app-doctor.mjs", "--json"], {
     cwd: root,
     encoding: "utf8",

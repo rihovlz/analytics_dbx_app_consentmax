@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { copyFile, mkdir, mkdtemp, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -13,6 +13,7 @@ test("real preview requires an explicit confirmation before remote changes", asy
     "config/data-projects.json",
     "config/genie-spaces.json",
     "scripts/app-doctor.mjs",
+    "scripts/appkit-compatibility.mjs",
     "scripts/template-manifest.mjs",
     "scripts/template-status.mjs",
     "scripts/app-spec.mjs",
@@ -58,6 +59,8 @@ test("real preview requires an explicit confirmation before remote changes", asy
   );
   await writeFile(join(root, "docs/product-brief.md"), productBrief, "utf8");
   await symlink(join(process.cwd(), "node_modules"), join(root, "node_modules"), "dir");
+
+  execFileSync(process.execPath, ["--input-type=module", "-e", 'import { renderDataAccess } from "./scripts/data-access.mjs"; await renderDataAccess({ root: process.cwd() });'], { cwd: root });
 
   const result = spawnSync(process.execPath, ["scripts/preview-real.mjs"], {
     cwd: root,

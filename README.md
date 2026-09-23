@@ -1,8 +1,8 @@
 # Databricks App Template
 
-![Databricks App Boilerplate — de la copie du repository au déploiement](docs/assets/databricks-app-boilerplate.png)
+![Databricks App Boilerplate — de la copie du repository au déploiement](docs/assets/databricks-app-boilerplate-v2.png)
 
-Golden path Next.js/TypeScript pour construire des Databricks Apps analytics. Il fournit un shell UI Valiuz, une
+Golden path AppKit/Express/Vite/React/TypeScript pour construire des Databricks Apps analytics. Il fournit un shell UI Valiuz, une
 configuration validée, une couche Databricks SQL centralisée, des erreurs publiques sûres, des logs structurés, des
 tests, une bibliothèque de visualisation et un déploiement reproductible avec Databricks Asset Bundles.
 
@@ -51,7 +51,7 @@ rien.
 
 ## Version du template
 
-`template/manifest.yml` donne la version courante et les capabilities du template. La version courante est `1.5.0`.
+`template/manifest.yml` donne la version courante et les capabilities du template. La version courante est `2.0.0`.
 La version `1.0.0` représente la baseline initiale. Les versions suivantes ajoutent les mises à niveau suivies,
 l’historisation bornée, les visualisations, l’assistant Genie OBO et les analyses personnelles.
 
@@ -63,7 +63,7 @@ Ces commandes restent locales et ne modifient pas le code de l'app :
 ```bash
 npm run template:status
 npm run template:check
-npm run template:diff -- --from 1.4.0 --to 1.5.0
+npm run template:diff -- --from 1.5.0 --to 2.0.0
 npm run template:release:check -- --base origin/main
 ```
 
@@ -102,8 +102,7 @@ tendances, des mini-barres et des sparklines. `TimeSeriesChart` gère plusieurs 
 infobulles et un tableau de valeurs. `AnalyticsMap` reçoit du GeoJSON, des valeurs par zone et des repères facultatifs.
 
 `NumberFormat` décrit un format numérique `Intl`. `AxisValueFormat` décrit un axe texte, numérique ou date.
-Ces contrats sont sérialisables et l’API publique ne déclare aucune prop de callback. Une page serveur peut ainsi
-préparer les données et composer les composants interactifs à travers la frontière React Server Components.
+Ces contrats sont sérialisables et l’API publique ne déclare aucune prop de callback. Une API de feature peut ainsi préparer les données pour les composants React.
 
 Les composants de données utilisent un même état public :
 
@@ -128,8 +127,8 @@ au runtime. Son SVG, ses contrôles et ses repères acceptent le focus. Le zoom 
 flèches du clavier. Les régions restent hors de l’ordre de tabulation, car le tableau accessible fournit leurs valeurs
 exactes.
 
-La page `/visualizations` compose la démonstration côté serveur et ne contacte pas Databricks. Le module
-`demo-map-data.ts` importe `server-only`, puis convertit l’atlas `world-atlas` embarqué en GeoJSON.
+La page `/visualizations` charge ses données synthétiques via `/api/visualizations`, sans Databricks.
+Le module serveur `visualization-demo.ts` convertit l’atlas `world-atlas` embarqué en GeoJSON.
 
 Voir [le design system analytics](docs/design-system.md) pour les API de composition, les tokens et les règles
 d’accessibilité.
@@ -167,7 +166,7 @@ Le client envoie uniquement l’alias, la question et un contexte validé. Le se
 message et appelle l’API Conversation. Dans Databricks Apps, il utilise `x-forwarded-access-token` pour chaque
 utilisateur. Le jeton ne passe jamais dans les propriétés React, le JSON de réponse ou les logs.
 
-Le template utilise une Route Handler Next.js, car son runtime ne contient pas AppKit. Il n’ajoute aucun gateway IA.
+Le runtime AppKit sert une route Express dédiée. Le transport Genie conserve ses garanties ; voir [les exceptions AppKit](docs/appkit-maintenance.md).
 La route accepte uniquement les requêtes JSON de même origine. Elle limite le corps à 64 Kio, la question à 10 000
 caractères et le contexte sérialisé à 12 000 caractères. Elle résout ensuite le Space et l’identité côté serveur.
 
@@ -272,7 +271,8 @@ Catalog et l’accès des utilisateurs à l’app restent à configurer séparé
 
 ## Configuration
 
-`parseAppDisplayConfig` valide la configuration publique pendant le build. Le serveur valide la configuration
+`parseAppDisplayConfig` valide la configuration publique au démarrage et pour `/api/config`.
+Le navigateur valide aussi ce contrat. Aucune variable runtime n’est requise au build. Le serveur valide la configuration
 Databricks complète au démarrage dans `src/lib/config/server-config.ts`.
 
 | Variable | Local démo | Local Databricks | Databricks Apps |
@@ -347,11 +347,11 @@ avant la lecture source si le checkout local ne correspond pas à la préparatio
 | Commande | Usage |
 | --- | --- |
 | `npm run dev` | serveur local avec rechargement |
-| `npm run lint` | lint Next.js/TypeScript |
+| `npm run lint` | lint TypeScript et React |
 | `npm run typecheck` | vérification TypeScript stricte |
 | `npm test` | tests unitaires Node |
 | `npm run test:e2e` | parcours Genie dans Chromium avec les fixtures de démo |
-| `npm run build` | build standalone de production |
+| `npm run build` | build Vite et serveur AppKit |
 | `npm run check` | manifeste, lint, types, tests unitaires et build de production |
 | `npm run app:guide` | cadre l'app et synchronise le brief produit |
 | `npm run app:spec:check` | vérifie la spec et le brief |
@@ -384,16 +384,16 @@ de l’exécuter.
 ## Structure du repository
 
 ```text
-src/app/                         pages, layouts et routes HTTP
-src/app/visualizations/          composition serveur et données synthétiques de démonstration
-src/app/genie/                   démonstration autonome et intégrée du chat Genie
+src/client/                     React Router, pages, shell et styles
+src/server/                     serveur AppKit, routes Express et données synthétiques
+src/shared/                     contrats publics sans environnement serveur
 src/components/                  shell, états UI et composants génériques
 src/components/data-visualization/ point d’entrée public, types et formatage
 src/components/{cards,charts,kpi}/ composants de visualisation réutilisables
 src/components/maps/            carte cliente, géométrie D3 et sous-composants internes
 src/components/theme/            sélection locale du thème clair, système ou sombre
 src/features/<feature>/          UI, contrat et logique applicative d’une feature
-src/features/<feature>/server/   queries, repository et service server-only
+src/features/<feature>/server/   queries, repository et service serveur
 src/features/genie/              chat, contrats, rendu riche et intégration Conversation API
 src/lib/config/                  parsing et validation de l’environnement
 src/lib/databricks/              authentification et exécution SQL
@@ -459,7 +459,9 @@ La CI exécute `template:check` et compare la release à la branche de base avec
 feature du template sans décision SemVer, guide de migration, README et guide des versions mis à jour. Elle exécute
 aussi `npm run template:journey`. Ce parcours crée une copie Git propre et exécute `npm ci`, `init-app`,
 `template:status`, `app:guide`, `data:init`, `feature:new`, `app:doctor` et `npm run check`. Un job séparé exécute
-le parcours `/genie` dans Chromium avec les données de démonstration.
+les parcours de navigation, visualisation, Genie et analyses personnelles dans Chromium.
+Il vérifie le serveur de développement puis le serveur compilé de production sans credentials.
+La migration d’une fixture métier 1.5 est également validée dans le repository source.
 
 Un autre job initialise une app et un contrat notebook borné temporaires. Il valide leurs bundles `dev` et `prod` avec
 le vrai Databricks CLI. La matrice couvre les versions `0.295.0` et `1.14.1`. Aucun credential Databricks réel n'est lu.
@@ -479,7 +481,7 @@ le vrai Databricks CLI. La matrice couvre les versions `0.295.0` et `1.14.1`. Au
 - Le build local utilise une mauvaise version Node : exécuter `nvm use` puis `npm ci`.
 - Le déploiement Git-backed ne lit pas GitHub : ajouter un credential Git au service principal de l’app.
 - `Data project must be one of` : choisir l'un des quatre projets autorisés dans `config/data-projects.json`.
-- `Data access bundle is stale` : lancer `npm run data:access:render` et committer les deux fichiers.
+- `Data access bundle is stale` : lancer `npm run data:access:render` et committer les bindings et métadonnées générés.
 - `Data preparation bundle is stale` : lancer `npm run data:prepare:render` et relire le contrat concerné.
 - `Product brief is stale` : lancer `npm run app:guide -- --non-interactive`.
 - Une capability du template manque : lancer `npm run template:status`, puis lire `docs/template-upgrades.md`.
@@ -489,3 +491,15 @@ le vrai Databricks CLI. La matrice couvre les versions `0.295.0` et `1.14.1`. Au
 
 Voir aussi [développement local](docs/local-development.md), [architecture](docs/architecture.md),
 [Databricks](docs/databricks.md), [déploiement](docs/deployment.md) et [AGENTS.md](AGENTS.md).
+
+## Runtime 2.0 et mises à jour amont
+
+AppKit 0.76.1 fournit le serveur Express, Vite en développement et les fichiers statiques en production.
+Les APIs des features conservent les services, repositories et validations Valiuz.
+Les lectures compatibles utilisent AppKit analytics ; Genie et les écritures personnelles conservent leurs garanties existantes.
+Le registre de compatibilité documente chaque exception et son critère de suppression.
+
+La migration reste volontaire : suivre [le guide 1.5 vers 2.0](docs/migration-2.0.md).
+`npm run template:migration` valide une fixture métier 1.5 après portage.
+La [maintenance amont](docs/appkit-maintenance.md) décrit les versions, skills externes, PR hebdomadaires et contrôles en lecture seule.
+Un déploiement de développement explicitement autorisé et sa recette restent nécessaires avant adoption en production.

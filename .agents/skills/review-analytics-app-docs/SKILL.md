@@ -15,7 +15,7 @@ documentaires minimales qui appartiennent au même périmètre.
 1. Lire tous les `AGENTS.md` applicables et inspecter `git status --short --branch`.
 2. Lire `README.md`, les fichiers sous `docs/`, `package.json`, `.env.example`, `app.yaml`, `databricks.yml` et les
    workflows sous `.github/workflows/` lorsqu'ils existent.
-3. Inspecter l'arborescence de `src/app`, `src/components`, `src/features`, `src/lib`, `scripts` et `tests` sans charger
+3. Inspecter l'arborescence de `src/client`, `src/server`, `src/shared`, `src/components`, `src/features`, `src/lib`, `scripts` et `tests` sans charger
    les caches ou builds.
 4. Pour une review de changement, résoudre la branche de base selon les instructions du repository et lire le diff
    complet relatif à cette base. Ne pas supposer que la base est toujours `main`.

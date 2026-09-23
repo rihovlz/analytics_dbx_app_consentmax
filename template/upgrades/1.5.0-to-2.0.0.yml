@@ -1,0 +1,86 @@
+schemaVersion: 1
+id: 1.5.0-to-2.0.0
+from: 1.5.0
+to: 2.0.0
+summary: Migration volontaire du runtime Next.js vers AppKit, Vite et React Router.
+changes:
+  - id: appkit-runtime
+    mode: guided
+    title: Porter le runtime et les routes
+    description: Le navigateur charge uniquement la configuration publique et appelle les APIs des features.
+    paths:
+      - package.json
+      - package-lock.json
+      - vite.config.ts
+      - index.html
+      - tsconfig.json
+      - eslint.config.mjs
+      - src/client
+      - src/server
+      - src/shared
+      - src/lib/http
+      - src/lib/errors
+      - src/components/app-shell
+      - scripts/build-server.mjs
+      - playwright.config.ts
+    instructions:
+      - Suivre docs/migration-2.0.md dans une branche dédiée.
+      - Fusionner les dépendances et régénérer le lockfile avec npm.
+      - Porter chaque page et enregistrer explicitement ses routes client et serveur.
+      - Déplacer les chargements serveur derrière une API de feature utilisant withApiRoute.
+      - Conserver les URL, styles, médias et paramètres de support propres à l’application.
+      - Retirer les fichiers Next.js après avoir porté tous leurs comportements.
+  - id: capability-adapters
+    mode: guided
+    title: Préserver les contrats de données et les capacités optionnelles
+    description: Les repositories restent inchangés et les intégrations passent par des adaptateurs bornés.
+    paths:
+      - src/lib/databricks
+      - src/features/genie/server
+      - src/features/user-state/server/runtime.ts
+      - src/features/user-state/server/request.ts
+      - scripts/new-feature.mjs
+      - scripts/data-access.mjs
+      - config/appkit-resources.generated.json
+      - tests
+      - e2e
+    instructions:
+      - Conserver les requêtes métier, sources, alias Genie et tables personnelles.
+      - Utiliser transport driver pour préserver les cellules STRING ressemblant à du JSON.
+      - Conserver le transport Genie documenté tant que les critères de suppression de son exception ne passent pas.
+      - Générer les métadonnées avec npm run data:access:render et examiner les droits.
+      - Tester les parcours, les limites, les identités et la soumission sans rejeu.
+  - id: upstream-maintenance
+    mode: guided
+    title: Adopter la maintenance amont et déclarer la version
+    description: Les versions testées et les exceptions sont explicites ; les mises à jour demandent une revue humaine.
+    paths:
+      - config/appkit-compatibility.json
+      - scripts/appkit-compatibility.mjs
+      - scripts/app-doctor.mjs
+      - scripts/check-upstream.mjs
+      - scripts/validate-v2-migration.ts
+      - scripts/validate-template-journey.ts
+      - scripts/template-manifest.mjs
+      - .github/dependabot.yml
+      - .github/workflows/upstream-check.yml
+      - .github/workflows/ci.yml
+      - .agents/skills
+      - template/manifest.yml
+      - README.md
+      - AGENTS.md
+      - docs
+    instructions:
+      - Installer les skills amont hors du repository avec le CLI Databricks.
+      - Fusionner les workflows et conserver leur revue humaine.
+      - Valider les capabilities 2.0.0 avant de modifier .valiuz-template.yml.
+      - Ajouter appkit-native-runtime et upstream-compatibility puis déclarer 1.5.0-to-2.0.0 dans appliedUpgrades.
+      - Obtenir une autorisation explicite pour le déploiement de développement et sa recette distante.
+validation:
+  - npm run template:status
+  - npm run template:check -- --to 2.0.0
+  - npm run template:release:check -- --base origin/main
+  - npm run app:doctor
+  - npm run check
+  - npm run test:e2e
+  - npm run bundle:compatibility

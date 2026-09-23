@@ -8,7 +8,8 @@ import { pathToFileURL } from "node:url";
 
 import { loadAppSpec, renderProductBrief } from "./app-spec.mjs";
 import { renderDataAccess } from "./data-access.mjs";
-import { loadDataContracts, renderDataPreparation } from "./data-preparation.mjs";
+import { renderDataPreparation } from "./data-preparation.mjs";
+import { inspectAppKitCompatibility } from "./appkit-compatibility.mjs";
 import { inspectTemplateVersion } from "./template-status.mjs";
 
 function result(status, name, detail, next) {
@@ -103,6 +104,8 @@ export async function inspectApp(root, { execute = spawnSync, nodeVersion = proc
       );
     }
   }
+
+  results.push(...await inspectAppKitCompatibility(root, { execute }));
 
   const major = Number(nodeVersion.split(".")[0]);
   results.push(

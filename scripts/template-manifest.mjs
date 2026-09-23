@@ -20,6 +20,7 @@ const safePathSchema = z.string().min(1).refine(
 );
 
 const probeSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("fileAnyOf"), paths: z.array(safePathSchema).min(1), text: z.string().optional() }).strict(),
   z.object({ type: z.literal("file"), path: safePathSchema }).strict(),
   z.object({ type: z.literal("fileContains"), path: safePathSchema, text: z.string().min(1) }).strict(),
   z.object({ type: z.literal("fileNotContains"), path: safePathSchema, text: z.string().min(1) }).strict(),
@@ -207,6 +208,13 @@ export async function probeTemplateCapabilities(root, manifest, version) {
       if (probe.type === "packageScript") {
         const actual = packageJson?.scripts?.[probe.name];
         if (actual !== probe.command) failures.push(`package script '${probe.name}' does not match`);
+        continue;
+      }
+      if (probe.type === "fileAnyOf") {
+        const contents = await Promise.all(probe.paths.map((path) => readOptional(join(root, path))));
+        if (!contents.some((content) => content !== undefined && (!probe.text || content.includes(probe.text)))) {
+          failures.push(`missing compatible file among '${probe.paths.join("', '")}'`);
+        }
         continue;
       }
       const content = await readOptional(join(root, probe.path));

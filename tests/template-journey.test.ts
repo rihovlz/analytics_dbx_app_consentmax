@@ -32,6 +32,7 @@ test("runs the clean consumer journey after the standard CI checks", async () =>
   const ci = parse(await readFile(".github/workflows/ci.yml", "utf8"));
   const journey = ci.jobs["template-consumer-journey"];
   assert.equal(journey.needs, "check");
+  assert.equal(journey.if, "needs.check.outputs.template_source == 'true'");
   assert.equal(journey["timeout-minutes"], 20);
   assert.equal(
     journey.steps.some((step: { run?: string }) => step.run === "npm run template:journey"),

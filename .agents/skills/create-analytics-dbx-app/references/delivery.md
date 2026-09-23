@@ -30,7 +30,8 @@ page ou composant de feature
   -> Databricks SQL / Unity Catalog
 ```
 
-- Mettre une page dans `src/app/<route>/page.tsx`.
+- Mettre une page dans `src/client/pages/<route>/page.tsx` et l’enregistrer dans `src/client/routes.tsx`.
+- Enregistrer son API Express dans `src/server/routes.ts` avec `expressRoute` et `withApiRoute`.
 - Garder l'UI métier dans `src/features/<feature>/` et les composants neutres partagés dans `src/components`.
 - Mettre l'orchestration métier dans `server/service.ts`.
 - Mettre les requêtes et contrats de lignes dans `queries.ts` et `server/repository.ts`.

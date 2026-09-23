@@ -142,8 +142,8 @@ Le workflow utilise GitHub OIDC (`DATABRICKS_AUTH_TYPE=github-oidc`) : aucun cli
 GitHub. Créer la federation policy Databricks correspondant au repository, à la branche/environment et au service
 principal. Le principal CI doit pouvoir gérer les ressources du bundle, sans droits de données inutiles.
 
-La CI construit l'app avec `APP_MODE=databricks`, sans les variables runtime. Le shell lit uniquement sa configuration
-publique pendant ce build. Databricks injecte le host et les credentials lorsque le serveur démarre.
+La CI construit l'app avec `APP_MODE=databricks`, sans les variables runtime. Le build ne lit aucune configuration runtime.
+Le navigateur charge la configuration publique depuis `/api/config` après le démarrage. Databricks injecte le host et les credentials lorsque le serveur démarre.
 
 Le job principal exécute `npm run template:check` puis `npm run template:release:check` face au SHA de base de la pull
 request ou du push. Un autre job exécute `npm run template:journey` après ces contrôles. Il crée une copie Git propre et
@@ -199,3 +199,12 @@ du mainteneur avant de déployer leurs bindings `MODIFY` (incluant `SELECT`). Co
 Le plan de déploiement liste les deux tables et leurs droits. Tester deux utilisateurs réels et la persistance après
 redémarrage ; le readiness analytique ne vérifie pas les écritures personnelles. Le rollback utilise le flag désactivé
 et conserve les tables. Aucun job de purge ou déploiement automatique n’est ajouté.
+
+## Runtime AppKit 2.0
+
+Le build produit `dist/client` et `dist/server/index.js`. `npm run start` démarre AppKit avec les credentials injectés.
+Le port provient de `DATABRICKS_APP_PORT`. Le bundle et la source Git de production restent inchangés.
+Dans le repository source, la CI valide aussi les fixtures consommateur et migration 1.5 vers 2.0.
+Ces fixtures du template ne sont pas rejouées dans une application initialisée.
+Consulter [la migration](migration-2.0.md) avant le premier déploiement d’une app existante.
+La surveillance amont hebdomadaire reste en lecture seule. Aucun workflow de fusion automatique n’est ajouté.

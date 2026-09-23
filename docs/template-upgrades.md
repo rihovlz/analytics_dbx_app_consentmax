@@ -20,6 +20,7 @@ ni credential, ni configuration du workspace, ni donnée métier.
 | `1.2.0` | `a1ed6bc333c8b8355641b17f74fe3ed0fb200815` | Historisation à coût borné et gouvernance automatique des releases et de la documentation |
 | `1.3.0` | `08058f189790546146dabec88a6a0897568b55e9` | Visualisations analytics réutilisables, page de démonstration et modes clair/sombre |
 | `1.4.0` | `19ade7c5882aeb3065453e0aaf3c02552a61fd6c` | Assistant Genie OBO, contexte de dashboard, résultats riches et épinglage composable |
+| `2.0.0` | `8b779bcb363a7c57bdea12342964601d0acdfef4` | Runtime AppKit, routes React, adaptateurs bornés et maintenance amont |
 | `1.5.0` | `26a1d0a64a9fed4d0a9cad1c7031a9d2c07eb95f` | Analyses et préférences personnelles optionnelles sur tables Delta de développement |
 
 Le point historique est le SHA complet de la branche de base examinée pour préparer la version. Il sert à borner le
@@ -36,7 +37,7 @@ npm run template:status
 npm run template:check
 ```
 
-Une nouvelle app reçoit la version `1.5.0`. `npm run check` inclut `template:check` et
+Une nouvelle app reçoit la version `2.0.0`. `npm run check` inclut `template:check` et
 `template:release:check`. Le second reconnaît une app initialisée et n'exige aucun bump pour ses features métier.
 
 ## App copiée avant le suivi de version
@@ -101,7 +102,7 @@ npm run app:doctor
 npm run check
 ```
 
-Une app `1.0.0` applique ensuite chaque guide dans l’ordre, jusqu’au guide `1.4.0 → 1.5.0`.
+Une app `1.0.0` applique ensuite chaque guide dans l’ordre, jusqu’au guide `1.5.0 → 2.0.0`.
 `template:status` propose la prochaine étape disponible au lieu de sauter une migration intermédiaire.
 
 ## Passage de 1.1.0 à 1.2.0
@@ -249,3 +250,20 @@ npm run template:check -- --to 1.5.0
 Après validation, remplacer la version dans `.valiuz-template.yml`, ajouter `personal-user-state` aux capabilities
 et `1.4.0-to-1.5.0` à `appliedUpgrades`. Exécuter `npm run check`. La création des tables et le déploiement sont des
 mutations distinctes. Désactiver la feature pour un rollback ; ne pas effacer les données personnelles.
+
+## Passage de 1.5.0 à 2.0.0
+
+Cette version majeure change le runtime et le modèle d’écriture des pages et handlers.
+Les données et requêtes métier restent en place. Les apps 1.5.0 ne migrent pas automatiquement.
+
+Suivre [la migration détaillée](migration-2.0.md), puis exécuter les validations du guide sémantique :
+
+```bash
+npm run template:diff -- --from 1.5.0 --to 2.0.0
+```
+
+Dans le repository source du template avec son historique 1.5, `npm run template:migration` vérifie la fixture métier.
+
+Les sondes `fileAnyOf` reconnaissent les emplacements 1.x et 2.0 des capabilities conservées.
+Les nouvelles capabilities vérifient les fichiers du runtime AppKit et sa maintenance.
+Le rollback conserve les tables et redéploie la révision précédente.
