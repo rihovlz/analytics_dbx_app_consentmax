@@ -52,18 +52,32 @@ function validateMetric(value, slug) {
   };
 }
 
+function validateComparison(value, slug) {
+  assertObject(value, `Feature '${slug}' comparison`);
+  for (const key of Object.keys(value)) {
+    if (!["dateColumn", "breakdownColumn"].includes(key)) throw new Error(`Unknown comparison option '${key}'.`);
+  }
+  for (const [key, column] of Object.entries(value)) {
+    if (typeof column !== "string" || !identifierPattern.test(column)) throw new Error(`Feature '${slug}' comparison ${key} must be a simple column identifier.`);
+  }
+  if (!value.dateColumn) throw new Error(`Feature '${slug}' comparison requires a DATE column.`);
+  return { dateColumn: value.dateColumn, ...(value.breakdownColumn ? { breakdownColumn: value.breakdownColumn } : {}) };
+}
+
 function validateFeature(value, index) {
   assertObject(value, `Feature ${index + 1}`);
   const slug = value.slug;
   if (typeof slug !== "string" || !featureSlugPattern.test(slug)) {
     throw new Error(`Feature ${index + 1} slug must use lowercase letters, numbers and hyphens.`);
   }
+  const metric = validateMetric(value.metric, slug);
   return {
     slug,
     title: jsxText(value.title, `Feature '${slug}' title`, { max: 100 }),
     question: jsxText(value.question, `Feature '${slug}' question`),
     source: requiredText(value.source, `Feature '${slug}' source`, { max: 80 }),
-    metric: validateMetric(value.metric, slug),
+    metric,
+    ...(value.comparison ? { comparison: validateComparison(value.comparison, slug) } : {}),
     acceptance: requiredText(value.acceptance, `Feature '${slug}' acceptance`),
   };
 }
@@ -133,7 +147,7 @@ export function renderProductBrief(spec) {
   const featureSections = spec.features.length
     ? spec.features
         .map(
-          (feature) => `### ${feature.title}\n\n- Question : ${feature.question}\n- Source : \`${feature.source}\`\n- KPI : ${feature.metric.label} (${feature.metric.aggregation}${feature.metric.column === "*" ? "" : ` de \`${feature.metric.column}\``}, ${feature.metric.unit})\n- Critère d’acceptation : ${feature.acceptance}`,
+          (feature) => `### ${feature.title}\n\n- Question : ${feature.question}\n- Source : \`${feature.source}\`\n- KPI : ${feature.metric.label} (${feature.metric.aggregation}${feature.metric.column === "*" ? "" : ` de \`${feature.metric.column}\``}, ${feature.metric.unit})${feature.comparison ? `\n- Comparaison : colonne DATE \`${feature.comparison.dateColumn}\`${feature.comparison.breakdownColumn ? ` ; contributions par \`${feature.comparison.breakdownColumn}\`` : ""}. Calendrier et complétude à valider.` : ""}\n- Critère d’acceptation : ${feature.acceptance}`,
         )
         .join("\n\n")
     : "Aucun KPI généré. La première tranche suit les capacités et le critère de succès ci-dessus.";

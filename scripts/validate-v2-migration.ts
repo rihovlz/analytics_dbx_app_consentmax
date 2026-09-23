@@ -78,7 +78,7 @@ async function migrateFixture(baseline: { version: string; revision: string }) {
     }
     // Apply only the template-owned files named by the guide. Preserve app configuration and business source.
     const files = execFileSync("git", ["ls-files", "-z"], { cwd: root, encoding: "utf8" }).split("\0").filter(Boolean);
-    const templatePaths = /^(src\/(client|server|shared|lib)\/|scripts\/|template\/|tests\/|e2e\/|\.github\/|\.agents\/|docs\/|AGENTS\.md$|vite\.config\.ts$|index\.html$|tsconfig\.json$|eslint\.config\.mjs$|playwright\.config\.ts$|config\/appkit-(compatibility|capabilities)\.json$)/;
+    const templatePaths = /^(src\/(client|server|shared|lib)\/|src\/features\/period-comparison\/|src\/components\/charts\/(waterfall-chart\.tsx|waterfall-model\.ts|time-series-chart\.tsx)$|src\/components\/data-visualization\/index\.ts$|scripts\/|template\/|tests\/|e2e\/|\.github\/|\.agents\/|docs\/|AGENTS\.md$|vite\.config\.ts$|index\.html$|tsconfig\.json$|eslint\.config\.mjs$|playwright\.config\.ts$|config\/appkit-(compatibility|capabilities)\.json$)/;
     for (const file of files.filter((file) => templatePaths.test(file))) {
       if (["docs/product-brief.md", ...preservedPaths].includes(file)) continue;
       await copyCurrent(file);
@@ -126,7 +126,7 @@ async function migrateFixture(baseline: { version: string; revision: string }) {
     run(process.execPath, ["scripts/render-data-access.mjs"]);
     run(process.execPath, ["scripts/template-status.mjs", "--check", "--to", "2.0.0"]);
     oldState.template.version = "2.0.0";
-    oldState.capabilities.push("appkit-native-runtime", "upstream-compatibility", "guided-appkit-capabilities");
+    oldState.capabilities.push("appkit-native-runtime", "upstream-compatibility", "guided-appkit-capabilities", "period-comparison");
     oldState.appliedUpgrades.push("1.5.0-to-2.0.0");
     await writeFile(join(fixture, ".valiuz-template.yml"), stringify(oldState));
     const after = await Promise.all(preservedPaths.map((file) => readFile(join(fixture, file), "utf8")));

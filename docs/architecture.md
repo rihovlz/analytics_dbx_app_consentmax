@@ -120,6 +120,11 @@ l’épinglage sans contacter Databricks.
 `config/app-spec.yml` est la source de vérité courte du cadrage. `app:guide` la synchronise avec
 `docs/product-brief.md`. Ensuite, `feature:new` génère une première tranche verticale. Le SQL généré accepte seulement
 `count`, `sum` et `avg` sur une source déclarée. Le repository délimite chaque segment de l'identifiant avant le binding.
+La variante `--date-column` utilise les contrats purs de `src/features/period-comparison`, tout en conservant le SQL
+dans le repository généré. Deux fenêtres bornées alimentent les valeurs, séries et contributions facultatives.
+`--breakdown-column` ajoute une segmentation disjointe ; le waterfall automatique est limité aux mesures additives.
+La route `/api/period-comparison/demo` appelle un service synthétique, sans accès Databricks.
+Voir [le contrat de comparaison](period-comparison.md), ses limites et ses critères de complétude.
 
 Ces scripts sont des outils de développement. Ils ne sont ni importés par le runtime AppKit ni exécutés au démarrage
 de l'app. `app:doctor` contrôle leur cohérence et propose une prochaine action sans corriger ou déployer automatiquement.

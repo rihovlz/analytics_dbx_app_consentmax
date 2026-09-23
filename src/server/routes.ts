@@ -13,6 +13,7 @@ import { GET as savedAnalyses } from "./routes/saved-analyses/route";
 import { GET as getAnalysis, PUT as putAnalysis, DELETE as deleteAnalysis } from "./routes/saved-analyses/[id]/route";
 import { GET as preferences, PUT as putPreferences } from "./routes/user-preferences/route";
 import { europeFeatures } from "./visualization-demo";
+import { GET as comparisonDemo } from "./routes/period-comparison/route";
 // feature:new inserts imports above this line.
 
 export function registerRoutes(app: Application) {
@@ -24,6 +25,7 @@ export function registerRoutes(app: Application) {
       && ["development", "test"].includes(process.env.NODE_ENV ?? ""),
   }))));
   app.get("/api/visualizations", expressRoute(withApiRoute(() => europeFeatures)));
+  app.get("/api/period-comparison/demo", expressRoute(comparisonDemo));
   app.get("/api/connection-check", expressRoute(connectionCheck));
   app.get("/api/readiness", expressRoute(readiness));
   app.post("/api/genie/:alias/messages", expressRoute(genie));

@@ -14,6 +14,7 @@ const fixtureFiles = [
   "config/appkit-capabilities.json",
   "scripts/data-access.mjs",
   "scripts/new-feature.mjs",
+  "scripts/feature-comparison-template.mjs",
   "src/components/app-shell/app-nav.tsx",
   "src/client/routes.tsx",
   "src/server/routes.ts",
@@ -65,6 +66,25 @@ test("app guide rejects an unsupported app type", async () => {
   );
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /App type/);
+});
+
+test("comparison generation is opt-in, preserves metadata and rejects injected columns before writing", async () => {
+  const root = await prepareFixture();
+  const args = ["scripts/new-feature.mjs", "sales-comparison", "--non-interactive", "--source", "sales-source", "--aggregation", "sum", "--column", "amount", "--date-column", "order_date", "--breakdown-column", "channel"];
+  const before = await readFile(join(root, "config/app-spec.yml"), "utf8");
+  const rejected = spawnSync(process.execPath, [...args.slice(0, -1), "channel`); DROP TABLE sales;--"], { cwd: root, encoding: "utf8" });
+  assert.notEqual(rejected.status, 0);
+  assert.equal(await readFile(join(root, "config/app-spec.yml"), "utf8"), before);
+  execFileSync(process.execPath, args, { cwd: root });
+  execFileSync(process.execPath, ["scripts/app-guide.mjs", "--non-interactive"], { cwd: root });
+  const spec = parse(await readFile(join(root, "config/app-spec.yml"), "utf8"));
+  assert.deepEqual(spec.features[0].comparison, { dateColumn: "order_date", breakdownColumn: "channel" });
+  assert.match(await readFile(join(root, "docs/product-brief.md"), "utf8"), /colonne DATE `order_date`/);
+  const query = await readFile(join(root, "src/features/sales-comparison/server/queries.ts"), "utf8");
+  assert.equal((query.match(/IDENTIFIER\(\?\)/g) ?? []).length, 2);
+  assert.match(query, /CAST\(\? AS DATE\)/);
+  assert.match(query, /LIMIT 1001/);
+  assert.match(await readFile(join(root, "src/features/sales-comparison/sales-comparison-card.tsx"), "utf8"), /showWaterfall=\{true\}/);
 });
 
 test("app guide and feature generator create one complete vertical slice", async () => {

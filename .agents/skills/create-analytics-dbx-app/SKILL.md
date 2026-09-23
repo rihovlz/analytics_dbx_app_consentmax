@@ -77,7 +77,9 @@ l'app avec un dashboard géré avant de créer un repository.
 - Ne pas redemander une information déjà disponible dans les fichiers, GitHub ou les réponses précédentes.
 - Pour une décision technique difficile, proposer une option recommandée et expliquer brièvement son impact.
 - Présenter les capacités en termes d'usage. Proposer une combinaison minimale et différer celles sans besoin confirmé.
-- Ne pas imposer un premier KPI à une app Genie ou fichiers. `feature:new` reste réservé aux KPI simples.
+- Ne pas imposer un premier KPI à une app Genie ou fichiers. `feature:new` couvre les KPI count/sum/avg.
+  Proposer `--date-column` seulement pour une comparaison utile ; `--breakdown-column` ajoute les contributions additives.
+  Suivre `docs/period-comparison.md` et valider le calendrier, la complétude et le grain avant un waterfall.
 - Donner des nouvelles aux étapes utiles, puis poursuivre le travail autorisé. Une proposition de commande ne termine pas une demande d'implémentation.
 - Une fois le clone disponible, maintenir `config/app-spec.yml` comme source de vérité courte avec `app:guide`.
   `docs/product-brief.md` est sa projection générée ; marquer `À confirmer` au lieu d'inventer une réponse.

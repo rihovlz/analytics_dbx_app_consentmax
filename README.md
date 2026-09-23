@@ -133,7 +133,7 @@ Ne pas coder un contact personnel en dur dans un composant métier. Modifier `AP
 
 Le point d’entrée public `@/components/data-visualization` exporte les composants, leurs types et les fonctions de
 formatage. Il expose `DataCard`, `BigNumberKPI`, `Sparkline`, `MiniAreaChart`, `CircularProgress`, `Gauge`,
-`MultiMetricCard`, `TimeSeriesChart`, `AnalyticsMap` et `ChartState`.
+`MultiMetricCard`, `TimeSeriesChart`, `WaterfallChart`, `AnalyticsMap` et `ChartState`.
 
 `BigNumberKPI` accepte les variantes `plain`, `sparkline` et `gauge`. `MultiMetricCard` combine des valeurs, des
 tendances, des mini-barres et des sparklines. `TimeSeriesChart` gère plusieurs séries, une légende interactive, des
@@ -167,6 +167,13 @@ exactes.
 
 La page `/visualizations` charge ses données synthétiques via `/api/visualizations`, sans Databricks.
 Le module serveur `visualization-demo.ts` convertit l’atlas `world-atlas` embarqué en GeoJSON.
+
+La page propose aussi une [comparaison facultative de périodes](docs/period-comparison.md) : période précédente,
+année précédente ou dates personnalisées, filtre commun, valeurs, écarts et contributions en waterfall.
+`npm run app -- feature <slug> --date-column <colonne_DATE>` génère cette variante ; ajouter
+`--breakdown-column <dimension>` pour les segments et un waterfall sur `count` ou `sum`.
+Les moyennes restent pondérées et n'obtiennent pas de waterfall automatique. Les périodes partielles et les références
+nulles sont explicites. La démo utilise `/api/period-comparison/demo` ; aucun résultat analytique n'est persisté.
 
 Voir [le design system analytics](docs/design-system.md) pour les API de composition, les tokens et les règles
 d’accessibilité.

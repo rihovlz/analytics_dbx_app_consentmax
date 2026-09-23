@@ -117,6 +117,8 @@ Fusionner les scripts de cadrage, `config/appkit-capabilities.json` et les réf�
 Conserver les valeurs métier de `config/app-spec.yml`. Sans champ `capabilities`, la spec garde le parcours Analytics.
 Exécuter `npm run app:guide -- --non-interactive` pour ajouter ce choix et régénérer le brief sans perdre les features.
 Examiner `npm run app:capabilities` et `npm run app:skills`. Aucun plugin n'est activé par ces commandes.
+Fusionner aussi les modules de [comparaison facultative](period-comparison.md), leurs exports et le générateur indiqué
+dans le guide YAML. Les features migrées restent identiques ; ajouter une comparaison est une décision métier distincte.
 
 1. Exécuter lint, typecheck, tests unitaires et build.
 2. Exécuter `npm run test:e2e` et vérifier les thèmes, le clavier et le mobile.
@@ -125,7 +127,7 @@ Examiner `npm run app:capabilities` et `npm run app:skills`. Aucun plugin n'est 
 3. Exécuter `npm run bundle:compatibility`.
 4. Exécuter `npm run template:check -- --to 2.0.0`.
 5. Après succès, déclarer la version 2.0.0 dans `.valiuz-template.yml`.
-6. Ajouter les capabilities `appkit-native-runtime`, `upstream-compatibility` et `guided-appkit-capabilities`.
+6. Ajouter les capabilities `appkit-native-runtime`, `upstream-compatibility`, `guided-appkit-capabilities` et `period-comparison`.
 7. Ajouter `1.5.0-to-2.0.0` dans `appliedUpgrades`.
    Pour une origine 1.4, ajouter aussi `personal-user-state` et `1.4.0-to-1.5.0` après validation de leurs contrats.
 8. Exécuter `npm run app:doctor` et `npm run check`.

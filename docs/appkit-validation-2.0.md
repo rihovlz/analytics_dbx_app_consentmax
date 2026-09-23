@@ -9,14 +9,14 @@ Packages AppKit et AppKit UI : `0.76.1`. Node.js : `22.16.0`.
 | Commande | Résultat |
 | --- | --- |
 | `npm run check` | Capabilities, release, configuration, lint, types, tests et build validés |
-| `npm test` | 154 tests réussis, sans credential ni donnée distante |
+| `npm test` | 170 tests réussis, sans credential ni donnée distante |
 | `APP_MODE=databricks npm run build` | Build sans credentials runtime réussi |
-| `npm run test:e2e` | 8 parcours Chromium réussis sur le serveur de développement |
-| `E2E_PRODUCTION=1 npm run test:e2e` | 8 parcours réussis sur le serveur compilé |
-| `npm run template:journey` | Checkout propre, `npm ci`, initialisation, source directe, KPI généré, doctor et validations réussis |
+| `npm run test:e2e` | 13 parcours Chromium réussis sur le serveur de développement |
+| `E2E_PRODUCTION=1 npm run test:e2e` | 13 parcours réussis sur le serveur compilé |
+| `npm run template:journey` | Checkout propre, `npm ci`, initialisation, source directe, KPI simple et comparaison générés ; 175 tests et build réussis |
 | `npm run template:migration` | Fixtures 1.4 et 1.5 initialisées avec KPI métier et styles personnalisés : portage, tests métier et builds réussis |
 | `npm run bundle:compatibility` | Bundles app/data dev/prod validés avec les CLI 0.295.0, 1.12.1 et 1.14.1, contre un serveur local |
-| `npm run template:release:check -- --base origin/main` | Passage 1.5.0 → 2.0.0 et trois nouvelles capabilities validés |
+| `npm run template:release:check -- --base origin/main` | Passage 1.5.0 → 2.0.0 et quatre nouvelles capabilities validés |
 | `npm run upstream:check` | Comparaisons GitHub en lecture seule réussies |
 | `git diff --check` | Aucun défaut d’espacement |
 
@@ -34,7 +34,7 @@ Les captures clair/sombre, desktop/mobile et le focus clavier ont été inspect�
 Le stockage personnel de démo reste interdit en production ; ce parcours vérifie donc son état désactivé.
 Les captures synthétiques restent sous `test-results/`, ignoré par Git.
 
-Le build signale un chunk de visualisations de 558 ko, chargé à la demande. Ce message n’empêche pas le build.
+Le build signale un chunk de visualisations d'environ 587 ko, chargé à la demande. Ce message n’empêche pas le build.
 Les CLI signalent le chemin Shared du bundle data de la fixture ; aucun workspace réel n’est utilisé.
 
 ## Exceptions et maintenance
@@ -158,6 +158,39 @@ Vérifications exécutées après ce changement :
 La vérification porte sur les commandes et leurs contrats. Elle ne constitue pas un nouvel essai conversationnel
 indépendant de l'agent. Aucun test navigateur ni accès aux données réelles n'a été relancé pour cette évolution du parcours.
 La décision reste **major 2.0.0**, non publiée, face à la base 1.5.0.
+
+## Comparaison facultative et waterfall
+
+La capability `period-comparison` rejoint la **2.0.0 non publiée**. Le générateur conserve le KPI simple par défaut.
+`--date-column` ajoute les fenêtres précédente, annuelle ou personnalisée. `--breakdown-column` ajoute un filtre commun
+et une décomposition pour les mesures additives. Les moyennes utilisent leurs effectifs valides et n'obtiennent pas de waterfall automatique.
+Les skills de création et de revue KPI décrivent les critères d'adoption, sans imposer cette option à toutes les apps.
+
+Vérifications exécutées après cette évolution :
+
+- `npm run check` : 170 tests, lint, typecheck, contrats, release et build réussis.
+- `npm run template:journey` : app propre avec un KPI simple et une comparaison par canal ; 175 tests et build réussis.
+- `npm run template:migration` : fixtures 1.4 et 1.5, deux tests métier par fixture, types, lint et builds réussis.
+- `npm run bundle:compatibility` : CLI 1.12.1, app/data dev/prod contre un serveur local.
+- `npm run test:e2e` puis `E2E_PRODUCTION=1 npm run test:e2e` : 13 parcours réussis dans chaque mode.
+- `npm run template:release:check -- --base origin/main` et `git diff --check` : réussis.
+- Validateur `skill-creator` : les deux skills modifiés sont valides ; liens Markdown locaux vérifiés.
+
+Les calculs couvrent fenêtres civiles, année bissextile, chevauchement, durée différente, référence nulle ou négative,
+mesures absentes, moyenne pondérée, segments nouveaux ou disparus, filtre commun, limites et réconciliation du waterfall.
+Les tests du repository généré vérifient les sources liées, les deux bornes de dates, les lignes Zod et le refus de troncature.
+Une dimension conserve le transport driver pour distinguer les libellés STRING ressemblant à du JSON des valeurs nulles.
+Aucun résultat ni sélection de comparaison n'est ajouté au stockage personnel.
+
+Les cinq nouveaux parcours navigateur couvrent choix des dates, filtre, contributions, valeurs exactes, périodes partielles,
+vide, chargement, erreur, reprise, requêtes concurrentes, thèmes et clavier. Les captures clair/bureau et sombre/mobile ont été inspectées.
+Une largeur automatique corrige les montants coupés sur l'axe temporel. Un contrôle géométrique vérifie les libellés après redimensionnement.
+Un premier passage sous exécution simultanée des validations a expiré sur l'animation texte du test Genie existant.
+La trace montrait une réponse arrivée mais encore partiellement révélée. Les suites finales passent sans modifier ce test ni ses attentes.
+Le test géométrique a été corrigé pour trouver les libellés réellement rendus par Recharts.
+
+Le SQL généré n'a pas été exécuté sur Databricks. DATE, fuseau métier, grain, additivité et couverture de chaque source
+restent à valider avant utilisation réelle. Les fixtures n'établissent ni causalité ni fraîcheur des données métier.
 
 ## Revue documentaire et réserve distante
 

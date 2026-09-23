@@ -43,6 +43,9 @@ Une nouvelle app reçoit la version `2.0.0`. `npm run check` inclut `template:ch
 La release 2.0.0 inclut le parcours de capacités, de skills et l'orchestration de la création ou de la reprise.
 Elle ajoute l'entrée `npm run app`, un prompt pour tout le parcours et un bilan de migration depuis un checkout cible.
 La migration du runtime impose une version majeure par rapport à la base 1.5.0.
+La comparaison facultative et le waterfall rejoignent cette **2.0.0 non publiée** sous la capability `period-comparison`.
+Cette addition compatible ne demande pas une 2.1 avant publication de la 2.0. Les features existantes restent inchangées.
+Fusionner les contrats et composants indiqués dans le guide ; les activer selon [le besoin analytique](period-comparison.md).
 Les anciennes specs restent lisibles. Fusionner les scripts de cadrage et régénérer le brief pour adopter le nouveau champ `capabilities`.
 Ajouter la commande `app:orchestrate` et sa référence au skill de création. Aucun changement de schéma ni nouveau service n'est nécessaire.
 Ajouter aussi `app: node scripts/app.mjs` dans les scripts npm. Voir [le parcours CLI](cli-workflow.md).

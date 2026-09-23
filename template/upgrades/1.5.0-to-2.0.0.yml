@@ -93,8 +93,28 @@ changes:
       - Conserver les notes de reprise existantes ; leur présence ne prouve ni test réussi ni autorisation.
       - Fusionner les workflows et conserver leur revue humaine.
       - Valider les capabilities 2.0.0 avant de modifier .valiuz-template.yml.
-      - Ajouter appkit-native-runtime, upstream-compatibility et guided-appkit-capabilities puis déclarer 1.5.0-to-2.0.0 dans appliedUpgrades.
+      - Ajouter appkit-native-runtime, upstream-compatibility, guided-appkit-capabilities et period-comparison puis déclarer 1.5.0-to-2.0.0 dans appliedUpgrades.
       - Obtenir une autorisation explicite pour le déploiement de développement et sa recette distante.
+  - id: optional-period-comparison
+    mode: guided
+    title: Rendre disponible la comparaison facultative
+    description: Les KPI existants restent inchangés ; chaque feature choisit ses périodes et sa décomposition.
+    paths:
+      - src/features/period-comparison
+      - src/components/charts/waterfall-chart.tsx
+      - src/components/charts/waterfall-model.ts
+      - src/components/charts/time-series-chart.tsx
+      - src/components/data-visualization/index.ts
+      - scripts/feature-comparison-template.mjs
+      - docs/period-comparison.md
+    instructions:
+      - Fusionner les composants et contrats sans modifier les requêtes métier ni les tables personnelles existantes.
+      - Fusionner les exports et la largeur automatique de l’axe numérique dans les composants personnalisés.
+      - Conserver les features sans comparison ; app:guide doit préserver leurs définitions.
+      - Utiliser --date-column pour une nouvelle feature pertinente ; --breakdown-column ajoute un waterfall uniquement sur count/sum.
+      - Pour un KPI existant, adapter son repository et sa route suivant docs/period-comparison.md ; ne pas rejouer le générateur sur le même slug.
+      - Confirmer DATE, fuseau, grain, couverture et additivité ; ne pas attribuer de causalité aux contributions.
+      - Garder les résultats et sélections hors des tables d’état personnel tant qu’aucun contrat de définition n’est ajouté.
 validation:
   - npm run template:status
   - npm run template:check -- --to 2.0.0

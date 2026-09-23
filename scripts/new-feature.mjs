@@ -7,6 +7,7 @@ import { stdin, stdout } from "node:process";
 
 import { loadAppSpec, syncProductBrief, validateAppSpec, writeAppSpec, featureSlugPattern, identifierPattern } from "./app-spec.mjs";
 import { loadDataAccessManifest } from "./data-access.mjs";
+import { comparisonTemplates } from "./feature-comparison-template.mjs";
 
 function parseOptions(argv) {
   const options = { nonInteractive: false, dryRun: false, slug: undefined };
@@ -20,7 +21,7 @@ function parseOptions(argv) {
       options[value === "--dry-run" ? "dryRun" : "nonInteractive"] = true;
       continue;
     }
-    if (!["--title", "--question", "--source", "--aggregation", "--column", "--label", "--unit", "--demo-value", "--acceptance"].includes(value)) {
+    if (!["--title", "--question", "--source", "--aggregation", "--column", "--label", "--unit", "--demo-value", "--acceptance", "--date-column", "--breakdown-column"].includes(value)) {
       throw new Error(`Unknown option: ${value}`);
     }
     const supplied = argv[index + 1];
@@ -103,6 +104,7 @@ if (answers.column !== "*" && !identifierPattern.test(answers.column)) throw new
 if (answers.aggregation !== "count" && answers.column === "*") throw new Error(`${answers.aggregation} requires a metric column.`);
 const source = accessManifest.sources.find((candidate) => candidate.name === answers.source);
 if (!source) throw new Error(`Source '${answers.source}' is not declared in config/data-access.json.`);
+if (options.breakdownColumn && !options.dateColumn) throw new Error("--breakdown-column requires --date-column.");
 const feature = {
   slug: options.slug,
   title: answers.title,
@@ -116,9 +118,10 @@ const feature = {
     demoValue: Number(answers.demoValue),
   },
   acceptance: answers.acceptance,
+  ...(options.dateColumn ? { comparison: { dateColumn: options.dateColumn, ...(options.breakdownColumn ? { breakdownColumn: options.breakdownColumn } : {}) } } : {}),
 };
 const validatedSpec = validateAppSpec({ ...spec, capabilities: [...new Set([...spec.capabilities, "analytics"])], features: [...spec.features, feature] }, { allowPlaceholder: true });
-const generated = templates(feature, source);
+const generated = feature.comparison ? comparisonTemplates(feature, source, names(feature.slug)) : templates(feature, source);
 const conflicts = [];
 for (const relativePath of generated.keys()) if (await exists(join(root, relativePath))) conflicts.push(relativePath);
 if (conflicts.length > 0) throw new Error(`Refusing to overwrite existing files: ${conflicts.join(", ")}.`);

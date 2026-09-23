@@ -78,11 +78,15 @@ interne, mais le point d’entrée public stabilise les imports des features.
 | `CircularProgress` / `Gauge` | Valeur bornée, maximum, épaisseur, ton et badge de statut |
 | `MultiMetricCard` | Grille de deux ou trois colonnes avec tendances, statuts, mini-barres ou sparklines |
 | `TimeSeriesChart` | Séries multiples, formats d’axe sérialisables, KPI, légende interactive, infobulle et tableau |
+| `WaterfallChart` | Référence, contributions signées, total final, résidu explicite et tableau complet ; mesures additives uniquement |
 | `AnalyticsMap` | GeoJSON, format numérique sérialisable, repères, projection, zoom et couche de chaleur facultative |
 
 Les types publics incluent `DataTone`, `DataTrend`, `NumberFormat`, `AxisValueFormat`, `SparklinePoint` et les types de
 propriétés. `NumberFormat` décrit les options de `Intl.NumberFormat`. `AxisValueFormat` décrit un texte, un nombre ou
 une date avec des options `Intl`.
+
+La feature facultative [PeriodComparison](period-comparison.md) compose sélecteur, KPI, séries et waterfall.
+Les deux graphiques adaptent la largeur de leur axe numérique aux montants affichés.
 
 Ces formats sont sérialisables entre les APIs et React. `TimeSeriesChart` les reçoit avec `valueFormat`,
 `xFormat` et `tooltipLabelFormat`. `AnalyticsMap` reçoit `valueFormat`. L’API publique ne déclare aucune prop de

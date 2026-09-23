@@ -57,6 +57,7 @@ versions:
       - appkit-native-runtime
       - upstream-compatibility
       - guided-appkit-capabilities
+      - period-comparison
 capabilities:
   guided-app-workflow:
     since: 1.0.0
@@ -370,6 +371,23 @@ capabilities:
         path: scripts/app-migrate.mjs
       - type: file
         path: docs/cli-workflow.md
+  period-comparison:
+    since: 2.0.0
+    description: Comparaison facultative de périodes, écarts et contributions additives bornées.
+    probes:
+      - type: file
+        path: src/features/period-comparison/period-comparison.tsx
+      - type: file
+        path: src/features/period-comparison/model.ts
+      - type: file
+        path: src/components/charts/waterfall-chart.tsx
+      - type: file
+        path: scripts/feature-comparison-template.mjs
+      - type: fileContains
+        path: scripts/new-feature.mjs
+        text: --date-column
+      - type: file
+        path: docs/period-comparison.md
 upgrades:
   - from: 1.0.0
     to: 1.1.0

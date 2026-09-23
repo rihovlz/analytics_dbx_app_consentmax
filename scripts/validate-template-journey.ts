@@ -173,6 +173,9 @@ async function initializeApp(fixtureRoot: string, environment: NodeJS.ProcessEnv
     environment,
   );
   await inspectCreationStage(fixtureRoot, environment, "verification");
+  await runCommand(process.execPath, ["scripts/app.mjs", "feature", "journey-comparison", "--non-interactive",
+    "--source", fixtureSourceName, "--title", "Comparaison des commandes", "--question", "Quels canaux contribuent à la variation ?",
+    "--aggregation", "sum", "--column", "amount", "--unit", "EUR", "--date-column", "order_date", "--breakdown-column", "channel"], fixtureRoot, environment);
   await runCommand(process.execPath, ["scripts/init-user-state.mjs", "--schema", "ci_user_state"], fixtureRoot, environment);
 }
 

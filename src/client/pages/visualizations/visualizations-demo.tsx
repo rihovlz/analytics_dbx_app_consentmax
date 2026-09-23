@@ -1,4 +1,6 @@
 import type { FeatureCollection } from "geojson";
+import { PeriodComparison } from "@/features/period-comparison";
+import { DEMO_SELECTION } from "@/features/period-comparison/demo";
 import {
   AnalyticsMap,
   BigNumberKPI,
@@ -65,6 +67,9 @@ export function VisualizationsDemo({ europeFeatures }: { europeFeatures: Feature
           </div>
         </div>
       </section>
+
+      <PeriodComparison endpoint="/api/period-comparison/demo" initialSelection={DEMO_SELECTION} showWaterfall
+        description="Une option pour les analyses qui gagnent à être comparées dans le temps. Explorez ici des commandes synthétiques, puis la contribution de chaque canal à leur évolution." />
 
       <section aria-labelledby="kpi-title">
         <div className="mb-4 flex items-end justify-between gap-4">

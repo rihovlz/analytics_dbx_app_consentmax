@@ -40,8 +40,13 @@ Un Job de préparation n'implique pas l'adoption du plugin Jobs dans l'app.
 
 ## Ne pas confondre les preuves
 
-Un générateur KPI avec `count`, `sum` ou `avg` accélère la première tranche. Il ne fournit pas automatiquement filtres,
-jointures, comparaisons, export ou contrôle de fraîcheur. Construire et tester ces comportements s'ils font partie du besoin.
+Un générateur KPI avec `count`, `sum` ou `avg` accélère la première tranche. Proposer une comparaison uniquement si
+la variation temporelle répond à la question métier. `app feature --date-column <DATE>` ajoute les fenêtres et les écarts ;
+`--breakdown-column <dimension>` ajoute un filtre commun et les contributions pour `count` ou `sum`.
+Lire `docs/period-comparison.md` pour les dates, valeurs nulles, moyennes pondérées et limites. Vérifier le calendrier,
+la couverture et l'additivité avant le waterfall. Ne pas produire une décomposition de taux ou moyenne par simple soustraction de segments.
+Le générateur ne fournit pas automatiquement les autres filtres métier, jointures, exports ou contrôles de fraîcheur.
+Construire et tester ces comportements s'ils font partie du besoin.
 Ne jamais afficher une fraîcheur mesurée depuis une simple fréquence déclarée.
 
 Un faux `SqlExecutor` qui retourne 42 prouve le transport et le contrat de lignes, pas la formule exécutée par Databricks.
