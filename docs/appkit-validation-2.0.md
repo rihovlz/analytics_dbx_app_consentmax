@@ -9,12 +9,12 @@ Packages AppKit et AppKit UI : `0.76.1`. Node.js : `22.16.0`.
 | Commande | Résultat |
 | --- | --- |
 | `npm run check` | Capabilities, release, configuration, lint, types, tests et build validés |
-| `npm test` | 146 tests réussis, sans credential ni donnée distante |
+| `npm test` | 153 tests réussis, sans credential ni donnée distante |
 | `APP_MODE=databricks npm run build` | Build sans credentials runtime réussi |
 | `npm run test:e2e` | 8 parcours Chromium réussis sur le serveur de développement |
 | `E2E_PRODUCTION=1 npm run test:e2e` | 8 parcours réussis sur le serveur compilé |
 | `npm run template:journey` | Checkout propre, `npm ci`, initialisation, source directe, KPI généré, doctor et validations réussis |
-| `npm run template:migration` | Fixture 1.5 initialisée avec KPI métier, état personnel et styles personnalisés : portage, tests métier et build réussis |
+| `npm run template:migration` | Fixtures 1.4 et 1.5 initialisées avec KPI métier et styles personnalisés : portage, tests métier et builds réussis |
 | `npm run bundle:compatibility` | Bundles app/data dev/prod validés avec les CLI 0.295.0, 1.12.1 et 1.14.1, contre un serveur local |
 | `npm run template:release:check -- --base origin/main` | Passage 1.5.0 → 2.0.0 et trois nouvelles capabilities validés |
 | `npm run upstream:check` | Comparaisons GitHub en lecture seule réussies |
@@ -105,6 +105,36 @@ Les intégrations Databricks réelles et l'installation effective d'un skill man
 L’illustration du README a été adaptée avec l’outil `imagegen` intégré.
 Le [fichier livré](assets/databricks-app-boilerplate-v2.png) et son [prompt exact](assets/databricks-app-boilerplate-v2.prompt.md) sont conservés.
 Les médias officiels `public/valiuz-logo-icon.svg` et `public/favicon.svg` sont inchangés et identiques.
+
+## CLI par métier et migrations 1.4/1.5
+
+`npm run app` délègue aux commandes existantes. Les prompts couvrent data analyst, analytics engineer et data engineer.
+`app next` reprend le diagnostic de création. `app migrate` lit une ancienne app depuis le checkout cible et ordonne les guides.
+L'inventaire n'exécute pas l'app, n'importe pas son code et ne lit ni `.env.local` ni un profil OAuth.
+Les tests vérifient les versions contradictoires ou absentes, les chemins avec espaces, les arguments littéraux,
+les sources liées par symlink et l'absence de modification pendant les diagnostics.
+
+`init-app` refuse une seconde initialisation avant les questions et les écritures. L'état de version reste intact.
+Le contrôle complet passe avec 153 tests, lint, typecheck et build. La copie propre du parcours CLI passe avec 155 tests.
+Ce parcours utilise la nouvelle entrée pour le cadrage, la source, le KPI, la reprise, les capacités et les skills.
+
+Les deux baselines Git de migration sont vérifiées : 1.4 à `26a1d0a64a9fed4d0a9cad1c7031a9d2c07eb95f`
+et 1.5 à `8b779bcb363a7c57bdea12342964601d0acdfef4`.
+Chaque app génère une feature avant le portage ; ses deux tests métier, son lint, son typecheck et son build passent après migration.
+La fixture 1.4 n'obtient aucune table personnelle ni permission MODIFY. La fixture 1.5 conserve ses déclarations personnelles.
+Les contrats, déclarations, requêtes et médias métier restent présents ; seules les variables personnelles désactivées sont ajoutées à 1.4.
+
+Un essai CLI supplémentaire a créé une app de commandes dans un dossier temporaire, avec installation propre et source fictive.
+`app dev` sert `/health`, la route `/total-commandes` et son API, qui renvoie la valeur de démo 42.
+`app next --json` propose la vérification sans réinitialiser la tranche.
+`bundle:compatibility` passe avec le CLI 1.12.1 depuis le template et depuis cette app initialisée sur un autre projet de l'allowlist.
+Le contrôle utilise une configuration synthétique dans sa propre copie et préserve les fichiers et l'historique de l'app appelante.
+Le test a corrigé une absence de catalogue dans l'environnement d'exemple de cette fixture ; la reprise passe ensuite.
+Le serveur et les copies temporaires de cet essai sont arrêtés et supprimés. Aucun workspace réel n'a été contacté.
+
+Les deux skills modifiés passent le validateur `skill-creator`. Les liens documentaires locaux sont valides.
+La décision reste **major 2.0.0**, non publiée. Le release check compare toujours la branche à `origin/main` en 1.5.0.
+Les tests navigateur de l'étape précédente restent la preuve UI ; cette évolution CLI ne les a pas relancés.
 
 ## Revue documentaire et réserve distante
 

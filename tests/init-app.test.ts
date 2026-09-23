@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { copyFile, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -124,6 +124,26 @@ test("bootstrap replaces all operational placeholders and keeps JSON valid", asy
   assert.equal(templateState.template.version, manifest.template.currentVersion);
   assert.deepEqual(templateState.capabilities, expectedCapabilities(manifest, manifest.template.currentVersion));
   assert.deepEqual(templateState.appliedUpgrades, []);
+});
+
+test("bootstrap refuses to reinitialize an app or reset its migration history before prompting or writing", async (t) => {
+  const root = await prepareRoot("databricks-app-resume-");
+  t.after(() => rm(root, { recursive: true, force: true }));
+  execFileSync(process.execPath, ["scripts/init-app.mjs", "existing-app", "--non-interactive"], { cwd: root });
+  const statePath = join(root, ".valiuz-template.yml");
+  const state = await readFile(statePath, "utf8");
+  const paths = [...operationalFiles, ".valiuz-template.yml"];
+  const before = await Promise.all(paths.map((path) => readFile(join(root, path), "utf8")));
+  const result = spawnSync(process.execPath, ["scripts/init-app.mjs", "another-name"], { cwd: root, encoding: "utf8", timeout: 5000 });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /déjà initialisée/);
+  assert.deepEqual(await Promise.all(paths.map((path) => readFile(join(root, path), "utf8"))), before);
+  assert.equal(await readFile(statePath, "utf8"), state);
+  // A tracked state also blocks initialization if someone has restored the package placeholder.
+  const pkg = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
+  await writeFile(join(root, "package.json"), JSON.stringify({ ...pkg, name: "__PACKAGE_NAME__" }));
+  assert.equal(spawnSync(process.execPath, ["scripts/init-app.mjs", "another-name", "--non-interactive"], { cwd: root }).status, 1);
+  assert.equal(await readFile(statePath, "utf8"), state);
 });
 
 test("bootstrap uses the shared Valiuz workspace and SQL warehouse defaults", async () => {

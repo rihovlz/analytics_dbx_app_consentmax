@@ -95,11 +95,18 @@ async function initializeCleanGitCheckout(fixtureRoot: string, environment: Node
 }
 
 async function initializeApp(fixtureRoot: string, environment: NodeJS.ProcessEnv): Promise<void> {
+  await runCommand("npm", ["run", "app"], fixtureRoot, environment);
+  for (const role of ["data-analyst", "analytics-engineer", "data-engineer"]) {
+    const output = await execFileAsync(process.execPath, ["scripts/app.mjs", "prompt", "--role", role, "--json"], { cwd: fixtureRoot, env: environment, encoding: "utf8" });
+    const prompt = JSON.parse(output.stdout);
+    assert.equal(prompt.role, role);
+    assert.equal(prompt.readOnly, true);
+  }
   await inspectCreationStage(fixtureRoot, environment, "bootstrap");
   await runCommand(
     process.execPath,
     [
-      "scripts/init-app.mjs",
+      "scripts/app.mjs", "init",
       fixtureAppName,
       "--non-interactive",
       "--description", "CI consumer journey",
@@ -119,7 +126,7 @@ async function initializeApp(fixtureRoot: string, environment: NodeJS.ProcessEnv
   await runCommand(
     process.execPath,
     [
-      "scripts/app-guide.mjs",
+      "scripts/app.mjs", "guide",
       "--non-interactive",
       "--type", "cockpit",
       "--audience", "Responsable analytics",
@@ -134,7 +141,7 @@ async function initializeApp(fixtureRoot: string, environment: NodeJS.ProcessEnv
   await runCommand(
     process.execPath,
     [
-      "scripts/init-data.mjs",
+      "scripts/app.mjs", "data",
       fixtureSourceName,
       "--non-interactive",
       "--mode", "direct",
@@ -151,7 +158,7 @@ async function initializeApp(fixtureRoot: string, environment: NodeJS.ProcessEnv
   await runCommand(
     process.execPath,
     [
-      "scripts/new-feature.mjs",
+      "scripts/app.mjs", "feature",
       fixtureFeatureSlug,
       "--non-interactive",
       "--title", "Qualité du parcours",
@@ -174,7 +181,7 @@ async function initializeApp(fixtureRoot: string, environment: NodeJS.ProcessEnv
 async function inspectCreationStage(fixtureRoot: string, environment: NodeJS.ProcessEnv, phase: string): Promise<void> {
   const specBefore = await readFile(join(fixtureRoot, "config/app-spec.yml"), "utf8");
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const output = await execFileAsync(process.execPath, ["scripts/app-orchestrate.mjs", "--json"], {
+    const output = await execFileAsync(process.execPath, ["scripts/app.mjs", "next", "--json"], {
       cwd: fixtureRoot, env: environment, encoding: "utf8", maxBuffer: 4 * 1024 * 1024,
     });
     const plan = asRecord(JSON.parse(output.stdout), "orchestration plan");
@@ -217,12 +224,12 @@ async function inspectGeneratedApp(fixtureRoot: string, environment: NodeJS.Proc
   const packageJson = asRecord(JSON.parse(await readFile(join(fixtureRoot, "package.json"), "utf8")), "package.json");
   assert.equal(packageJson.name, fixtureAppName);
   assert.match(await readFile(join(fixtureRoot, "config/app-spec.yml"), "utf8"), /slug: journey-kpi/);
-  const capabilityPlan = JSON.parse((await execFileAsync(process.execPath, ["scripts/app-capabilities.mjs", "--json"], {
+  const capabilityPlan = JSON.parse((await execFileAsync(process.execPath, ["scripts/app.mjs", "capabilities", "--json"], {
     cwd: fixtureRoot, env: environment, encoding: "utf8",
   })).stdout);
   assert.equal(capabilityPlan.activatesPlugins, false);
   assert.deepEqual(capabilityPlan.capabilities.map((item: { id: string }) => item.id), ["analytics", "genie"]);
-  const skillPlan = JSON.parse((await execFileAsync(process.execPath, ["scripts/app-skills.mjs", "--json"], {
+  const skillPlan = JSON.parse((await execFileAsync(process.execPath, ["scripts/app.mjs", "skills", "--json"], {
     cwd: fixtureRoot, env: environment, encoding: "utf8",
   })).stdout);
   assert.equal(skillPlan.readOnly, true);
@@ -256,7 +263,7 @@ export async function validateTemplateJourney(): Promise<void> {
     await runCommand("npm", ["ci", "--no-audit", "--no-fund"], fixtureRoot, environment);
     await initializeApp(fixtureRoot, environment);
     await inspectGeneratedApp(fixtureRoot, environment);
-    await runCommand("npm", ["run", "check"], fixtureRoot, environment);
+    await runCommand("npm", ["run", "app", "--", "check"], fixtureRoot, environment);
     process.stdout.write("\nThe clean template consumer journey passed.\n");
   } finally {
     await rm(fixtureRoot, { recursive: true, force: true });

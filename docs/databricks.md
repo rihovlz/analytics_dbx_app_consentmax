@@ -186,9 +186,12 @@ métadonnées des sources déclarées. `npm run test:databricks` exécute ensuit
 les sources dans une requête paramétrée avec `WHERE FALSE`. Ce test d'intégration ne retourne aucune ligne et reste
 séparé de `npm test`, afin que la CI unitaire ne dépende pas d'un workspace ou d'un warehouse actif.
 
-`npm run bundle:compatibility` initialise une app temporaire et un contrat notebook borné. Le Databricks CLI valide les
+`npm run bundle:compatibility` prépare une copie temporaire et un contrat notebook borné. Depuis le template, elle
+teste l'initialisation. Depuis une app existante, elle utilise une configuration synthétique dans cette copie,
+sans réinitialiser l'app ni modifier son état de version. Le Databricks CLI valide les
 bundles app et data pour les targets `dev` et `prod` contre un serveur HTTP local. La commande ne lit aucun profil
 Databricks et ne contacte aucun workspace distant.
+Ce contrôle porte sur les contrats du bundle avec cette fixture ; il ne prouve pas la configuration ou les droits réels de l'app.
 
 ## Secrets additionnels
 

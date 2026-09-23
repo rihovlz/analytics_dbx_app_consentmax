@@ -8,6 +8,9 @@ Les commandes de diagnostic proposent des actions. L'agent les examine et réali
 `app:orchestrate` assemble les contrôles de `app:doctor`, la spec, les fichiers des features et les skills nécessaires.
 Il reste local et en lecture seule. `--json` expose les diagnostics, la référence à lire et les installations proposées.
 Il ne lit aucun profil Databricks et ne lance ni installation, ni test, ni appel au workspace.
+L'entrée courte `npm run app -- next` délègue au même diagnostic. `app prompt --role <profil>` produit un texte
+de démarrage à copier, sans lancer d'agent. Les profils orientent les questions et peuvent changer au cours du projet.
+Pour une migration demandée, lire `docs/migration-2.0.md` et utiliser le bilan depuis le checkout cible avant cette boucle.
 
 | Phase | Action de l'agent |
 | --- | --- |

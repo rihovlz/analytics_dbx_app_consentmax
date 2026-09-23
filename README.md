@@ -14,16 +14,19 @@ Prérequis : Node.js 22.16+, npm et Git. Aucun accès Databricks n’est requis 
 git clone https://github.com/valiuz/analytics_dbx_app_template.git my-new-app
 cd my-new-app
 npm ci
-npm run init-app -- my-new-app
-npm run template:status
-npm run app:guide
-npm run app:doctor
-npm run dev
+npm run app
+npm run app -- init my-new-app
+npm run app -- guide
+npm run app -- next
+npm run app -- dev
 ```
 
 Ouvrir <http://localhost:3000>. Le mode démo est explicite et n’effectue aucun appel distant. La page
 <http://localhost:3000/visualizations> présente tous les composants avec des données synthétiques.
 `npm run init-app -- --help` affiche les options sans lancer l'initialisation ni modifier les fichiers.
+`npm run app -- <commande> --help` donne l'aide du parcours. Les anciennes commandes npm restent disponibles.
+L'initialisation refuse une app existante ; utiliser `app next` pour la reprendre ou le guide de migration pour changer de version.
+Voir [le parcours CLI par métier](docs/cli-workflow.md) pour un essai complet et les variantes analyst, analytics engineer et data engineer.
 
 ## Parcours guidé pour une app interne
 
@@ -43,7 +46,12 @@ Voir [le parcours des capacités AppKit](docs/appkit-capabilities.md) pour les i
 
 Avec un assistant de développement, demander par exemple :
 
-> Utilise create-analytics-dbx-app pour créer une mini-app de suivi des commandes en démo, puis teste le parcours.
+> Utilise create-analytics-dbx-app pour construire une petite app Valiuz de suivi des commandes.
+> Commence en démo, aide-moi à préciser les utilisateurs et les KPI, puis implémente et teste une première tranche.
+> Reprends les informations déjà présentes et pose seulement les questions manquantes.
+
+`npm run app -- prompt --role data-analyst --idea "Suivre les commandes"` produit une variante à copier dans l'assistant.
+Les profils `analytics-engineer` et `data-engineer` adaptent le cadrage, sans imposer de ressource supplémentaire.
 
 Le skill orchestre le cadrage, la sélection des skills, l'implémentation et les contrôles dans le périmètre demandé.
 `npm run app:orchestrate` propose l'étape de reprise depuis les fichiers actuels, sans les modifier.
@@ -87,6 +95,16 @@ npm run template:release:check -- --base origin/main
 Le diff est un guide sémantique. Il donne les fichiers, les changements et les commandes de validation. Il ne
 télécharge rien et n'écrase aucune adaptation métier. Suivre [le guide de mise à niveau](docs/template-upgrades.md)
 pour une app qui provient d'une ancienne copie du repository.
+
+Pour une app 1.4 ou 1.5, lancer depuis un checkout **2.0 relu et installé** :
+
+```bash
+npm run app -- migrate --app-dir /chemin/vers/ancienne-app
+```
+
+Ce bilan en lecture seule ordonne les guides et inventorie le code à porter. L'app inspectée reste intacte.
+Le chemin 1.4 passe par les contrats 1.5, avec l'état personnel désactivé si inutile.
+React reste utilisé : [la migration](docs/migration-2.0.md) remplace le runtime Next.js par AppKit/Express, Vite et React Router.
 
 ## Identité Valiuz et support
 
@@ -376,6 +394,7 @@ avant la lecture source si le checkout local ne correspond pas à la préparatio
 | `npm run build` | build Vite et serveur AppKit |
 | `npm run check` | manifeste, lint, types, tests unitaires et build de production |
 | `npm run app:guide` | cadre l'app et synchronise le brief produit |
+| `npm run app` | entrée CLI commune : aide, prompts par métier, génération, reprise et bilan de migration |
 | `npm run app:orchestrate` | propose la reprise, les références et les skills utiles depuis l'état du projet, sans mutation |
 | `npm run app:capabilities -- --all` | présente les capacités AppKit, ressources, guides et tests à prévoir, sans activation |
 | `npm run app:skills` | propose les skills amont utiles et leur installation externe, sans l'exécuter |

@@ -57,6 +57,9 @@ Avoid speculative abstractions. Extract a generic helper only when two real feat
   Use `create-analytics-dbx-app` to coordinate creation and resumption. `app:orchestrate --json` reports the next local
   step and relevant skills. Compare optional `docs/creation-progress.md` notes with current files; notes are neither
   test evidence nor authorization. Continue authorized work through implementation and verification.
+  `npm run app` provides CLI help and role prompts; `app next` delegates to the same orchestration diagnostic.
+  For an explicitly requested migration, run `app migrate --app-dir <old app>` from a reviewed target template checkout.
+  Treat its version and inventory as unverified; follow `docs/migration-2.0.md` without reinitializing the old app.
 - Use `npm run data:init -- <name>` to choose `direct`, `notebook` or `pipeline`. Default to `direct`. Notebook and
   pipeline modes belong to the separate `data/` bundle, write with the maintainer identity, and expose only their
   declared output to the app with `SELECT`.
@@ -137,4 +140,4 @@ Read the relevant installed upstream guide on demand. Preserve Valiuz APIs, bran
 when generic upstream scaffolding examples differ. See the creation skill's AppKit capability reference.
 Beta capabilities require a documented adoption decision before implementation; selecting one in the brief is not that decision.
 Run `npm run template:journey`, `npm run bundle:compatibility` and `npm run test:e2e` for runtime changes.
-In the template source with its 1.5 Git history, also run `npm run template:migration`.
+In the template source with its 1.4 and 1.5 Git history, also run `npm run template:migration`.

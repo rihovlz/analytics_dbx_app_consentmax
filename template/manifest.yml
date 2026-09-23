@@ -342,7 +342,7 @@ capabilities:
         command: node --import tsx scripts/validate-v2-migration.ts
   guided-appkit-capabilities:
     since: 2.0.0
-    description: Orchestre la création et la reprise, cadre les capacités AppKit et sélectionne les skills amont sans activer de ressource.
+    description: Guide la création, la reprise et le bilan de migration en CLI, cadre les capacités AppKit et sélectionne les skills amont sans activer de ressource.
     probes:
       - type: file
         path: config/appkit-capabilities.json
@@ -361,6 +361,13 @@ capabilities:
       - type: packageScript
         name: app:orchestrate
         command: node scripts/app-orchestrate.mjs
+      - type: packageScript
+        name: app
+        command: node scripts/app.mjs
+      - type: file
+        path: scripts/app-migrate.mjs
+      - type: file
+        path: docs/cli-workflow.md
 upgrades:
   - from: 1.0.0
     to: 1.1.0

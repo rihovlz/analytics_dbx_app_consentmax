@@ -47,7 +47,8 @@
     "app:local": "databricks apps run-local --entry-point app.yaml",
     "user-state:init": "node scripts/init-user-state.mjs",
     "template:migration": "node --import tsx scripts/validate-v2-migration.ts",
-    "upstream:check": "node scripts/check-upstream.mjs"
+    "upstream:check": "node scripts/check-upstream.mjs",
+    "app": "node scripts/app.mjs"
   },
   "dependencies": {
     "@databricks/appkit": "0.76.1",

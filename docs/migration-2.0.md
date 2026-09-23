@@ -1,15 +1,45 @@
-# Migration volontaire de 1.5.0 vers 2.0.0
+# Migration volontaire de 1.4.0 ou 1.5.0 vers 2.0.0
 
-La version 2.0.0 remplace Next.js par AppKit, Vite et React Router.
-Les applications 1.5.0 continuent de fonctionner sans migration automatique.
+La version 2.0.0 remplace le runtime Next.js par AppKit/Express, Vite et React Router. React reste la bibliothèque UI.
+Les applications 1.4.0 et 1.5.0 continuent de fonctionner sans migration automatique.
 Les requêtes métier, déclarations d’accès, tables personnelles et personnalisations Valiuz restent propres à chaque application.
+
+## Obtenir le bilan depuis le template cible
+
+Utiliser un checkout de la version 2.0 relue, dans un dossier distinct de l'app. Installer ses dépendances avec `npm ci`.
+Ne pas exécuter `init-app` dans l'app existante. Depuis ce checkout cible :
+
+```bash
+npm run app -- migrate --app-dir /chemin/vers/ancienne-app
+npm run app -- migrate --app-dir /chemin/vers/ancienne-app --json
+```
+
+La version vient de `.valiuz-template.yml`. Si elle n'est pas suivie, examiner l'historique puis fournir `--from 1.4.0` ou `--from 1.5.0`.
+Une version fournie ne remplace jamais silencieusement un état contradictoire.
+Les guides viennent du checkout cible : le manifeste copié dans une ancienne app ne connaît pas les versions futures.
+`template:diff` affiche toujours un seul guide direct ; le bilan `app migrate` assemble les étapes nécessaires.
+
+Le bilan repère les pages, layouts, handlers, imports Next.js, candidats serveur et noms `NEXT_PUBLIC_*`.
+Il ignore `.env.local`, les dépendances et les sources liées par symlink. Il n'affiche pas les valeurs de l'environnement.
+Ce relevé statique n'est pas exhaustif. Examiner aussi les middleware, rewrites, Server Actions, routes dynamiques,
+Pages Router, authentification et conventions propres à l'app. Le bilan n'exécute aucun test ni modification.
+
+## Partir de 1.4.0
+
+Appliquer les contrats du [guide 1.4 → 1.5](../template/upgrades/1.4.0-to-1.5.0.yml), puis le portage 1.5 → 2.0 décrit ici.
+Ces étapes peuvent rester sur la même branche de migration, avec une revue distincte pour chaque contrat.
+Ajouter les modules personnels, leurs routes, le flag du shell et les variables optionnelles, sans activer le stockage.
+Conserver `USER_STATE_ENABLED=false` si l'app n'en a pas besoin. Aucune table, permission MODIFY ou exécution de
+`user-state:init` n'est nécessaire pour ce parcours. Une activation ultérieure suit [le guide personnel](user-state.md).
+La capability `personal-user-state` décrit la présence du code, pas l'activation d'un stockage.
+Préserver les éventuels stockages métier préexistants et leurs garanties ; ils ne sont pas convertis automatiquement.
 
 ## Préparer la branche
 
 1. Créer une branche dédiée depuis la révision de production.
 2. Conserver le SHA déployé pour le rollback.
-3. Exécuter les validations 1.5.0 avant toute modification.
-4. Afficher le guide avec `npm run template:diff -- --from 1.5.0 --to 2.0.0`.
+3. Exécuter les validations de la version de départ avant toute modification.
+4. Dans le checkout cible, examiner le bilan puis `npm run template:diff -- --from 1.5.0 --to 2.0.0`.
 5. Inventorier les pages, handlers, chargements serveur, personnalisations et usages de Next.js.
 6. Relever les résultats attendus des tests métier.
 
@@ -20,7 +50,7 @@ Fusionner `package.json`, puis exécuter `npm install` avec Node.js 22.16+.
 Les versions initiales de `@databricks/appkit` et `@databricks/appkit-ui` sont exactement `0.76.1`.
 Le Vite utilisé correspond à la dépendance d’AppKit. Le lockfile reste dans Git.
 
-| Contrat 1.5 | Contrat 2.0 |
+| Contrat Next.js 1.4/1.5 | Contrat 2.0 |
 | --- | --- |
 | `src/app/<route>/page.tsx` | `src/client/pages/<route>/page.tsx`, enregistré dans `src/client/routes.tsx` |
 | `src/app/layout.tsx` | Shell dans `src/client/main.tsx` et document dans `index.html` |
@@ -97,13 +127,18 @@ Examiner `npm run app:capabilities` et `npm run app:skills`. Aucun plugin n'est 
 5. Après succès, déclarer la version 2.0.0 dans `.valiuz-template.yml`.
 6. Ajouter les capabilities `appkit-native-runtime`, `upstream-compatibility` et `guided-appkit-capabilities`.
 7. Ajouter `1.5.0-to-2.0.0` dans `appliedUpgrades`.
+   Pour une origine 1.4, ajouter aussi `personal-user-state` et `1.4.0-to-1.5.0` après validation de leurs contrats.
 8. Exécuter `npm run app:doctor` et `npm run check`.
 9. Après autorisation, déployer en développement et effectuer la recette distante.
 
-Le repository source fournit `npm run template:migration`, avec son historique Git contenant la révision 1.5.
+Le repository source fournit `npm run template:migration`, avec son historique Git contenant les révisions 1.4 et 1.5.
 Cette commande de recette du template n’est pas exécutable dans un repository d’application sans cet historique.
-Cette validation initialise une fixture 1.5 avec une feature métier, applique le portage décrit et vérifie le build.
-Elle compare les requêtes, sources, tables personnelles et personnalisations avant et après migration.
+Cette validation initialise deux fixtures avec une feature métier, vérifie le bilan, applique le portage décrit et vérifie les builds.
+La fixture 1.4 garde l'état personnel désactivé sans table déclarée ni binding MODIFY.
+La fixture 1.5 conserve ses déclarations de tables personnelles. Aucun DDL n'est exécuté.
+Les requêtes, sources, contrats métier et personnalisations sont comparés avant et après migration.
+Les seuls ajouts de configuration à la fixture 1.4 sont les variables personnelles optionnelles et désactivées.
+Ces fixtures couvrent le contrat du template ; chaque application doit aussi tester ses adaptations.
 
 La recette distante couvre deux utilisateurs Genie, l’isolation personnelle, la reprise après redémarrage et les logs.
 Elle reste nécessaire avant adoption en production.

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
-import { readFile, writeFile } from "node:fs/promises";
+import { lstat, readFile, writeFile } from "node:fs/promises";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 
@@ -27,6 +27,14 @@ Chaque option attend une valeur. --help affiche cette aide sans modifier de fich
 Le mode démo fonctionne sans credentials. Confirmer les valeurs distantes avant tout accès réel.
 `);
   process.exit(0);
+}
+const existingPackage = JSON.parse(await readFile("package.json", "utf8"));
+const existingState = await lstat(".valiuz-template.yml").catch((error) => {
+  if (error.code === "ENOENT") return null;
+  throw error;
+});
+if (existingPackage.name !== "__PACKAGE_NAME__" || existingState) {
+  throw new Error("Cette app est déjà initialisée. Reprendre avec npm run app -- next ; pour une migration, suivre docs/migration-2.0.md depuis le template cible. Aucun fichier modifié.");
 }
 const option = (name) => {
   const index = args.indexOf(`--${name}`);

@@ -41,9 +41,11 @@ Une nouvelle app reçoit la version `2.0.0`. `npm run check` inclut `template:ch
 `template:release:check`. Le second reconnaît une app initialisée et n'exige aucun bump pour ses features métier.
 
 La release 2.0.0 inclut le parcours de capacités, de skills et l'orchestration de la création ou de la reprise.
+Elle ajoute l'entrée `npm run app`, les prompts par métier et un bilan de migration depuis un checkout cible.
 La migration du runtime impose une version majeure par rapport à la base 1.5.0.
 Les anciennes specs restent lisibles. Fusionner les scripts de cadrage et régénérer le brief pour adopter le nouveau champ `capabilities`.
 Ajouter la commande `app:orchestrate` et sa référence au skill de création. Aucun changement de schéma ni nouveau service n'est nécessaire.
+Ajouter aussi `app: node scripts/app.mjs` dans les scripts npm. Voir [le parcours CLI](cli-workflow.md).
 Les notes de reprise sont facultatives ; elles ne remplacent ni les contrats métier ni les tests.
 
 ## App copiée avant le suivi de version
@@ -246,8 +248,9 @@ Fusionner les contrats, les routes personnelles et les composants. Conserver la 
 l’app. Adapter les variantes strictes de définition et les préférences avant activation. La feature IKEA existante
 n’est pas migrée automatiquement ; conserver ses tables, ses versions et ses garanties de concurrence.
 
-Suivre [le guide personnel](user-state.md) pour préparer les deux tables dans le datamart choisi, relire les bindings
-et effectuer la recette distante. Les sources analytiques restent en lecture seule.
+Si l'état personnel est demandé, suivre [le guide personnel](user-state.md) pour préparer les deux tables, relire les
+bindings et effectuer la recette distante. Sinon, garder le flag désactivé, sans table ni nouveau droit.
+Les sources analytiques restent en lecture seule.
 
 ```bash
 npm run template:check -- --to 1.5.0
@@ -260,15 +263,26 @@ mutations distinctes. Désactiver la feature pour un rollback ; ne pas effacer l
 ## Passage de 1.5.0 à 2.0.0
 
 Cette version majeure change le runtime et le modèle d’écriture des pages et handlers.
-Les données et requêtes métier restent en place. Les apps 1.5.0 ne migrent pas automatiquement.
+Les données et requêtes métier restent en place. Les apps 1.4.0 et 1.5.0 ne migrent pas automatiquement.
 
-Suivre [la migration détaillée](migration-2.0.md), puis exécuter les validations du guide sémantique :
+Une app 1.4 applique d'abord les contrats 1.5, sans activer le stockage personnel si inutile.
+React reste présent ; le runtime Next.js et le routage sont portés vers AppKit/Express, Vite et React Router.
+Installer les dépendances d'un checkout 2.0 relu, distinct de l'app, puis y lancer :
+
+```bash
+npm run app -- migrate --app-dir /chemin/vers/ancienne-app
+```
+
+Ce bilan compose les guides 1.4 → 1.5 → 2.0 ou le guide 1.5 → 2.0. Il ne modifie ni l'app ni sa version.
+L'ancienne copie du manifeste ne découvre pas automatiquement les releases futures.
+
+Suivre [la migration détaillée](migration-2.0.md). Depuis le checkout cible, afficher le guide direct :
 
 ```bash
 npm run template:diff -- --from 1.5.0 --to 2.0.0
 ```
 
-Dans le repository source du template avec son historique 1.5, `npm run template:migration` vérifie la fixture métier.
+Dans le repository source avec son historique 1.4 et 1.5, `npm run template:migration` vérifie les deux fixtures métier.
 
 Les sondes `fileAnyOf` reconnaissent les emplacements 1.x et 2.0 des capabilities conservées.
 Les nouvelles capabilities vérifient le runtime AppKit, sa maintenance et le parcours guidé des capacités et skills.

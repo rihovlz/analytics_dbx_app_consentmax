@@ -1,6 +1,6 @@
 ---
 name: create-analytics-dbx-app
-description: Orchestrer la création ou la reprise d'une application Valiuz issue du template Databricks Apps. Lire l'état du projet, sélectionner les capacités AppKit et les skills utiles, puis conduire l'implémentation et les tests de la tranche demandée.
+description: Orchestrer la création, la reprise ou la migration demandée d'une application Valiuz issue du template Databricks Apps. Lire l'état du projet, sélectionner les capacités AppKit et les skills utiles, puis conduire l'implémentation et les tests.
 ---
 
 # Mission
@@ -27,9 +27,18 @@ Le diagnostic est un point de départ. Une feature existante ou une capacité no
 `verification` signifie que les fichiers permettent de commencer la vérification, jamais que les tests ont réussi.
 Une demande d'évolution reprend la feature concernée même si la première tranche du projet existe déjà.
 En l'absence de la commande dans une ancienne app, utiliser `app:doctor` et les fichiers disponibles sans imposer une migration.
+Pour une migration explicitement demandée, suivre le parcours ci-dessous avant les générateurs.
 
 # Choisir le parcours
 
+- Pour démarrer depuis le terminal ou adapter le cadrage au métier, lire [le parcours CLI](../../../docs/cli-workflow.md).
+  `npm run app` donne l'aide ; `app next` est l'alias de `app:orchestrate`.
+  Le métier oriente les questions, pas les droits ou ressources. Un data engineer n'a pas besoin d'une pipeline par défaut.
+- Pour migrer volontairement une app 1.4 ou 1.5, lire [le guide de migration](../../../docs/migration-2.0.md).
+  Utiliser `app migrate --app-dir <app>` depuis un checkout cible relu et installé, distinct de l'app.
+  Comparer la version déclarée au code ; le bilan ne certifie pas la compatibilité. Préserver la révision de rollback.
+  Appliquer les contrats 1.4 → 1.5 avant 2.0 si nécessaire ; garder l'état personnel désactivé lorsqu'il est inutile.
+  Ne pas lancer `init-app` sur l'ancienne app. Porter et tester ses adaptations avant de déclarer sa nouvelle version.
 - Pour choisir les capacités AppKit et consulter les bons skills amont, lire
   [references/appkit-capabilities.md](references/appkit-capabilities.md). Le faire pendant le cadrage, puis lors d'un nouveau besoin.
 - Pour créer le repository Valiuz, attribuer l'équipe, préparer le dossier local et initialiser le template, lire
@@ -111,4 +120,4 @@ Ces commandes sont locales et en lecture seule. Aucun choix dans le brief n'acti
 
 Avant une intégration, lire la page correspondante dans les docs du package installé avec `npx --no-install appkit docs`.
 Lire les exceptions de `docs/appkit-maintenance.md`. Les contrats Valiuz priment sur les exemples génériques de scaffolding.
-Une migration de runtime demande les parcours consommateur et E2E ; la fixture 1.5 s'exécute dans le repository source.
+Une migration de runtime demande les parcours consommateur et E2E ; les fixtures 1.4 et 1.5 s'exécutent dans le repository source.

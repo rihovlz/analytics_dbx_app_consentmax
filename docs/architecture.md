@@ -16,6 +16,11 @@ Il ne modifie rien et n'exécute pas les commandes proposées. Le skill de créa
 Les notes `docs/creation-progress.md` conservent les décisions et les résultats observés, sans servir de preuve automatique.
 Les générateurs et le runtime ne dépendent pas de ces notes.
 
+`npm run app` expose une entrée commune qui délègue aux commandes existantes, sans moteur de workflow supplémentaire.
+Les profils de `app prompt` ajustent le cadrage, sans configurer le runtime.
+`app migrate` lit une ancienne app et les guides du checkout cible. Il n'exécute ni ses scripts ni un portage automatique.
+Les inventaires statiques et versions déclarées restent à vérifier par l'agent. Voir [le parcours CLI](cli-workflow.md).
+
 ```text
 Browser / React
       ↓ JSON agrégé

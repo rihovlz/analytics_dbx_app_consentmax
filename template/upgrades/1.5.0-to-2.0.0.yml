@@ -25,6 +25,7 @@ changes:
       - playwright.config.ts
     instructions:
       - Suivre docs/migration-2.0.md dans une branche dédiée.
+      - Depuis le checkout 2.0 relu, lancer npm run app -- migrate --app-dir <ancienne-app> pour inventorier les changements sans modifier l’app.
       - Fusionner les dépendances et régénérer le lockfile avec npm.
       - Porter chaque page et enregistrer explicitement ses routes client et serveur.
       - Déplacer les chargements serveur derrière une API de feature utilisant withApiRoute.
@@ -60,6 +61,8 @@ changes:
       - scripts/app-capabilities.mjs
       - scripts/app-skills.mjs
       - scripts/app-orchestrate.mjs
+      - scripts/app.mjs
+      - scripts/app-migrate.mjs
       - scripts/init-app.mjs
       - scripts/app-guide.mjs
       - scripts/app-spec.mjs
@@ -68,6 +71,7 @@ changes:
       - scripts/check-upstream.mjs
       - scripts/validate-v2-migration.ts
       - scripts/validate-template-journey.ts
+      - scripts/validate-bundle-cli.ts
       - scripts/template-manifest.mjs
       - .github/dependabot.yml
       - .github/workflows/upstream-check.yml
@@ -82,6 +86,8 @@ changes:
       - Conserver les features et le cadrage ; ajouter les capacités envisagées dans la spec puis régénérer le brief avec app:guide --non-interactive.
       - Consulter app:capabilities et app:skills ; les choix de cadrage ne montent aucun plugin.
       - Ajouter app:orchestrate dans package.json et reprendre avec le skill de création, sans rejouer init-app.
+      - Ajouter le script npm app avec node scripts/app.mjs ; conserver les anciennes commandes et suivre docs/cli-workflow.md.
+      - Conserver le refus de réinitialiser une app nommée ou suivie ; init-app ne sert pas à changer sa version.
       - Conserver les notes de reprise existantes ; leur présence ne prouve ni test réussi ni autorisation.
       - Fusionner les workflows et conserver leur revue humaine.
       - Valider les capabilities 2.0.0 avant de modifier .valiuz-template.yml.
