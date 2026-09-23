@@ -12,6 +12,8 @@ const fixtureFiles = [
   "scripts/data-access.mjs",
   "scripts/new-feature.mjs",
   "src/components/app-shell/app-nav.tsx",
+  "src/client/routes.tsx",
+  "src/server/routes.ts",
 ];
 
 async function prepareFixture(): Promise<string> {

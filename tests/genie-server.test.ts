@@ -254,7 +254,7 @@ test("uses the official Genie REST paths and validates malformed upstream respon
   const fixture = new URL("./fixtures/genie-client-contract.ts", import.meta.url);
   const { stdout, stderr } = await execFileAsync(
     process.execPath,
-    ["--conditions=react-server", "--import", "tsx", fixture.pathname],
+    ["--import", "tsx", fixture.pathname],
     { encoding: "utf8" },
   );
   assert.equal(stdout, "");

@@ -25,12 +25,16 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npm run dev -- --hostname 127.0.0.1 --port ${port}`,
+    command: process.env.E2E_PRODUCTION === "1" ? "npm run start" : "npm run dev",
     url: `${baseURL}/api/health`,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 120_000,
     env: {
       APP_MODE: "demo",
+      PORT: String(port),
+      APP_HOST: "127.0.0.1",
+      USER_STATE_ENABLED: process.env.E2E_PRODUCTION === "1" ? "false" : "true",
+      USER_STATE_ORIGIN: baseURL,
       APP_NAME: "Assistant analytics",
       APP_DESCRIPTION: "Démonstration locale de l’assistant Genie",
       APP_SUPPORT_NAME: "Équipe Analytics",

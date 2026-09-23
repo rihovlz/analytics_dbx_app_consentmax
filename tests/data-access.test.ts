@@ -89,6 +89,19 @@ test("renders least-privilege Unity Catalog app resources and detects drift", as
   assert.match(rendered, /permission: SELECT/);
   execFileSync(process.execPath, ["scripts/render-data-access.mjs", "--check"], { cwd: root });
 
+  const metadataPath = join(root, "config/appkit-resources.generated.json");
+  const metadata = JSON.parse(await readFile(metadataPath, "utf8"));
+  assert.deepEqual(metadata.sources, [{ fullName: "dev-dtm-media-pm.analytics.campaign_performance", permission: "SELECT" }]);
+  assert.equal(metadata.warehouse.binding, "sql-warehouse");
+  assert.equal(metadata.genie[0].permission, "CAN_RUN");
+  metadata.sources[0].permission = "MODIFY";
+  await writeFile(metadataPath, JSON.stringify(metadata), "utf8");
+  assert.throws(
+    () => execFileSync(process.execPath, ["scripts/render-data-access.mjs", "--check"], { cwd: root, stdio: "pipe" }),
+    /AppKit resource metadata is stale/,
+  );
+  execFileSync(process.execPath, ["scripts/render-data-access.mjs"], { cwd: root });
+
   await writeFile(join(root, "resources/data-access.generated.yml"), "stale\n", "utf8");
   assert.throws(
     () => execFileSync(process.execPath, ["scripts/render-data-access.mjs", "--check"], { cwd: root, stdio: "pipe" }),

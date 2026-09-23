@@ -46,7 +46,6 @@ function fixtureEnvironment(): NodeJS.ProcessEnv {
   const environment: NodeJS.ProcessEnv = {
     ...process.env,
     CI: "true",
-    NEXT_TELEMETRY_DISABLED: "1",
     npm_config_audit: "false",
     npm_config_fund: "false",
   };
