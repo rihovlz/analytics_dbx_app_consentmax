@@ -6,6 +6,7 @@ import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
 import { comparisonResultSchema, type ComparisonResult } from "./contract";
 import { ComparisonResults } from "./comparison-results";
+import { ComparisonGenie, type ComparisonGenieOptions } from "./comparison-genie";
 import { defaultSelection, resolvePeriods, selectionParameters, selectionSchema, type PeriodSelection } from "./periods";
 
 export type PeriodComparisonProps = {
@@ -14,6 +15,7 @@ export type PeriodComparisonProps = {
   description?: string;
   initialSelection?: PeriodSelection;
   showWaterfall?: boolean;
+  genie?: ComparisonGenieOptions;
 };
 type State = { status: "loading" } | { status: "ready"; result: ComparisonResult }
   | { status: "error"; message: string; requestId?: string };
@@ -21,7 +23,7 @@ const errorSchema = z.object({ error: z.object({ message: z.string(), requestId:
 const inputClass = "mt-2 min-h-11 w-full min-w-0 rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink";
 
 export function PeriodComparison({ endpoint, title = "Comparer deux périodes", description,
-  initialSelection, showWaterfall = false }: PeriodComparisonProps) {
+  initialSelection, showWaterfall = false, genie }: PeriodComparisonProps) {
   const id = useId();
   const initial = useRef(initialSelection ?? defaultSelection());
   const [selection, setSelection] = useState<PeriodSelection>(initial.current);
@@ -111,7 +113,12 @@ export function PeriodComparison({ endpoint, title = "Comparer deux périodes", 
     <div aria-busy={state.status === "loading"}>
       {state.status === "loading" ? <LoadingState label="Comparaison des périodes…" /> : null}
       {state.status === "error" ? <ErrorState title="Comparaison indisponible" message={state.message} requestId={state.requestId} onRetry={() => submit()} /> : null}
-      {state.status === "ready" ? <ComparisonResults result={state.result} showWaterfall={showWaterfall} /> : null}
+      {state.status === "ready" ? <>
+        <ComparisonResults result={state.result} showWaterfall={showWaterfall} />
+        {genie && state.result.change.absolute !== null ? <ComparisonGenie
+          key={JSON.stringify([state.result.periods, state.result.filterLabel, state.result.current.value, state.result.reference.value])}
+          result={state.result} options={genie} disabled={dirty} /> : null}
+      </> : null}
     </div>
   </section>;
 }

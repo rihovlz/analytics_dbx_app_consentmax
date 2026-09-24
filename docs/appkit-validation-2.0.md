@@ -40,7 +40,7 @@ Les CLI signalent le chemin Shared du bundle data de la fixture ; aucun workspac
 ## Exceptions et maintenance
 
 Les [exceptions AppKit](appkit-maintenance.md) restent explicites : Genie, sémantique du driver, démo, profil CLI et parsing HTTP.
-Genie conserve son transport actuel jusqu’à preuve de parité AppKit pour l’annulation, les reprises et les logs.
+Cette validation initiale conservait le transport Genie. La migration coordonnée décrite plus bas active le plugin programmatique avec un client de compatibilité.
 Le contrôle amont a relevé 0 commit template et 43 commits skills depuis les révisions revues, sans les avancer.
 La guidance Databricks 0.2.10 a été installée hors du repository avec le CLI supporté.
 
@@ -192,6 +192,38 @@ Le test géométrique a été corrigé pour trouver les libellés réellement re
 Le SQL généré n'a pas été exécuté sur Databricks. DATE, fuseau métier, grain, additivité et couverture de chaque source
 restent à valider avant utilisation réelle. Les fixtures n'établissent ni causalité ni fraîcheur des données métier.
 
+## Genie AppKit, accompagnement et comparaison — 24 septembre 2026
+
+Le plugin Genie 0.76.1 est actif en mode Databricks. Les tests passent par sa méthode `sendMessage` réelle,
+avec un client synthétique par requête. Le transport HTTP de compatibilité reste nécessaire pour l’annulation,
+l’envoi unique, les erreurs sûres et les résultats bornés. Ses critères de retrait figurent dans le registre de compatibilité.
+
+La revue du skill couvre le besoin, le Space, les sources, les définitions et les questions de référence.
+Le bouton facultatif « Explorer cet écart avec Genie » conserve les deux périodes, les filtres appliqués et les réserves.
+La question reste modifiable avant l’envoi. Les cartes épinglées restent en mémoire et disparaissent avec la comparaison.
+
+Vérifications exécutées après ces trois changements :
+
+- `npm run check` : 177 tests, lint, typecheck, contrats, release et build réussis.
+- `npm run template:journey` : installation propre, mini-app avec KPI simple et comparaison ; 182 tests et build réussis.
+- `npm run template:migration` : fixtures 1.4 et 1.5, deux tests métier par fixture, lint, typecheck et builds réussis.
+- `npm run bundle:compatibility` : CLI 1.12.1, bundles app/data dev/prod contre le serveur local.
+- `npm run test:e2e -- --workers=1` : 14 parcours réussis en développement.
+- `E2E_PRODUCTION=1 npm run test:e2e -- --workers=1` : 14 parcours réussis sur le build final.
+- Validateur `skill-creator` : skill de création valide.
+- `npm run template:release:check -- --base origin/main` et `git diff --check` : réussis ; 71 liens Markdown locaux des fichiers modifiés vérifiés.
+
+Les tests vérifient deux utilisateurs OBO simultanés jusqu’aux résultats, le refus sans identité, l’absence de route
+générique, les ressources déclarées, les interruptions pendant le POST et les lectures, ainsi que le délai global.
+Ils couvrent les types de cellules, les pièces jointes sans statementId, la limite de 500 lignes et les erreurs nettoyées.
+Les schémas de l’état personnel refusent toujours les observations et résultats du contexte enrichi.
+Le parcours navigateur vérifie l’absence d’envoi automatique, le contexte, l’épinglage, le clavier et le mobile sombre.
+La capture mobile sombre a été inspectée. Aucun résultat n’est écrit dans le stockage du navigateur ou les tables personnelles.
+
+Le build signale un chunk Genie chargé à la demande d’environ 816 ko, soit 240 ko gzip. Le build réussit malgré cet avertissement.
+La décision reste **major 2.0.0 non publiée** face à la base 1.5.0. `appkit-genie-integration` est la cinquième capability ajoutée.
+La qualité des réponses d’un Space réel, les droits effectifs et le déploiement de développement restent à vérifier après autorisation.
+
 ## Revue documentaire et réserve distante
 
 Skills appliqués : `review-analytics-app-docs` et `prepare-template-release`.
@@ -203,6 +235,6 @@ Findings restants : 0 bloquant local, 0 écart, 0 obsolète, 1 non vérifiable.
 La réserve est la recette Databricks réelle, nécessaire avant adoption en production.
 
 Aucun push, pull request, déploiement, grant, SQL d’écriture ou déclenchement de workflow distant n’a été effectué.
-Les droits effectifs, l’identité injectée, le proxy OBO et la persistance Delta réelle restent à vérifier.
+Les droits effectifs, l’identité injectée, le proxy OBO, la qualité des réponses du Space et la persistance Delta réelle restent à vérifier.
 Le déploiement de développement exige une autorisation et la confirmation du host, profil, app, warehouse, projet, schéma et sources.
 Après autorisation, appliquer la [recette distante](deployment.md) avec deux utilisateurs et vérifier la persistance après redémarrage.

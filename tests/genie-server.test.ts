@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import test from "node:test";
+import test, { before } from "node:test";
+import { startTestGenie } from "./fixtures/genie-appkit";
 
 import {
   genieMessageRequestSchema,
@@ -35,6 +36,8 @@ import {
 const CONVERSATION_ID = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const MESSAGE_ID = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 const execFileAsync = promisify(execFile);
+
+before(async () => { await startTestGenie({ [CONVERSATION_ID]: CONVERSATION_ID, ["c".repeat(32)]: "c".repeat(32) }); });
 
 async function collect(events: AsyncIterable<GenieStreamEvent>): Promise<GenieStreamEvent[]> {
   const collected: GenieStreamEvent[] = [];
@@ -380,7 +383,8 @@ test("streams official lifecycle states, uses continuation IDs, and emits a rich
 
   assert.equal(submittedConversationId, CONVERSATION_ID);
   assert.match(submittedContent, /Filtre region : "EMEA"/);
-  assert.deepEqual(delays, [10, 20, 20]);
+  // AppKit requests attachments after the final message; the first result is still RUNNING.
+  assert.deepEqual(delays, [10, 20, 20, 10]);
   assert.deepEqual(events.map((event) => event.type), [
     "message_start",
     "status",

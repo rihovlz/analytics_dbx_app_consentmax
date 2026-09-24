@@ -14,6 +14,7 @@ import { GET as getAnalysis, PUT as putAnalysis, DELETE as deleteAnalysis } from
 import { GET as preferences, PUT as putPreferences } from "./routes/user-preferences/route";
 import { europeFeatures } from "./visualization-demo";
 import { GET as comparisonDemo } from "./routes/period-comparison/route";
+import { GET as genieSession } from "./routes/genie/[alias]/session/route";
 // feature:new inserts imports above this line.
 
 export function registerRoutes(app: Application) {
@@ -29,6 +30,7 @@ export function registerRoutes(app: Application) {
   app.get("/api/connection-check", expressRoute(connectionCheck));
   app.get("/api/readiness", expressRoute(readiness));
   app.post("/api/genie/:alias/messages", expressRoute(genie));
+  app.get("/api/genie/:alias/session", expressRoute(genieSession));
   app.get("/api/saved-analyses", expressRoute(savedAnalyses));
   app.get("/api/saved-analyses/:id", expressRoute(getAnalysis));
   app.put("/api/saved-analyses/:id", expressRoute(putAnalysis));

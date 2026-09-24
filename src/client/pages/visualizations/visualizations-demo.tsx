@@ -1,6 +1,7 @@
 import type { FeatureCollection } from "geojson";
 import { PeriodComparison } from "@/features/period-comparison";
 import { DEMO_SELECTION } from "@/features/period-comparison/demo";
+import { useAppConfig } from "@/client/app-config";
 import {
   AnalyticsMap,
   BigNumberKPI,
@@ -44,6 +45,7 @@ function MoreLink({ label }: { label: string }) {
 }
 
 export function VisualizationsDemo({ europeFeatures }: { europeFeatures: FeatureCollection }) {
+  const config = useAppConfig();
   return (
     <div className="space-y-8 sm:space-y-10">
       <section className="relative overflow-hidden rounded-[1.75rem] border border-line bg-surface px-6 py-8 shadow-panel sm:px-9 sm:py-10">
@@ -69,6 +71,7 @@ export function VisualizationsDemo({ europeFeatures }: { europeFeatures: Feature
       </section>
 
       <PeriodComparison endpoint="/api/period-comparison/demo" initialSelection={DEMO_SELECTION} showWaterfall
+        genie={config.mode === "demo" ? { alias: "fraim-sales", context: { page: { title: "Comparaison de périodes", route: "/visualizations" } } } : undefined}
         description="Une option pour les analyses qui gagnent à être comparées dans le temps. Explorez ici des commandes synthétiques, puis la contribution de chaque canal à leur évolution." />
 
       <section aria-labelledby="kpi-title">

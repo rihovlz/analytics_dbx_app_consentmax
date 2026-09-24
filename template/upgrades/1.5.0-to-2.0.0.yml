@@ -37,7 +37,8 @@ changes:
     description: Les repositories restent inchangés et les intégrations passent par des adaptateurs bornés.
     paths:
       - src/lib/databricks
-      - src/features/genie/server
+      - src/features/genie
+      - src/server/genie-plugin.ts
       - src/features/user-state/server/runtime.ts
       - src/features/user-state/server/request.ts
       - scripts/new-feature.mjs
@@ -48,7 +49,7 @@ changes:
     instructions:
       - Conserver les requêtes métier, sources, alias Genie et tables personnelles.
       - Utiliser transport driver pour préserver les cellules STRING ressemblant à du JSON.
-      - Conserver le transport Genie documenté tant que les critères de suppression de son exception ne passent pas.
+      - Porter le service vers Genie.sendMessage avec le plugin privé, le client de compatibilité par requête et la route de session ; suivre docs/genie.md.
       - Générer les métadonnées avec npm run data:access:render et examiner les droits.
       - Tester les parcours, les limites, les identités et la soumission sans rejeu.
   - id: upstream-maintenance
@@ -58,6 +59,7 @@ changes:
     paths:
       - config/appkit-compatibility.json
       - config/appkit-capabilities.json
+      - docs/genie.md
       - scripts/app-capabilities.mjs
       - scripts/app-skills.mjs
       - scripts/app-orchestrate.mjs
@@ -114,6 +116,7 @@ changes:
       - Utiliser --date-column pour une nouvelle feature pertinente ; --breakdown-column ajoute un waterfall uniquement sur count/sum.
       - Pour un KPI existant, adapter son repository et sa route suivant docs/period-comparison.md ; ne pas rejouer le générateur sur le même slug.
       - Confirmer DATE, fuseau, grain, couverture et additivité ; ne pas attribuer de causalité aux contributions.
+      - Ajouter la prop genie seulement pour un Space compatible ; la question joint les périodes, filtres et réserves, sans envoi automatique.
       - Garder les résultats et sélections hors des tables d’état personnel tant qu’aucun contrat de définition n’est ajouté.
 validation:
   - npm run template:status

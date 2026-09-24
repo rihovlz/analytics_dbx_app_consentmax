@@ -5,6 +5,7 @@ import { createGenieMessageResponse } from "../src/features/genie/server/runtime
 import { parseGenieMessageRequest } from "../src/features/genie/server/request";
 import { expressRoute } from "../src/lib/http/express-adapter";
 import { withApiRoute } from "../src/lib/http/with-api-route";
+import { startTestGenie } from "./fixtures/genie-appkit";
 
 test("concurrent Express Genie streams keep OBO identities and answers isolated", { timeout: 10_000 }, async (t) => {
   const environment = {
@@ -15,25 +16,32 @@ test("concurrent Express Genie streams keep OBO identities and answers isolated"
   };
   const previous = Object.fromEntries(Object.keys(environment).map((key) => [key, process.env[key]]));
   Object.assign(process.env, environment);
+  await startTestGenie({ "fraim-sales": "a".repeat(32) });
   const networkFetch = globalThis.fetch;
   const submissions: string[] = [];
   let release!: () => void;
   const bothSubmitted = new Promise<void>((resolve) => { release = resolve; });
   t.mock.method(globalThis, "fetch", async (input: string | URL, init: RequestInit) => {
     assert.match(String(input), /^https:\/\/workspace\.example\.invalid\/api\/2\.0\/genie\//);
-    assert.equal(init.method, "POST");
     const authorization = new Headers(init.headers).get("authorization");
     assert.ok(authorization === "Bearer synthetic-a" || authorization === "Bearer synthetic-b");
     const user = authorization.endsWith("a") ? "a" : "b";
-    submissions.push(user);
-    if (submissions.length === 2) release();
-    await bothSubmitted;
+    if (init.method === "POST") {
+      submissions.push(user);
+      if (submissions.length === 2) release();
+      await bothSubmitted;
+      return Response.json({ message: { conversation_id: user.repeat(32), message_id: "c".repeat(32), status: "SUBMITTED" } });
+    }
+    assert.equal(init.method, "GET");
+    assert.ok(String(input).includes(`/conversations/${user.repeat(32)}/`), "every read must keep the submitting user's token");
+    if (String(input).endsWith("query-result")) return Response.json({ statement_response: {
+      status: { state: "SUCCEEDED" }, manifest: { schema: { columns: [{ name: "user", type_name: "STRING" }] } },
+      result: { data_array: [[`Result for user ${user}`]] },
+    } });
     return Response.json({
-      conversation: { id: user.repeat(32) },
-      message: {
-        conversation_id: user.repeat(32), message_id: "c".repeat(32), status: "COMPLETED",
-        attachments: [{ attachment_id: "answer", text: { content: `Answer for user ${user}` } }],
-      },
+      conversation_id: user.repeat(32), message_id: "c".repeat(32), status: "COMPLETED",
+      attachments: [{ attachment_id: "answer", text: { content: `Answer for user ${user}` } },
+        { attachment_id: "query", query: { statement_id: "statement", query: "SELECT synthetic" } }],
     });
   });
   const app = express();
@@ -68,6 +76,8 @@ test("concurrent Express Genie streams keep OBO identities and answers isolated"
       assert.doesNotMatch(body, new RegExp(`Answer for user ${index === 0 ? "b" : "a"}`));
       assert.doesNotMatch(body, /synthetic-[ab]/);
       assert.match(body, /event: message_result/);
+      assert.match(body, new RegExp(`Result for user ${index === 0 ? "a" : "b"}`));
+      assert.doesNotMatch(body, new RegExp(`Result for user ${index === 0 ? "b" : "a"}`));
     });
   } finally {
     release();

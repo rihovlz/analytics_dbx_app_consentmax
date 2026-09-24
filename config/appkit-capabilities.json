@@ -19,13 +19,13 @@
       "label": "Questions en langage naturel sur les données",
       "plugin": "genie",
       "stability": "ga",
-      "availability": "adapter",
+      "availability": "integrated",
       "resources": "Space et alias déclarés dans config/genie-spaces.json ; identité OBO de chaque utilisateur.",
       "skills": ["databricks-data-discovery"],
       "upstreamDoc": "genie",
-      "guide": "docs/appkit-maintenance.md",
-      "next": "Réutiliser GenieChat et le transport existant ; cadrer les tables puis choisir un Space.",
-      "checks": "OBO absent, utilisateurs concurrents, interruption, limites et absence de double soumission."
+      "guide": "docs/genie.md",
+      "next": "Cadrer les questions et sources, choisir un Space, préparer ses définitions et questions de référence, puis utiliser le plugin programmatique via le service Valiuz.",
+      "checks": "OBO absent, utilisateurs concurrents, interruption, limites, erreurs sûres, envoi unique et réponses comparées aux KPI validés."
     },
     {
       "id": "personal-state",

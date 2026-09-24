@@ -111,7 +111,7 @@ export function GenieDemo({ alias, mode }: { alias: string; mode: "demo" | "data
             </span>
             {mode === "databricks" ? (
               <span className="inline-flex items-center gap-2 rounded-full border border-positive-border bg-positive-soft px-3 py-2 font-semibold text-positive-ink">
-                Identité utilisateur OBO
+                Accès vérifié pour chaque question
               </span>
             ) : (
               <span className="inline-flex items-center gap-2 rounded-full border border-line bg-canvas px-3 py-2 font-semibold text-muted">

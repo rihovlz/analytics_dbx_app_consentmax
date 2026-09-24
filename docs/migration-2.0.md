@@ -86,7 +86,7 @@ Si le contrat existant attend des types natifs du driver, conserver aussi `trans
 Les KPI générés acceptent déjà les nombres avec `z.coerce.number()`.
 Cette option conserve les valeurs d’origine. Ne pas élargir un schéma Zod pour masquer une différence de transport.
 
-Conserver le client Genie existant et ses tests OBO.
+Porter l’orchestration Genie vers AppKit et conserver le client HTTP de compatibilité ainsi que ses tests OBO.
 L’exception AppKit est détaillée dans [la maintenance amont](appkit-maintenance.md).
 Les écritures personnelles utilisent leur repository privé et le driver existant.
 Les tables, namespaces, identités propriétaires et définitions enregistrées ne changent pas.
@@ -127,7 +127,7 @@ dans le guide YAML. Les features migrées restent identiques ; ajouter une compa
 3. Exécuter `npm run bundle:compatibility`.
 4. Exécuter `npm run template:check -- --to 2.0.0`.
 5. Après succès, déclarer la version 2.0.0 dans `.valiuz-template.yml`.
-6. Ajouter les capabilities `appkit-native-runtime`, `upstream-compatibility`, `guided-appkit-capabilities` et `period-comparison`.
+6. Ajouter les capabilities `appkit-native-runtime`, `upstream-compatibility`, `guided-appkit-capabilities`, `period-comparison` et `appkit-genie-integration`.
 7. Ajouter `1.5.0-to-2.0.0` dans `appliedUpgrades`.
    Pour une origine 1.4, ajouter aussi `personal-user-state` et `1.4.0-to-1.5.0` après validation de leurs contrats.
 8. Exécuter `npm run app:doctor` et `npm run check`.
@@ -145,3 +145,20 @@ Ces fixtures couvrent le contrat du template ; chaque application doit aussi tes
 La recette distante couvre deux utilisateurs Genie, l’isolation personnelle, la reprise après redémarrage et les logs.
 Elle reste nécessaire avant adoption en production.
 Le rollback redéploie le SHA précédent puis aligne Git par pull request. Il ne supprime aucune table.
+
+## Porter Genie et le contexte de comparaison
+
+Conserver les alias, les bindings et les callbacks existants. Porter ensemble `src/features/genie/server`,
+`src/server/genie-plugin.ts`, l’enregistrement dans `src/server/index.ts` et la route de session.
+Le plugin AppKit reçoit les ressources du registre existant ; aucun second manifeste ni nouveau droit n’est requis.
+Garder le client HTTP de compatibilité pour les opérations encore non conformes dans AppKit 0.76.1.
+Ne pas ajouter les routes génériques du plugin et ne pas basculer de transport après une erreur d’envoi.
+Le serveur configure `sendMessage` au démarrage. Les tests qui appellent directement `streamGenieMessage`
+doivent aussi configurer le plugin ou injecter cette dépendance ; la fixture `tests/fixtures/genie-appkit.ts`
+exerce le vrai plugin avec un client synthétique, sans credential.
+
+`GenieChat` garde son API ; `initialQuestion` est facultatif et n’envoie rien automatiquement.
+La prop `genie` de `PeriodComparison` est également facultative. La renseigner seulement après validation du Space,
+des sources, des définitions et des périodes. Voir [le parcours](genie.md).
+Les tables d’état personnel restent inchangées ; le contexte enrichi et les résultats ne sont pas persistés.
+Tester OBO, interruption, refus, troncature et absence de double envoi avant la recette distante autorisée.

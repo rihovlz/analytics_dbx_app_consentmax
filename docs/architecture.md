@@ -71,7 +71,7 @@ GenieChat
       ↓ question + contexte + alias
 Route SSE avec withApiRoute
       ↓ jeton x-forwarded-access-token, serveur uniquement
-Service Genie → client Conversation API
+Service Genie → plugin AppKit Genie.sendMessage → client de compatibilité par requête
       ↓ statuts + texte + pièces jointes de requête
 Table, BigNumberKPI ou graphique + SQL repliable
 ```
@@ -80,7 +80,10 @@ Le navigateur connaît uniquement l’alias du Space. Le serveur charge `config/
 variable d’environnement liée. Les modules sous `src/features/genie/server` isolent le jeton, le client HTTP, le
 polling borné et la validation Zod des réponses.
 
-Le runtime AppKit sert la route Express dédiée. Le transport Genie conserve ses garanties documentées.
+Le plugin privé `src/server/genie-plugin.ts` conserve l’implémentation programmatique AppKit et désactive ses routes génériques.
+Ses ressources reprennent les alias et variables du registre Genie. `server/appkit-client.ts`, dans la feature, fournit
+au plugin un client de requête via AsyncLocalStorage, sans recours à l’identité de service. Les exceptions HTTP restent
+bornées et testées. Voir [le contrat Genie](genie.md).
 La route exige du JSON de même origine avant de lire l’identité OBO. Le lecteur arrête le flux entrant au-delà de
 64 Kio. Le contrat limite aussi la question à 10 000 caractères et le contexte sérialisé à 12 000 caractères.
 
@@ -93,7 +96,7 @@ variables `GENIE_MAX_CONCURRENT_STREAMS` et `GENIE_MAX_CONCURRENT_STREAMS_PER_US
 acceptent des entiers de 1 à 100, et la limite utilisateur ne peut pas dépasser la limite globale. Le mode démo ne
 réserve aucun slot. Cette protection n’est pas distribuée entre plusieurs réplicas.
 
-Le flux SSE transmet les statuts dès leur disponibilité. L’API Genie ne fournit pas de delta de texte. Le client
+Le flux SSE transmet les statuts dès leur disponibilité. AppKit lit les pièces jointes après la fin du message. L’API Genie ne fournit pas de delta de texte. Le client
 révèle donc la réponse finale progressivement. Des commentaires heartbeat gardent le flux actif pendant une attente.
 Le mode de mouvement réduit affiche le texte sans cette transition.
 
@@ -107,6 +110,10 @@ qui commencent par un seul `/` et les fragments. Une destination refusée conser
 
 Le serveur expose seulement le premier chunk inline, avec une limite de 500 lignes. Le champ `truncated` signale un
 résultat plus grand. Les liens de téléchargement signés ne passent jamais dans le navigateur.
+
+`GET /api/genie/:alias/session` expose seulement le mode et le libellé d’identité, avec `private, no-store`.
+La comparaison peut transmettre ses deux périodes, filtres et observations agrégées dans un contexte borné.
+Ce contexte est une entrée utilisateur à vérifier. Il reste en mémoire, avec les cartes épinglées.
 
 Les contrats `PinnedGenieInsight` et `GenieConversationSnapshot` peuvent contenir la réponse, le SQL et les lignes
 gouvernées. Ils ne fournissent aucun stockage partagé. Un stockage privé doit rester lié à l’utilisateur connecté.

@@ -2,6 +2,55 @@ import { expect, test } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => { await page.emulateMedia({ reducedMotion: "reduce" }); });
 
+test("explorer un écart conserve le contexte, demande un envoi et épingle sans persister", async ({ page }) => {
+  let submissions = 0;
+  let stateWrites = 0;
+  page.on("request", (request) => {
+    if (request.method() === "POST" && request.url().includes("/api/genie/")) submissions++;
+    if (["POST", "PUT"].includes(request.method()) && request.url().includes("/api/saved-analyses")) stateWrites++;
+  });
+  await page.goto("/visualizations");
+  const comparison = page.getByRole("region", { name: "Comparer deux périodes", exact: true });
+  const explore = comparison.getByRole("button", { name: "Explorer cet écart avec Genie", exact: true });
+  await expect(explore).toBeEnabled();
+  await comparison.getByLabel("Segment commun aux deux périodes").selectOption('"Web"');
+  await expect(explore).toBeDisabled();
+  await comparison.getByRole("button", { name: "Comparer les périodes", exact: true }).click();
+  await expect(explore).toBeEnabled();
+  await explore.focus();
+  await page.keyboard.press("Enter");
+  const chat = comparison.getByRole("region", { name: "Conversation Genie, space fraim-sales" });
+  const input = chat.getByRole("textbox", { name: "Question pour Genie" });
+  await expect(input).toHaveValue(/2026-08-18–2026-08-31/);
+  await expect(input).toBeFocused();
+  await expect(chat.getByText("Démo synthétique · aucune connexion", { exact: true })).toBeVisible();
+  expect(submissions).toBe(0);
+  const sent = page.waitForRequest((request) => request.method() === "POST" && request.url().includes("/api/genie/"));
+  await input.press("Enter");
+  const payload = (await sent).postDataJSON();
+  expect(payload.context.comparison).toMatchObject({ synthetic: true,
+    currentPeriod: { start: "2026-09-01", end: "2026-09-14" }, referencePeriod: { start: "2026-08-18", end: "2026-08-31" } });
+  expect(payload.context.filters.segment).toContain("Web");
+  await expect(chat.getByText(/Aucune requête Databricks n’a été exécutée/)).toBeVisible();
+  await chat.getByRole("button", { name: "Épingler ce résultat au dashboard", exact: true }).click();
+  await expect(comparison.getByRole("region", { name: "Résultats épinglés de la comparaison" })).toBeVisible();
+  expect(submissions).toBe(1);
+  expect(stateWrites).toBe(0);
+  expect(await page.evaluate(() => Object.keys(localStorage).filter((key) => key !== "analytics-theme"))).toEqual([]);
+  expect(await page.evaluate(() => sessionStorage.length)).toBe(0);
+  await page.getByRole("button", { name: "Thème sombre", exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await comparison.screenshot({ path: "test-results/comparison-genie-mobile-dark.png" });
+  await comparison.getByLabel("Comparer avec").selectOption("previous-year");
+  await comparison.getByRole("button", { name: "Comparer les périodes", exact: true }).click();
+  await expect(chat).toHaveCount(0);
+  await expect(comparison.getByRole("region", { name: "Résultats épinglés de la comparaison" })).toHaveCount(0);
+  await explore.click();
+  await expect(input).toHaveValue(/2025-09-01–2025-09-14/);
+  expect(submissions).toBe(1);
+});
+
 test("périodes, filtre commun, décomposition et tableau accessible", async ({ page }) => {
   await page.goto("/visualizations");
   const comparison = page.getByRole("region", { name: "Comparer deux périodes", exact: true });

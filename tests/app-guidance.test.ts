@@ -151,7 +151,7 @@ test("a Genie-only app keeps its capabilities across guide runs without changing
   const plan = JSON.parse(execFileSync(process.execPath, ["scripts/app-capabilities.mjs", "--json"], { cwd: root, encoding: "utf8" }));
   assert.deepEqual(plan.capabilities.map((item: { id: string }) => item.id), ["genie"]);
   assert.equal(plan.activatesPlugins, false);
-  assert.equal(plan.capabilities[0].availability, "adapter");
+  assert.equal(plan.capabilities[0].availability, "integrated");
   assert.equal(await readFile(join(root, "config/data-access.json"), "utf8"), before);
   const brief = await readFile(join(root, "docs/product-brief.md"), "utf8");
   assert.match(brief, /\*\*genie\*\*/);

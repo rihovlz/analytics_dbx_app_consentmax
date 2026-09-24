@@ -41,6 +41,9 @@ test("personal definitions accept filters only and reject unknown versions, URLs
   }
   assert.equal(analysisInputSchema.safeParse({ ...analysis, definition: { ...analysis.definition, schemaVersion: 2 } }).success, false);
   assert.equal(analysisInputSchema.safeParse({ ...analysis, title: "   " }).success, false);
+  const comparison = { currentValue: 1200, referenceValue: 1000, absoluteChange: 200 };
+  assert.equal(analysisInputSchema.safeParse({ ...analysis, context: { comparison } }).success, false);
+  assert.equal(analysisInputSchema.safeParse({ ...analysis, definition: { ...analysis.definition, comparison } }).success, false);
 });
 
 test("CRUD and preferences survive service recreation and remain private to their owner", async () => {

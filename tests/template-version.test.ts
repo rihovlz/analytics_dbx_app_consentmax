@@ -34,7 +34,7 @@ test("declares the historical baselines and the current 2.0.0 template", async (
   assert.deepEqual(manifest.versions["1.5.0"].capabilities, ["personal-user-state"]);
   assert.equal(manifest.versions["2.0.0"].sourceCommit, "8b779bcb363a7c57bdea12342964601d0acdfef4");
   assert.equal(manifest.versions["2.0.0"].extends, "1.5.0");
-  assert.deepEqual(manifest.versions["2.0.0"].capabilities, ["appkit-native-runtime", "upstream-compatibility", "guided-appkit-capabilities", "period-comparison"]);
+  assert.deepEqual(manifest.versions["2.0.0"].capabilities, ["appkit-native-runtime", "upstream-compatibility", "guided-appkit-capabilities", "period-comparison", "appkit-genie-integration"]);
   assert.ok(manifest.capabilities["guided-appkit-capabilities"].probes.some(
     (probe: { type: string; name?: string }) => probe.type === "packageScript" && probe.name === "app:orchestrate",
   ));

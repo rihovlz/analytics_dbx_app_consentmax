@@ -62,8 +62,8 @@ Le cadrage, la démo et les tests locaux continuent sans accès Databricks.
 | Créer un nouveau scaffold AppKit | Utiliser le clone Valiuz et `init-app` ; conserver les fichiers d'une app existante |
 | SQL générique par `queryKey` ou `useAnalyticsQuery` | Passer par route → service → repository → `SqlExecutor` ; ne pas monter de route générique |
 | Remplacer l'UI par les composants AppKit | Réutiliser les composants Valiuz ; adopter un composant utile après correspondance des tokens et tests des états |
-| Activer `genie()` et reprendre les exemples de chat | Garder `GenieChat`, l'OBO obligatoire et le transport actuel jusqu'à validation de la parité |
-| Ajouter une route d'identité ou un fallback service principal | Réutiliser le contrat d'identité du template ; aucun fallback pour un appel Genie sans OBO |
+| Activer `genie()` et reprendre les exemples de chat | Utiliser le plugin programmatique via le service Genie ; garder le client de compatibilité et suivre [le parcours Genie](genie.md) |
+| Ajouter une route d'identité ou un fallback service principal | Réutiliser `/api/genie/:alias/session` et le résolveur d'identité ; aucun fallback sans OBO |
 | Choisir Lakebase pour tout état persistant | Garder l'état personnel Delta optionnel ; évaluer Lakebase pour un besoin transactionnel distinct |
 | Laisser Genie One chercher parmi toutes les données visibles | Respecter le périmètre autorisé ; une restriction dans un prompt ne remplace pas un contrôle d'accès |
 | Donner tous les outils disponibles à un agent | Déclarer les outils nécessaires et leur identité ; tester les refus et l'approbation des mutations |

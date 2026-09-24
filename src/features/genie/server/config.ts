@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ResourceType, type PluginManifest } from "@databricks/appkit";
 
 import rawGenieSpaces from "../../../../config/genie-spaces.json";
 import { GenieError } from "@/features/genie/server/errors";
@@ -98,6 +99,20 @@ function parseSpaces(): ParsedSpaces {
     throw new ConfigurationError("Invalid Genie spaces configuration", parsed.error.flatten());
   }
   return parsed.data;
+}
+
+export function resolveGeniePluginSpaces(environment: Record<string, string | undefined> = process.env): Record<string, string> {
+  return Object.fromEntries(parseSpaces().spaces.flatMap((space) => space.aliases.map((alias) => [
+    alias, resolveGenieRuntimeConfiguration(alias, environment).space.spaceId,
+  ])));
+}
+
+export function genieResourceRequirements(): PluginManifest["resources"] {
+  return { required: parseSpaces().spaces.map((space) => ({
+    type: ResourceType.GENIE_SPACE, alias: space.displayName, resourceKey: space.key, permission: "CAN_RUN",
+    description: "Genie Space declared by the application",
+    fields: { id: { env: space.environmentVariable, description: "Declared Genie Space ID" } },
+  })), optional: [] };
 }
 
 function findSpace(alias: string, spaces: ParsedSpaces): SpaceDefinition {

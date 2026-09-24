@@ -58,6 +58,7 @@ versions:
       - upstream-compatibility
       - guided-appkit-capabilities
       - period-comparison
+      - appkit-genie-integration
 capabilities:
   guided-app-workflow:
     since: 1.0.0
@@ -388,6 +389,25 @@ capabilities:
         text: --date-column
       - type: file
         path: docs/period-comparison.md
+  appkit-genie-integration:
+    since: 2.0.0
+    description: Plugin Genie programmatique, identité par requête et exploration facultative des comparaisons.
+    probes:
+      - type: file
+        path: src/server/genie-plugin.ts
+      - type: fileContains
+        path: src/server/index.ts
+        text: appkit.genie.sendMessage
+      - type: file
+        path: src/features/genie/server/appkit-client.ts
+      - type: file
+        path: src/server/routes/genie/[alias]/session/route.ts
+      - type: file
+        path: src/features/period-comparison/comparison-genie.tsx
+      - type: file
+        path: .agents/skills/create-analytics-dbx-app/references/genie.md
+      - type: file
+        path: docs/genie.md
 upgrades:
   - from: 1.0.0
     to: 1.1.0

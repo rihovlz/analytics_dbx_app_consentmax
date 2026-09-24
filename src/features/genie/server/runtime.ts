@@ -69,6 +69,7 @@ export async function createGenieMessageResponse(
     return createGenieSseResponse(
       releaseConcurrencySlot(streamGenieMessage(body, {
         client,
+        alias,
         spaceId: configuration.space.spaceId,
         requestId,
         signal,

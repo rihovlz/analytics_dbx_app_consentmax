@@ -41,7 +41,7 @@ Afficher toutes les options avec `npm run app:capabilities -- --all` ou ajouter 
 | Capacité | Usage | État dans le template |
 | --- | --- | --- |
 | `analytics` | KPI, filtres, agrégations | Intégrée via `SqlExecutor` ; lectures supportées par AppKit |
-| `genie` | Questions sur les données | UI et transport existants conservés ; exception suivie |
+| `genie` | Questions sur les données | Plugin programmatique actif ; client de compatibilité et chat Valiuz |
 | `personal-state` | Analyses et préférences | Fonction Valiuz optionnelle, sans nouveau plugin |
 | `files` | Fichiers dans des Volumes UC | Plugin GA disponible ; intégration de feature à réaliser |
 | `serving` | Prédiction ou génération | Plugin GA disponible ; intégration de feature à réaliser |
@@ -137,3 +137,9 @@ Un outil personnalisé ne garantit pas l'OBO. Tester son identité réelle avant
 Tester les demandes hors périmètre, les instructions contenues dans des documents, l'isolation et l'interruption.
 Les mutations nécessitent une approbation adaptée et ne doivent pas être rejouées après un résultat ambigu.
 Lire la [documentation Agents](https://developers.databricks.com/docs/appkit/v0/plugins/agents) et les [niveaux de stabilité](https://developers.databricks.com/docs/appkit/v0/plugins/stability).
+
+## Genie
+
+Suivre [le parcours Genie](genie.md) pour cadrer le Space, préparer les définitions et vérifier les réponses.
+`app next` rappelle cette revue lorsque Genie est sélectionné. Le plugin runtime et les skills de développement sont distincts.
+Les mises à jour AppKit doivent préserver OBO, envoi unique, annulation, erreurs sûres et résultats bornés.

@@ -71,3 +71,11 @@ Voir `docs/local-development.md` et `docs/deployment.md` pour les commandes et l
 Conserver la reprise dans `docs/creation-progress.md` selon [orchestration.md](orchestration.md).
 Après une étape significative, dire brièvement ce qui fonctionne, la principale inconnue et la prochaine action.
 Une même personne peut tenir toutes les responsabilités ; identifier un autre validateur seulement si le contexte l'exige.
+
+## Quand Genie accompagne l’analyse
+
+Suivre [le parcours Genie](genie.md) pour préparer le Space et ses questions de référence.
+Une comparaison peut ouvrir une question préremplie avec périodes, filtres, valeurs et réserves visibles.
+Utiliser seulement une comparaison appliquée et un Space couvrant les mêmes sources et définitions.
+Conserver ce contexte en mémoire ; ne pas persister les valeurs, réponses ou résultats dans l’état personnel.
+Une contribution mesurée ne suffit pas à expliquer une cause.

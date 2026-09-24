@@ -31,6 +31,7 @@ import {
   StopIcon,
 } from "@/features/genie/genie-icons";
 import { GenieMarkdown } from "@/features/genie/genie-markdown";
+import { GenieIdentity } from "@/features/genie/genie-identity";
 import { GenieResultRenderer } from "@/features/genie/genie-result-renderer";
 import { createPinnedGenieAnswer } from "@/features/genie/pinning";
 import {
@@ -45,6 +46,7 @@ export type GenieChatVariant = "standalone" | "embedded" | "panel" | "floating";
 export type GenieChatProps = {
   alias: string;
   context?: GenieDashboardContext;
+  initialQuestion?: string;
   height?: number | string;
   variant?: GenieChatVariant;
   onPin?: (insight: PinnedGenieInsight) => void | Promise<void>;
@@ -93,6 +95,8 @@ function getContextChips(context?: GenieDashboardContext) {
       chips.push({ id: "date-range", label: range });
     }
   }
+  if (context.comparison) chips.push({ id: "reference-period",
+    label: `Référence : ${context.comparison.referencePeriod.start} → ${context.comparison.referencePeriod.end}` });
   Object.entries(context.filters ?? {}).forEach(([name, value]) => {
     chips.push({ id: `filter-${name}`, label: `${name} : ${formatContextValue(value)}` });
   });
@@ -570,6 +574,7 @@ function AssistantMessage({
         <SparklesIcon className="size-4.5" />
       </span>
       <div className="min-w-0 flex-1 space-y-3">
+        <p className="text-xs text-muted">Réponse à vérifier avec les sources et les définitions métier avant partage.</p>
         {showStatus ? <GenieStatusTrace message={message} /> : null}
         {message.error ? <GenieErrorCard error={message.error} onRetry={message.error.retryable && !message.trackingStopped ? onRetry : undefined} /> : null}
         {message.status === "CANCELLED" && !hasAnswer ? (
@@ -634,12 +639,13 @@ export function GenieChat({
   alias,
   context,
   height,
+  initialQuestion = "",
   variant = "standalone",
   onPin,
   onSave,
 }: GenieChatProps) {
   const prefersReducedMotion = useReducedMotion();
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState(initialQuestion);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
@@ -772,6 +778,7 @@ export function GenieChat({
                 <LockIcon className="size-3.5 shrink-0" />
                 <span className="truncate">{alias} · accès gouverné côté serveur</span>
               </p>
+              <GenieIdentity alias={alias} />
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
@@ -880,6 +887,7 @@ export function GenieChat({
           <form onSubmit={handleSubmit} className="mx-auto max-w-4xl">
             <div className="flex items-end gap-2 rounded-2xl border border-line bg-canvas p-2 shadow-inner transition focus-within:border-brand focus-within:bg-surface focus-within:shadow-panel">
               <textarea
+                autoFocus={Boolean(initialQuestion)}
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={handleComposerKeyDown}

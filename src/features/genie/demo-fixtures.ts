@@ -2,7 +2,18 @@ import type {
   GenieMessageResult,
   GenieMessageStatus,
   GenieQueryResult,
+  GenieDashboardContext,
 } from "@/features/genie/contract";
+
+export function demoComparisonResult(comparison: NonNullable<GenieDashboardContext["comparison"]>): GenieQueryResult {
+  return {
+    attachmentId: "demo-period-comparison", statementId: null, title: "Comparaison synthétique",
+    description: "Valeurs du contexte de démonstration, sans requête Databricks.", sql: null,
+    columns: [{ name: "Période", type: "STRING" }, { name: comparison.metric, type: "DOUBLE" }],
+    rows: [["Référence", comparison.referenceValue], ["Période analysée", comparison.currentValue]],
+    rowCount: 2, truncated: false,
+  };
+}
 
 export const DEMO_GENIE_CONVERSATION_ID = "11111111111111111111111111111111";
 export const DEMO_GENIE_MESSAGE_ID = "22222222222222222222222222222222";

@@ -118,6 +118,7 @@ test("non-SQL and beta requests route to integration without requiring a KPI or 
   assert.equal(plan.integrationReview.find((item) => item.id === "agents")?.stability, "beta");
   assert.ok(plan.integrationReview.every((item) => item.status === "review-required"));
   assert.equal(plan.readOnly, true);
+  assert.equal(plan.workflow.steps.find((step) => step.id === "genie")?.status, "review-required");
   assert.equal(plan.workflow.steps.find((step) => step.id === "metrics")?.status, "not-applicable");
   assert.equal(plan.workflow.steps.find((step) => step.id === "preparation")?.status, "not-applicable");
   assert.ok(!plan.localSkills.includes("validate-analytics-kpis"));
@@ -163,6 +164,7 @@ test("skill setup proposes only missing skills for the current phase and never r
   assert.ok(plan.upstream.missingInstall?.args.includes("--skills-only"));
   assert.ok(!plan.upstream.missingInstall?.args.join(" ").includes("databricks-dabs"));
   assert.equal(plan.readOnly, true);
+  assert.equal(plan.workflow.steps.find((step) => step.id === "genie"), undefined);
   // PATH is empty throughout this fixture: no installed CLI or workspace is needed.
   const directory = join(f.root, "external-skills");
   for (const name of ["databricks-apps", "databricks-core"]) await mkdir(join(directory, name), { recursive: true });

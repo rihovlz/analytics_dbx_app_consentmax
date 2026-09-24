@@ -6,6 +6,9 @@ import { resolvePeriods, selectionSchema, defaultSelection, shiftDate, type Peri
 import { DEMO_SELECTION, demoComparison } from "../src/features/period-comparison/demo";
 import { GET } from "../src/server/routes/period-comparison/route";
 import { buildWaterfall } from "../src/components/charts/waterfall-model";
+import { comparisonGenieContext, comparisonGenieQuestion } from "../src/features/period-comparison/genie-context";
+import { buildGenieMessageContent } from "../src/features/genie/context";
+import { genieMessageRequestSchema } from "../src/features/genie/contract";
 
 const selection: PeriodSelection = { start: "2024-03-30", end: "2024-03-31", mode: "previous-period" };
 function row(period: "current" | "reference", segment: string | null, value: number | null, count = 1): ComparisonRow {
@@ -14,6 +17,23 @@ function row(period: "current" | "reference", segment: string | null, value: num
 function compare(rows: ComparisonRow[], options: Partial<Parameters<typeof buildComparison>[0]> = {}) {
   return buildComparison({ rows, selection, aggregation: "sum", breakdown: true, label: "Montant", unit: "EUR", sourceLabel: "Fixture", ...options });
 }
+
+test("Genie receives the applied periods, shared filters, exact observations and quality warnings without detailed rows", () => {
+  const result = demoComparison({ ...DEMO_SELECTION, mode: "custom", referenceStart: "2026-08-01", referenceEnd: "2026-08-07", segment: '"Web"' });
+  const context = comparisonGenieContext(result, { activeTables: ["declared.source"], filters: { country: "FR" } });
+  const request = genieMessageRequestSchema.parse({ content: comparisonGenieQuestion(result), context });
+  assert.deepEqual(request.context?.comparison?.referencePeriod, { start: "2026-08-01", end: "2026-08-07" });
+  assert.deepEqual(request.context?.comparison?.warnings, result.warnings);
+  assert.equal(request.context?.comparison?.currentValue, result.current.value);
+  assert.equal(request.context?.filters?.country, "FR");
+  assert.equal(request.context?.filters?.segment, result.filterLabel);
+  assert.equal(request.context?.comparison?.synthetic, true);
+  assert.ok(!("series" in request.context!));
+  assert.ok(!("segments" in request.context!));
+  assert.match(buildGenieMessageContent(request.content, request.context), /ne prouvent aucune causalité/);
+  assert.match(buildGenieMessageContent(request.content, request.context), /durées différentes/);
+  assert.equal(genieMessageRequestSchema.safeParse({ ...request, context: { ...context, comparison: { ...context.comparison, currentValue: Infinity } } }).success, false);
+});
 
 test("periods use inclusive civil dates across DST and year boundaries", () => {
   assert.deepEqual(resolvePeriods(selection), {

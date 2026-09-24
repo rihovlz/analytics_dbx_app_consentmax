@@ -294,3 +294,7 @@ ne demande aucun profil ; les anciennes valeurs de `--role` restent des priorit�
 `app next` expose aussi les revues métier, qualité, calcul, préparation, interface, tests et livraison.
 Fusionner les références du skill et conserver les contrats et notes existants, sans relancer l'initialisation.
 Le rollback conserve les tables et redéploie la révision précédente.
+
+La 2.0.0 non publiée inclut aussi `appkit-genie-integration` : plugin Genie programmatique, compatibilité OBO et
+annulation, identité visible et exploration facultative des comparaisons. Les contrats et limites sont décrits dans
+[Genie](genie.md). Cette addition reste dans la migration major 1.5 → 2.0 ; les tables personnelles sont préservées.

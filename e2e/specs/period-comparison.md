@@ -15,3 +15,13 @@ L'utilisateur veut comparer un montant entre deux périodes et lire la contribut
 Les calculs indépendants, références nulles/négatives, dates invalides, limites, moyennes et résidus sont aussi couverts
 en tests unitaires. Le SQL généré est vérifié par un executor factice dans le parcours consommateur.
 Hors scope : exécution Databricks, qualité réelle des données, fuseau d'une colonne TIMESTAMP et preuve de causalité.
+
+## Exploration Genie de la comparaison
+
+En mode démo, appliquer le segment Web, ouvrir l’exploration au clavier et vérifier la question préremplie.
+Aucun POST ne part avant l’envoi. Vérifier les deux périodes et le filtre dans le POST, puis la réponse synthétique.
+Épingler une carte sans écriture personnelle ni stockage navigateur. Vérifier l’identité synthétique affichée.
+Changer de comparaison doit fermer l’ancien chat et retirer les cartes temporaires.
+Vérifier le panneau en thème sombre à 390 px, sans débordement horizontal.
+Le SQL inspectable, le refus de permission et l’interruption restent couverts dans `genie-chat.spec.ts`.
+La qualité d’un Space réel et ses droits sont hors de cette recette locale.

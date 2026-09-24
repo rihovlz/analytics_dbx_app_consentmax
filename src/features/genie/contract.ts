@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const MAX_GENIE_RESULT_ROWS = 500;
+
 const contextTextSchema = z.string().trim().min(1).max(500);
 const contextListSchema = z.array(contextTextSchema).max(30);
 const contextScalarSchema = z.union([
@@ -12,6 +14,9 @@ const contextFilterValueSchema = z.union([
   contextScalarSchema,
   z.array(contextScalarSchema).max(50),
 ]);
+
+const comparisonPeriodSchema = z.object({ start: contextTextSchema, end: contextTextSchema }).strict();
+const comparisonValueSchema = z.number().finite().nullable();
 
 export const genieDashboardContextSchema = z
   .object({
@@ -35,6 +40,13 @@ export const genieDashboardContextSchema = z
     selectedMetrics: contextListSchema.optional(),
     visibleMetrics: contextListSchema.optional(),
     activeTables: contextListSchema.optional(),
+    comparison: z.object({
+      metric: contextTextSchema, unit: contextTextSchema, aggregation: z.enum(["count", "sum", "avg"]),
+      currentPeriod: comparisonPeriodSchema, referencePeriod: comparisonPeriodSchema,
+      currentValue: comparisonValueSchema, referenceValue: comparisonValueSchema,
+      absoluteChange: comparisonValueSchema, percentChange: comparisonValueSchema,
+      source: contextTextSchema, synthetic: z.boolean(), warnings: z.array(contextTextSchema).max(12),
+    }).strict().optional(),
   })
   .strict()
   .superRefine((context, issueContext) => {
@@ -54,6 +66,11 @@ export const genieDashboardContextSchema = z
   });
 
 export type GenieDashboardContext = z.infer<typeof genieDashboardContextSchema>;
+
+export const genieSessionSchema = z.object({
+  mode: z.enum(["demo", "obo", "oauth-u2m-cli", "pat"]),
+  label: z.string().max(300),
+}).strict();
 
 export const genieConversationIdSchema = z
   .string()

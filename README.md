@@ -180,6 +180,11 @@ d’accessibilité.
 
 ## Assistant Genie conversationnel
 
+En mode Databricks, le flux passe par le plugin Genie d’AppKit et un client de compatibilité lié à chaque requête.
+Le chat Valiuz conserve l’identité OBO, le contexte, le SQL inspectable et l’épinglage. Voir [le contrat et le parcours Genie](docs/genie.md).
+Depuis une comparaison compatible, la prop facultative `genie` ouvre une question préremplie avec les deux périodes,
+les filtres et les réserves de qualité. L’utilisateur relit puis envoie la question ; les cartes restent en mémoire.
+
 La page `/genie` montre le composant `GenieChat` en vue autonome et à côté de KPI. Le mode démo utilise une
 conversation synthétique. Il ne contacte pas Databricks et ne demande aucun jeton.
 
@@ -211,7 +216,7 @@ Le client envoie uniquement l’alias, la question et un contexte validé. Le se
 message et appelle l’API Conversation. Dans Databricks Apps, il utilise `x-forwarded-access-token` pour chaque
 utilisateur. Le jeton ne passe jamais dans les propriétés React, le JSON de réponse ou les logs.
 
-Le runtime AppKit sert une route Express dédiée. Le transport Genie conserve ses garanties ; voir [les exceptions AppKit](docs/appkit-maintenance.md).
+La route Express dédiée utilise le plugin Genie programmatique. Le client de compatibilité préserve les garanties décrites dans [les exceptions AppKit](docs/appkit-maintenance.md).
 La route accepte uniquement les requêtes JSON de même origine. Elle limite le corps à 64 Kio, la question à 10 000
 caractères et le contexte sérialisé à 12 000 caractères. Elle résout ensuite le Space et l’identité côté serveur.
 

@@ -45,6 +45,8 @@ Pour une migration explicitement demandée, suivre le parcours ci-dessous avant 
   Ne pas lancer `init-app` sur l'ancienne app. Porter et tester ses adaptations avant de déclarer sa nouvelle version.
 - Pour choisir les capacités AppKit et consulter les bons skills amont, lire
   [references/appkit-capabilities.md](references/appkit-capabilities.md). Le faire pendant le cadrage, puis lors d'un nouveau besoin.
+- Pour ajouter Genie ou explorer un écart depuis un dashboard, lire [le parcours Genie](references/genie.md).
+  Il couvre sources, Space, définitions, intégration AppKit, questions de référence et recette avec les droits réels.
 - Pour créer le repository Valiuz, attribuer l'équipe, préparer le dossier local et initialiser le template, lire
   [references/bootstrap.md](references/bootstrap.md).
 - Pour cadrer le besoin, les KPI, les sources et les requêtes, lire

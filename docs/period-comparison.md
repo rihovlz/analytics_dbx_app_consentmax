@@ -79,3 +79,12 @@ Relire DATE/fuseau, grain, population, doublons, unité, additivité, fenêtres,
 le skill `validate-analytics-kpis`. Les fixtures prouvent les calculs locaux et les bindings ; elles ne prouvent pas
 l'exécution du SQL sur votre source. Effectuer ensuite une lecture bornée sur la cible convenue et comparer à un calcul indépendant.
 Les changements de déploiement suivent [le runbook existant](deployment.md).
+
+## Explorer la comparaison avec Genie
+
+La prop facultative `genie={{ alias: "sales" }}` ajoute une entrée vers un Space configuré.
+Elle utilise la comparaison affichée, avec ses deux périodes, ses filtres, ses valeurs et ses réserves.
+Une sélection non appliquée désactive le bouton. La question est préremplie, modifiable et envoyée explicitement.
+Le Space doit couvrir les mêmes sources et définitions. Les observations du navigateur restent à vérifier.
+Les cartes épinglées restent en mémoire ; elles ne rejoignent pas les tables d’état personnel.
+Voir [le contrat et la recette Genie](genie.md). La démo `/visualizations` active ce lien uniquement en mode démo.
