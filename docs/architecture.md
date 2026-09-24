@@ -6,10 +6,27 @@ Le template sépare le socle de plateforme des futures fonctionnalités métier.
 services et des repositories sans modifier l’authentification, le logging ou le client SQL. Les abstractions restent
 volontairement courtes : une interface `SqlExecutor`, un wrapper HTTP et une taxonomie d’erreurs.
 
+Le parcours de création utilise `config/appkit-capabilities.json` pour relier les usages aux capacités et aux skills amont.
+`config/app-spec.yml` garde les capacités envisagées. Ce cadrage ne configure pas le runtime et ne crée aucune ressource.
+Une intégration non SQL conserve route → service → repository/adaptateur, avec le contrat décrit dans
+[le guide des capacités](appkit-capabilities.md). Les skills de développement restent séparés des éventuels agents exécutés dans l'app.
+
+`app:orchestrate` compose les contrôles locaux, la spec et la présence des fichiers pour proposer une reprise.
+Il ne modifie rien et n'exécute pas les commandes proposées. Le skill de création conduit ensuite les actions autorisées.
+Les notes `docs/creation-progress.md` conservent les décisions et les résultats observés, sans servir de preuve automatique.
+Les générateurs et le runtime ne dépendent pas de ces notes.
+
+`npm run app` expose une entrée commune qui délègue aux commandes existantes, sans moteur de workflow supplémentaire.
+`app prompt --idea <besoin>` couvre le parcours complet pour une personne. Les anciens `--role` restent des priorités facultatives.
+Le champ `workflow` de `app next` expose les revues du besoin à la mise en service et les contrats data déclarés.
+Il ne calcule aucun état de réussite depuis les notes ou la présence de fichiers. La revue KPI intervient dès la conception.
+`app migrate` lit une ancienne app et les guides du checkout cible. Il n'exécute ni ses scripts ni un portage automatique.
+Les inventaires statiques et versions déclarées restent à vérifier par l'agent. Voir [le parcours CLI](cli-workflow.md).
+
 ```text
 Browser / React
       ↓ JSON agrégé
-Next.js route + withApiRoute
+Express route + withApiRoute
       ↓
 Feature service (orchestration métier)
       ↓
@@ -22,7 +39,7 @@ Databricks SQL Warehouse → Unity Catalog
 
 ## Boundaries
 
-- `src/app` compose les pages et expose les endpoints ; aucune requête SQL n’y vit.
+- `src/client` compose les pages React. `src/server` expose les endpoints Express. Aucun de ces dossiers ne contient de SQL métier.
 - `src/components` contient le shell, les états et les visualisations génériques.
 - `src/features` contient les vertical slices fonctionnelles. Les modules sous `server/` ne sont importés que par le
   serveur.
@@ -32,8 +49,9 @@ Databricks SQL Warehouse → Unity Catalog
 
 ## Configuration et runtime
 
-`parseAppDisplayConfig` lit uniquement le mode, le nom, la description et le contact. Next.js peut utiliser cette
-configuration pendant le build sans credentials Databricks.
+`parseAppDisplayConfig` lit uniquement le mode, le nom, la description et le contact.
+`/api/config` ajoute les flags personnels et valide le contrat public strict avant transmission au navigateur.
+Le build Vite ne lit pas les credentials. Le serveur valide la configuration avant le démarrage AppKit.
 
 `parseServerConfig` accepte les modes `demo` et `databricks`. Le mode `databricks` refuse une variable runtime
 manquante. En local, il utilise en priorité un jeton OAuth U2M fourni par un profil Databricks CLI. Un PAT court terme
@@ -45,7 +63,7 @@ chaque source déclarée dans `config/data-access.json`. Ces usages ont ainsi de
 
 ## Flux conversationnel Genie
 
-`GenieChat` envoie une question et un contexte borné à une route Next.js. Le contexte contient les filtres, la période,
+`GenieChat` envoie une question et un contexte borné à une route Express. Le contexte contient les filtres, la période,
 les métriques visibles, les tables actives et la page. Le serveur produit un texte déterministe avant l’appel à Genie.
 
 ```text
@@ -53,7 +71,7 @@ GenieChat
       ↓ question + contexte + alias
 Route SSE avec withApiRoute
       ↓ jeton x-forwarded-access-token, serveur uniquement
-Service Genie → client Conversation API
+Service Genie → plugin AppKit Genie.sendMessage → client de compatibilité par requête
       ↓ statuts + texte + pièces jointes de requête
 Table, BigNumberKPI ou graphique + SQL repliable
 ```
@@ -62,9 +80,12 @@ Le navigateur connaît uniquement l’alias du Space. Le serveur charge `config/
 variable d’environnement liée. Les modules sous `src/features/genie/server` isolent le jeton, le client HTTP, le
 polling borné et la validation Zod des réponses.
 
-Le template utilise une Route Handler Next.js, car il ne contient pas de runtime AppKit. Il n’ajoute aucun gateway IA.
-La route exige du JSON de même origine avant de lire l’identité OBO. Le lecteur arrête le flux entrant au-delà de
-64 Kio. Le contrat limite aussi la question à 10 000 caractères et le contexte sérialisé à 12 000 caractères.
+Le plugin privé `src/server/genie-plugin.ts` conserve l’implémentation programmatique AppKit et désactive ses routes génériques.
+Ses ressources reprennent les alias et variables du registre Genie. `server/appkit-client.ts`, dans la feature, fournit
+au plugin un client de requête via AsyncLocalStorage, sans recours à l’identité de service. Les exceptions HTTP restent
+bornées et testées. Voir [le contrat Genie](genie.md).
+La route exige du JSON de même origine avant de lire l’identité OBO. Le parseur JSON Express fourni par AppKit
+borne le corps décodé à 64 Kio. Le contrat limite aussi la question à 10 000 caractères et le contexte sérialisé à 12 000 caractères.
 
 Le `POST` de soumission est exécuté une seule fois. Seuls les `GET` de statut et de résultat sont retentés après une
 erreur transitoire. Chaque lecture accepte cinq reprises au maximum. Le délai exponentiel de 1 à 5 secondes utilise un
@@ -75,20 +96,25 @@ variables `GENIE_MAX_CONCURRENT_STREAMS` et `GENIE_MAX_CONCURRENT_STREAMS_PER_US
 acceptent des entiers de 1 à 100, et la limite utilisateur ne peut pas dépasser la limite globale. Le mode démo ne
 réserve aucun slot. Cette protection n’est pas distribuée entre plusieurs réplicas.
 
-Le flux SSE transmet les statuts dès leur disponibilité. L’API Genie ne fournit pas de delta de texte. Le client
+Le flux SSE suit les événements AppKit : statuts, message final puis résultats de pièces jointes.
+Le client utilise `connectSSE` avec `maxRetries: 0` et attend la fin complète du flux avant de permettre une suite. L’API Genie ne fournit pas de delta de texte. Le client
 révèle donc la réponse finale progressivement. Des commentaires heartbeat gardent le flux actif pendant une attente.
 Le mode de mouvement réduit affiche le texte sans cette transition.
 
 L’arrêt du `fetch` navigateur termine seulement le suivi local. Il ne prouve pas que Databricks a annulé le traitement.
 La session cliente devient non continuable et demande une nouvelle conversation. Dès l’envoi du `POST`, toute erreur
-cliente, réseau ou de flux rend la création distante ambiguë. Le client interdit alors le rejeu. Seul un refus HTTP
-explicite reçu avant le début du flux peut rester rejouable.
+cliente, réseau ou de flux rend la création distante ambiguë. Le client interdit alors le rejeu. Cette règle vaut aussi
+pour un refus HTTP avant le flux : le lecteur ne fournit au client que le statut HTTP.
 
 Le rendu Markdown ne crée jamais de balise d’image. Il active uniquement les liens HTTP(S), les chemins de même origine
 qui commencent par un seul `/` et les fragments. Une destination refusée conserve son libellé sans `href`.
 
 Le serveur expose seulement le premier chunk inline, avec une limite de 500 lignes. Le champ `truncated` signale un
 résultat plus grand. Les liens de téléchargement signés ne passent jamais dans le navigateur.
+
+`GET /api/genie/:alias/session` expose seulement le mode et le libellé d’identité, avec `private, no-store`.
+La comparaison peut transmettre ses deux périodes, filtres et observations agrégées dans un contexte borné.
+Ce contexte est une entrée utilisateur à vérifier. Il reste en mémoire, avec les cartes épinglées.
 
 Les contrats `PinnedGenieInsight` et `GenieConversationSnapshot` peuvent contenir la réponse, le SQL et les lignes
 gouvernées. Ils ne fournissent aucun stockage partagé. Un stockage privé doit rester lié à l’utilisateur connecté.
@@ -102,8 +128,22 @@ l’épinglage sans contacter Databricks.
 `config/app-spec.yml` est la source de vérité courte du cadrage. `app:guide` la synchronise avec
 `docs/product-brief.md`. Ensuite, `feature:new` génère une première tranche verticale. Le SQL généré accepte seulement
 `count`, `sum` et `avg` sur une source déclarée. Le repository délimite chaque segment de l'identifiant avant le binding.
+La variante `--date-column` utilise les contrats purs de `src/features/period-comparison`, tout en conservant le SQL
+dans le repository généré. Deux fenêtres bornées alimentent les valeurs, séries et contributions facultatives.
+`--breakdown-column` ajoute une segmentation disjointe ; le waterfall automatique est limité aux mesures additives.
+La route `/api/period-comparison/demo` appelle un service synthétique, sans accès Databricks.
+Voir [le contrat de comparaison](period-comparison.md), ses limites et ses critères de complétude.
 
-Ces scripts sont des outils de développement. Ils ne sont ni importés par le runtime Next.js ni exécutés au démarrage
+Le partage facultatif reste dans `src/features/period-comparison`.
+`sharing.ts` valide la définition versionnée, construit le lien et prépare la synthèse du résultat affiché.
+`comparison-sharing.tsx` fournit le panneau et les actions de copie.
+Le fragment du lien contient seulement les périodes résolues et le filtre autorisé pour une vue connue.
+L'ouverture valide la définition avant d'appeler l'API habituelle. Elle conserve les accès de cette API et recalcule les données courantes.
+Un lien invalide ne déclenche pas de résultat par défaut. Aucun résultat n'est stocké par le partage.
+La synthèse copiée reste un texte daté, avec les réserves du résultat et un lien de reprise.
+Les contrats d'état personnel et Genie restent distincts de cette définition.
+
+Ces scripts sont des outils de développement. Ils ne sont ni importés par le runtime AppKit ni exécutés au démarrage
 de l'app. `app:doctor` contrôle leur cohérence et propose une prochaine action sans corriger ou déployer automatiquement.
 
 ## Contrat de version du template
@@ -115,7 +155,7 @@ utilise des sondes locales. Une sonde contrôle un fichier, un marqueur de fichi
 contient aucune configuration Databricks, aucune donnée métier et aucun credential.
 
 `template:status`, `template:check`, `template:diff` et `template:release:check` sont des outils de développement.
-Next.js ne les importe pas. Databricks Apps ne les exécute pas au runtime. Le diff décrit une migration, mais il ne
+Le runtime ne les importe pas. Databricks Apps ne les exécute pas au runtime. Le diff décrit une migration, mais il ne
 modifie pas les fichiers.
 
 Dans le repository source, `template:release:check` compare le checkout à une base Git. Un changement de comportement
@@ -128,8 +168,8 @@ ce commit. Les sondes donnent le niveau de preuve local après les adaptations p
 ## Shell Valiuz et contact
 
 `AppShell` compose le header, la navigation et le contenu sans connaître le métier. Le header utilise le SVG canonique
-`public/valiuz-logo-icon.svg` ; `public/favicon.svg` contient le même média et `generateMetadata` l'associe à l'onglet
-avec le nom de l'app.
+`public/valiuz-logo-icon.svg` ; `public/favicon.svg` contient le même média et `index.html` l'associe à l'onglet
+avec le nom de l'app chargé depuis `/api/config`.
 
 Le contact Slack est une configuration publique transmise au shell. `APP_SUPPORT_NAME` nomme le
 mainteneur ou l'équipe et `APP_SUPPORT_SLACK_URL` accepte uniquement une URL HTTPS du workspace
@@ -144,7 +184,7 @@ Les tokens `--chart-*` séparent les couleurs de tracé des couleurs de marque. 
 focus visible dans chaque thème et dans la portée claire du header.
 
 Le shell propose les thèmes clair, système et sombre. Le navigateur stocke le choix sous `analytics-theme`. Un script
-du layout applique le choix explicite avant l’hydratation. Sans choix explicite, les tokens suivent
+dans `index.html` applique le choix explicite avant le premier rendu React. Sans choix explicite, les tokens suivent
 `prefers-color-scheme`.
 
 Le header reste dans la portée claire `brand-header-surface` pour protéger le contraste du logo officiel. Le reste de
@@ -175,9 +215,8 @@ Les dossiers ont des responsabilités distinctes :
 `NumberFormat` décrit les options de `Intl.NumberFormat`. `AxisValueFormat` décrit un axe texte, numérique ou date.
 Ces formats contiennent uniquement des données sérialisables. L’API ne déclare aucune prop de callback.
 
-Une page serveur peut donc composer la bibliothèque. Les feuilles interactives s’exécutent côté client avec les
-propriétés transmises par React Server Components. Elles n’importent ni configuration serveur, ni repository, ni
-client Databricks.
+Les pages React composent la bibliothèque avec les données de leurs APIs.
+Elles n’importent ni configuration serveur, ni repository, ni client Databricks.
 
 Le type `VisualizationState` distingue `ready`, `loading`, `empty` et `error`. Les composants utilisent `ready` par
 défaut. Les états vide et erreur restent des contrats d’interface. Ils ne modifient pas l’enveloppe des routes API.
@@ -200,9 +239,9 @@ Le SVG, les contrôles de zoom et les repères acceptent le focus clavier. Une v
 ou par glisser au pointeur. Les régions restent hors de l’ordre de tabulation. Le tableau repliable donne les valeurs
 exactes de chaque région et de chaque repère.
 
-La route `/visualizations` compose la démonstration côté serveur avec des données synthétiques. `demo-map-data.ts`
-importe `server-only` et convertit le TopoJSON embarqué par `world-atlas` en GeoJSON. `page.tsx` transmet ensuite cette
-collection à `VisualizationsDemo`. Cette route n’appelle aucune API et ne contacte pas Databricks.
+La page `/visualizations` charge des données synthétiques via `/api/visualizations`.
+Le module serveur `visualization-demo.ts` convertit le TopoJSON embarqué par `world-atlas` en GeoJSON.
+La page transmet cette collection à `VisualizationsDemo`. Aucun appel Databricks n’est nécessaire.
 
 ## Préparation data optionnelle
 
@@ -237,11 +276,12 @@ L'app conserve seulement un accès `SELECT` sur la sortie publiée.
 Les logs Pino sont des lignes JSON avec `requestId`, nom de requête, durée et nombre de lignes. Les champs courants de
 credentials sont redactés. Ne jamais ajouter un payload métier complet aux logs.
 
-Les erreurs typées portent un code, un statut HTTP et un message utilisateur sûr. La cause technique est loggée côté
-serveur et remplacée dans la réponse par `{ error: { code, message, requestId } }`.
+Les erreurs typées portent un code, un statut HTTP et un message utilisateur sûr. Le wrapper journalise les métadonnées
+sûres (nom, code, méthode, chemin) sans cause brute, puis répond avec `{ error: { code, message, requestId } }`.
 
-`withApiRoute` transmet aussi les réponses SSE. Une erreur qui précède le flux utilise l’enveloppe JSON commune. Une
-erreur qui suit le début du flux utilise un événement SSE typé avec le même `requestId`.
+`withApiRoute` attend aussi les écritures SSE. Une erreur qui précède le flux utilise l’enveloppe JSON commune.
+Le service Genie traduit ses erreurs connues en événements SSE typés avec le même `requestId`. Une exception non
+traitée après les en-têtes annule le travail associé et ferme la connexion ; elle n’ajoute pas une réponse JSON au flux.
 
 ## Extension
 
@@ -257,4 +297,22 @@ serveur depuis le proxy Databricks ; aucune valeur owner du navigateur n’est a
 
 Deux tables Delta déclarées séparément des sources analytiques reçoivent les écritures. Elles stockent des versions
 de définitions et préférences, sans résultat analytique. La résolution par horodatage/UUID ne fournit pas de CAS.
-Le layout est dynamique pour lire le flag runtime. Voir [les contrats et limites](user-state.md).
+Le shell lit le flag runtime depuis `/api/config`. Voir [les contrats et limites](user-state.md).
+
+## Runtime AppKit
+
+`src/server/index.ts` démarre les plugins AppKit. Le serveur garde un seul `app.yaml`.
+Les routes React sont enregistrées dans `src/client/routes.tsx`. Les APIs sont enregistrées dans `src/server/routes.ts`.
+`withApiRoute` produit directement un handler Express. Son callback reçoit `(request, context, response)`.
+Il retourne une valeur JSON ou attend l’écriture dans `response`. Les paramètres et le corps viennent d’Express.
+`context.signal` suit la déconnexion. Le SSE écrit directement dans la réponse et respecte la contre-pression.
+La fermeture du navigateur annule le suivi serveur et libère les quotas Genie.
+Le serveur standard AppKit utilise son parseur JSON borné à 64 Kio. L’état personnel borne aussi le JSON sérialisé
+à 16 Kio. Les erreurs du parseur passent par l’enveloppe sûre commune. Aucun accès au champ privé `serverApplication`
+n’est nécessaire. Le recorder UI automatique reste désactivé.
+
+Le plugin Vite refuse les imports de modules serveur dans le graphe navigateur.
+Les modules partagés ne lisent ni environnement, ni fichiers, ni credentials.
+`SqlExecutor` utilise AppKit analytics pour les lectures compatibles. Le repository personnel conserve son driver privé.
+Les deux transports reçoivent les paramètres nommés du repository sans réécriture du SQL.
+Les [exceptions documentées](appkit-maintenance.md) précisent les limites upstream et leurs critères de retrait.

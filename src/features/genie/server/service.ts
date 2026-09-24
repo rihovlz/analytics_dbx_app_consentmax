@@ -1,56 +1,21 @@
-import type {
-  GenieMessageRequest,
-  GenieMessageStatus,
-  GenieQueryResult,
-  GenieStreamEvent,
-} from "@/features/genie/contract";
+import type { genie } from "@databricks/appkit";
+import { genieStreamEventSchema, MAX_GENIE_RESULT_ROWS, type GenieMessageRequest, type GenieQueryResult, type GenieStreamEvent } from "@/features/genie/contract";
 import { buildGenieMessageContent } from "@/features/genie/context";
-import {
-  createDemoGenieMessageResult,
-  DEMO_GENIE_MESSAGE_ID,
-  DEMO_GENIE_QUERY_RESULT,
-  DEMO_GENIE_STATUS_SEQUENCE,
-} from "@/features/genie/demo-fixtures";
-import { GenieError, toGenieError, toGenieStreamErrorEvent } from "@/features/genie/server/errors";
-import type {
-  GenieClient,
-  GenieRemoteMessage,
-  GenieRemoteQueryAttachment,
-} from "@/features/genie/server/types";
+import { createDemoGenieMessageResult, demoComparisonResult, DEMO_GENIE_MESSAGE_ID, DEMO_GENIE_QUERY_RESULT, DEMO_GENIE_STATUS_SEQUENCE } from "@/features/genie/demo-fixtures";
+import { GenieError, toGenieError, toGenieStreamErrorEvent } from "./errors";
+import { genieExecution, readGenieResult, type GenieExecution } from "./appkit-client";
+import { DEFAULT_POLLING_OPTIONS, sleepWithAbort, type GeniePollingOptions } from "./execution-policy";
+import type { GenieClient, GenieRemoteQueryAttachment, GenieRemoteQueryResult } from "./types";
 
-const TERMINAL_STATUSES = new Set<GenieMessageStatus>([
-  "COMPLETED",
-  "FAILED",
-  "CANCELLED",
-  "QUERY_RESULT_EXPIRED",
-]);
-
-const PERMISSION_ERROR_TYPES = new Set([
-  "WAREHOUSE_ACCESS_MISSING_EXCEPTION",
-  "CUSTOMER_UNAUTHORIZED",
-  "CUSTOMER_UNAUTHORIZED_EXCEPTION",
-  "PERMISSION_DENIED",
-  "PERMISSION_DENIED_EXCEPTION",
-]);
-
-export type GeniePollingOptions = {
-  initialDelayMs: number;
-  maxDelayMs: number;
-  multiplier: number;
-  maxReadRetries: number;
-  timeoutMs: number;
-};
-
-const DEFAULT_POLLING_OPTIONS: GeniePollingOptions = {
-  initialDelayMs: 1_000,
-  maxDelayMs: 5_000,
-  multiplier: 1.6,
-  maxReadRetries: 5,
-  timeoutMs: 10 * 60_000,
-};
+export { sleepWithAbort, type GeniePollingOptions } from "./execution-policy";
+type AppKitSendMessage = InstanceType<ReturnType<typeof genie>["plugin"]>["sendMessage"];
+let appkitSendMessage: AppKitSendMessage | undefined;
+export function configureGenie(sendMessage: AppKitSendMessage): void { appkitSendMessage = sendMessage; }
 
 type StreamDependencies = {
   client: GenieClient;
+  alias?: string;
+  sendMessage?: AppKitSendMessage;
   spaceId: string;
   requestId: string;
   signal?: AbortSignal;
@@ -71,167 +36,18 @@ type DemoDependencies = {
   onComplete?: (summary: { queryResultCount: number }) => void;
 };
 
-function createAbortError(): GenieError {
-  return new GenieError("Genie stream was cancelled", "GENIE_CANCELLED", 409, false);
-}
-
-export function sleepWithAbort(delayMs: number, signal?: AbortSignal): Promise<void> {
-  if (signal?.aborted) {
-    return Promise.reject(createAbortError());
-  }
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      signal?.removeEventListener("abort", onAbort);
-      resolve();
-    }, delayMs);
-    function onAbort(): void {
-      clearTimeout(timer);
-      reject(createAbortError());
-    }
-    signal?.addEventListener("abort", onAbort, { once: true });
-  });
-}
-
-function statusEvent(status: GenieMessageStatus): GenieStreamEvent {
-  return { type: "status", data: { status } };
-}
-
-type ReadRetryContext = {
-  deadline: number;
-  initialDelayMs: number;
-  maxDelayMs: number;
-  maxReadRetries: number;
-  multiplier: number;
-  now: () => number;
-  random: () => number;
-  signal?: AbortSignal;
-  sleep: (delayMs: number, signal?: AbortSignal) => Promise<void>;
-};
-
-function retryWaitMs(error: GenieError, delayMs: number, random: () => number): number {
-  if (error.retryAfterMs !== undefined) {
-    return error.retryAfterMs;
-  }
-  const randomValue = Math.max(0, Math.min(1, random()));
-  return Math.max(1, Math.round(delayMs * (0.8 + randomValue * 0.4)));
-}
-
-async function readWithRetry<T>(
-  operation: () => Promise<T>,
-  context: ReadRetryContext,
-): Promise<T> {
-  let delayMs = context.initialDelayMs;
-  let retries = 0;
-
-  while (true) {
-    try {
-      return await operation();
-    } catch (error) {
-      const normalized = toGenieError(error);
-      if (!normalized.retryOnRead || retries >= context.maxReadRetries) {
-        throw normalized;
-      }
-      const remainingMs = context.deadline - context.now();
-      if (remainingMs <= 0) {
-        throw new GenieError("Genie read-retry deadline exceeded", "GENIE_TIMEOUT", 504, true);
-      }
-      const waitMs = Math.min(remainingMs, retryWaitMs(normalized, delayMs, context.random));
-      await context.sleep(waitMs, context.signal);
-      retries += 1;
-      delayMs = Math.min(context.maxDelayMs, Math.ceil(delayMs * context.multiplier));
-      if (context.now() >= context.deadline) {
-        throw new GenieError("Genie read-retry deadline exceeded", "GENIE_TIMEOUT", 504, true);
-      }
-    }
-  }
-}
-
-function failureForMessage(message: GenieRemoteMessage): GenieError {
-  if (message.status === "CANCELLED") {
-    return new GenieError("Genie cancelled the message", "GENIE_CANCELLED", 409, false);
-  }
-  if (message.status === "QUERY_RESULT_EXPIRED") {
-    return new GenieError("Genie query result expired", "GENIE_RESULT_EXPIRED", 410, true);
-  }
-  const errorType = message.errorType?.toUpperCase() ?? "";
-  if (
-    PERMISSION_ERROR_TYPES.has(errorType)
-    || errorType.includes("ACCESS_MISSING")
-    || errorType.includes("UNAUTHORIZED")
-    || errorType.includes("PERMISSION_DENIED")
-  ) {
-    return new GenieError("Genie or warehouse permission missing", "GENIE_PERMISSION_DENIED", 403, false);
-  }
-  return new GenieError("Genie failed to produce a response", "GENIE_UNAVAILABLE", 502, true);
-}
-
-async function loadQueryResult(
-  client: GenieClient,
-  spaceId: string,
-  message: GenieRemoteMessage,
-  attachment: GenieRemoteQueryAttachment,
-  signal?: AbortSignal,
-): Promise<GenieQueryResult | null> {
-  const result = await client.getQueryResult({
-    spaceId,
-    conversationId: message.conversationId,
-    messageId: message.messageId,
-    attachmentId: attachment.attachmentId,
-    signal,
-  });
-
-  if (result.state === "PENDING" || result.state === "RUNNING" || result.state === "STATE_UNSPECIFIED") {
-    return null;
-  }
-  if (result.state === "CANCELED") {
-    throw new GenieError("Genie query execution was cancelled", "GENIE_CANCELLED", 409, false);
-  }
-  if (result.state === "CLOSED") {
-    throw new GenieError("Genie query result is no longer available", "GENIE_RESULT_EXPIRED", 410, true);
-  }
-  if (result.state === "FAILED") {
-    throw new GenieError("Genie query execution failed", "GENIE_UNAVAILABLE", 502, true);
-  }
-
+function queryEvent(attachment: GenieRemoteQueryAttachment, result: GenieRemoteQueryResult | GenieQueryResult): Extract<GenieStreamEvent, { type: "query_result" }> {
+  const rows = result.rows.slice(0, MAX_GENIE_RESULT_ROWS);
   return {
-    attachmentId: attachment.attachmentId,
-    statementId: result.statementId ?? attachment.statementId,
-    title: attachment.title,
-    description: attachment.description,
-    sql: attachment.sql,
-    columns: result.columns,
-    rows: result.rows,
+    type: "query_result", attachmentId: attachment.attachmentId,
+    statementId: result.statementId ?? attachment.statementId ?? "",
+    data: {
+      manifest: { schema: { columns: result.columns.map((column) => ({ name: column.name, type_name: column.type })) } },
+      result: { data_array: rows.map((row) => row.map((cell) => cell === null ? null : String(cell))) },
+    },
     rowCount: result.rowCount,
-    truncated: result.truncated,
+    truncated: result.truncated || result.rows.length > rows.length || result.rowCount > rows.length,
   };
-}
-
-async function loadAvailableQueryResults(
-  client: GenieClient,
-  spaceId: string,
-  message: GenieRemoteMessage,
-  emittedAttachmentIds: Set<string>,
-  retryContext: ReadRetryContext,
-): Promise<GenieQueryResult[]> {
-  if (message.status !== "EXECUTING_QUERY" && message.status !== "COMPLETED") {
-    return [];
-  }
-
-  const ready: GenieQueryResult[] = [];
-  for (const attachment of message.queryAttachments) {
-    if (emittedAttachmentIds.has(attachment.attachmentId)) {
-      continue;
-    }
-    const result = await readWithRetry(
-      () => loadQueryResult(client, spaceId, message, attachment, retryContext.signal),
-      retryContext,
-    );
-    if (result) {
-      emittedAttachmentIds.add(attachment.attachmentId);
-      ready.push(result);
-    }
-  }
-  return ready;
 }
 
 export async function* streamGenieMessage(
@@ -240,105 +56,68 @@ export async function* streamGenieMessage(
 ): AsyncGenerator<GenieStreamEvent> {
   const polling = { ...DEFAULT_POLLING_OPTIONS, ...dependencies.polling };
   const now = dependencies.now ?? Date.now;
-  const random = dependencies.random ?? Math.random;
-  const sleep = dependencies.sleep ?? sleepWithAbort;
-  const deadline = now() + polling.timeoutMs;
-  const readRetryContext: ReadRetryContext = {
-    deadline,
-    initialDelayMs: polling.initialDelayMs,
-    maxDelayMs: polling.maxDelayMs,
-    maxReadRetries: polling.maxReadRetries,
-    multiplier: polling.multiplier,
-    now,
-    random,
-    signal: dependencies.signal,
-    sleep,
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), polling.timeoutMs);
+  const signal = dependencies.signal ? AbortSignal.any([dependencies.signal, controller.signal]) : controller.signal;
+  const scope: GenieExecution = {
+    client: dependencies.client, spaceId: dependencies.spaceId, results: new Map(),
+    policy: { ...polling, deadline: now() + polling.timeoutMs, now, signal,
+      random: dependencies.random ?? Math.random, sleep: dependencies.sleep ?? sleepWithAbort },
   };
-
+  let upstream: ReturnType<AppKitSendMessage> | undefined;
+  let receivedAnswer = false;
+  const emitted = new Set<string>();
+  let lastStatus: string | undefined;
   try {
-    let message = await dependencies.client.submitMessage({
-      spaceId: dependencies.spaceId,
-      content: buildGenieMessageContent(request.content, request.context),
-      conversationId: request.conversationId,
-      signal: dependencies.signal,
-    });
-    yield {
-      type: "message_start",
-      data: { conversationId: message.conversationId, messageId: message.messageId },
-    };
-
-    const emittedAttachmentIds = new Set<string>();
-    let previousStatus: GenieMessageStatus | undefined;
-    let delayMs = polling.initialDelayMs;
-
+    const sendMessage = dependencies.sendMessage ?? appkitSendMessage;
+    if (!sendMessage) throw new GenieError("AppKit Genie is not initialized", "GENIE_UNAVAILABLE", 503, false);
+    upstream = sendMessage(dependencies.alias ?? dependencies.spaceId, buildGenieMessageContent(request.content, request.context),
+      request.conversationId, { timeout: polling.timeoutMs, signal });
     while (true) {
-      if (dependencies.signal?.aborted) {
-        throw createAbortError();
+      // Async generators execute during next(), not when they are constructed.
+      const next = await genieExecution.run(scope, () => upstream!.next());
+      if (signal.aborted) throw new GenieError("Genie tracking stopped", "GENIE_CANCELLED", 409, false);
+      if (next.done) break;
+      const event = next.value;
+      if (event.type === "error") throw scope.failure ?? new GenieError("AppKit Genie failed", "GENIE_UNAVAILABLE", 502, false);
+      if (event.type === "message_start") yield genieStreamEventSchema.parse(event);
+      if (event.type === "status" && event.status !== lastStatus) {
+        yield genieStreamEventSchema.parse(event); lastStatus = event.status;
       }
-      if (message.status !== previousStatus) {
-        yield statusEvent(message.status);
-        previousStatus = message.status;
+      if (event.type === "message_result") {
+        if (scope.message?.status !== "COMPLETED") throw new GenieError("Incomplete Genie message", "GENIE_UNAVAILABLE", 502, false);
+        receivedAnswer = true;
+        yield genieStreamEventSchema.parse({ ...event, message: { ...event.message, content: request.content } });
       }
-
-      const queryResults = await loadAvailableQueryResults(
-        dependencies.client,
-        dependencies.spaceId,
-        message,
-        emittedAttachmentIds,
-        readRetryContext,
-      );
-      for (const queryResult of queryResults) {
-        yield { type: "query_result", data: queryResult };
+      if (event.type === "query_result") {
+        if (emitted.has(event.attachmentId)) continue;
+        const attachment = scope.message?.queryAttachments.find((item) => item.attachmentId === event.attachmentId);
+        const result = scope.results.get(event.attachmentId);
+        if (!attachment || !result) throw new GenieError("Unexpected Genie result", "GENIE_UNAVAILABLE", 502, false);
+        emitted.add(attachment.attachmentId);
+        yield queryEvent(attachment, result);
+        scope.results.delete(event.attachmentId);
       }
-
-      if (TERMINAL_STATUSES.has(message.status)) {
-        if (message.status !== "COMPLETED") {
-          throw failureForMessage(message);
-        }
-        const hasPendingQueryResults = message.queryAttachments.some(
-          (attachment) => !emittedAttachmentIds.has(attachment.attachmentId),
-        );
-        if (hasPendingQueryResults) {
-          if (now() >= deadline) {
-            throw new GenieError("Genie query-result polling deadline exceeded", "GENIE_TIMEOUT", 504, true);
-          }
-          await sleep(delayMs, dependencies.signal);
-          delayMs = Math.min(polling.maxDelayMs, Math.ceil(delayMs * polling.multiplier));
-          continue;
-        }
-        yield {
-          type: "message_result",
-          data: {
-            conversationId: message.conversationId,
-            messageId: message.messageId,
-            answer: message.answer,
-            suggestedQuestions: message.suggestedQuestions,
-            queryAttachmentIds: message.queryAttachments.map((attachment) => attachment.attachmentId),
-          },
-        };
-        dependencies.onComplete?.({ queryResultCount: emittedAttachmentIds.size });
-        return;
-      }
-
-      if (now() >= deadline) {
-        throw new GenieError("Genie polling deadline exceeded", "GENIE_TIMEOUT", 504, true);
-      }
-      await sleep(delayMs, dependencies.signal);
-      delayMs = Math.min(polling.maxDelayMs, Math.ceil(delayMs * polling.multiplier));
-      message = await readWithRetry(
-        () => dependencies.client.getMessage({
-          spaceId: dependencies.spaceId,
-          conversationId: message.conversationId,
-          messageId: message.messageId,
-          signal: dependencies.signal,
-        }),
-        readRetryContext,
-      );
     }
+    if (!receivedAnswer) throw new GenieError("Genie ended before completion", "GENIE_UNAVAILABLE", 502, false);
+    // AppKit 0.76.1 skips attachments without a statement ID. Their read endpoint is still valid.
+    for (const attachment of scope.message?.queryAttachments ?? []) {
+      if (emitted.has(attachment.attachmentId)) continue;
+      const result = await readGenieResult(scope, attachment.attachmentId);
+      yield queryEvent(attachment, result);
+      emitted.add(attachment.attachmentId);
+    }
+    dependencies.onComplete?.({ queryResultCount: emitted.size });
   } catch (error) {
-    const normalized = toGenieError(error);
+    const normalized = controller.signal.aborted && !dependencies.signal?.aborted
+      ? new GenieError("Genie deadline exceeded", "GENIE_TIMEOUT", 504, true) : toGenieError(error);
     dependencies.onError?.(normalized);
     yield toGenieStreamErrorEvent(normalized, dependencies.requestId);
+  } finally {
+    clearTimeout(timer);
+    controller.abort();
+    await upstream?.return(undefined);
+    scope.results.clear();
   }
 }
 
@@ -349,22 +128,33 @@ export async function* streamDemoGenieMessage(
   const sleep = dependencies.sleep ?? sleepWithAbort;
   const statusDelayMs = dependencies.statusDelayMs ?? 180;
   const conversationId = request.conversationId ?? "11111111111111111111111111111111";
+  const comparison = request.context?.comparison;
+  const queryResult = comparison ? demoComparisonResult(comparison) : DEMO_GENIE_QUERY_RESULT;
 
   try {
     yield {
       type: "message_start",
-      data: { conversationId, messageId: DEMO_GENIE_MESSAGE_ID },
+      conversationId, messageId: DEMO_GENIE_MESSAGE_ID,
     };
     for (const status of DEMO_GENIE_STATUS_SEQUENCE) {
       if (statusDelayMs > 0) {
         await sleep(statusDelayMs, dependencies.signal);
       }
-      yield statusEvent(status);
-      if (status === "EXECUTING_QUERY") {
-        yield { type: "query_result", data: DEMO_GENIE_QUERY_RESULT };
-      }
+      yield { type: "status", status };
     }
-    yield { type: "message_result", data: createDemoGenieMessageResult(conversationId) };
+    const message = createDemoGenieMessageResult(conversationId);
+    message.content = request.content;
+    if (comparison) {
+      message.attachments = [
+        { text: { content: `Cette démonstration reprend la comparaison de ${comparison.metric} affichée à l’écran. `
+          + "Aucune requête Databricks n’a été exécutée. Vérifiez la complétude, les définitions et les contributions par segment avant de rechercher une cause." } },
+        { suggestedQuestions: ["Quelles vérifications de qualité faut-il effectuer ?"] },
+        { attachmentId: queryResult.attachmentId, query: { title: queryResult.title ?? undefined,
+          description: queryResult.description ?? undefined } },
+      ];
+    }
+    yield { type: "message_result", message };
+    yield queryEvent(queryResult, queryResult);
     dependencies.onComplete?.({ queryResultCount: 1 });
   } catch (error) {
     const normalized = toGenieError(error);

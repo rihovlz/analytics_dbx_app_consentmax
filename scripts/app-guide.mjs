@@ -7,6 +7,7 @@ import { stdin, stdout } from "node:process";
 
 import { appTypes, loadAppSpec, renderProductBrief, syncProductBrief, writeAppSpec } from "./app-spec.mjs";
 import { loadDataAccessManifest } from "./data-access.mjs";
+import { capabilities, parseCapabilities, renderCapabilityPlan } from "./app-capabilities.mjs";
 
 function parseOptions(argv) {
   const options = { nonInteractive: false, check: false };
@@ -16,7 +17,7 @@ function parseOptions(argv) {
       options[flag.slice(2).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())] = true;
       continue;
     }
-    if (!["--type", "--audience", "--decision", "--success"].includes(flag)) {
+    if (!["--type", "--audience", "--decision", "--success", "--capabilities"].includes(flag)) {
       throw new Error(`Unknown option: ${flag}`);
     }
     const value = argv[index + 1];
@@ -54,10 +55,17 @@ const prompts = [
   ["success", "Comment saura-t-on que la V1 est utile ?", current.app.success],
 ];
 const answers = {};
+let selected = options.capabilities ? parseCapabilities(options.capabilities) : current.capabilities;
 const readline = options.nonInteractive ? undefined : createInterface({ input: stdin, output: stdout });
 try {
   for (const [key, label, fallback] of prompts) {
     answers[key] = options[key] ?? (readline ? (await readline.question(`${label} [${fallback}]: `)).trim() || fallback : fallback);
+  }
+  if (readline && !options.capabilities) {
+    stdout.write(`\nQuelles capacités servent ce besoin ?\n${capabilities.map((item) => `  ${item.id} : ${item.label}${item.stability === "beta" ? " (bêta)" : ""}`).join("\n")}\n`);
+    const fallback = selected.join(",") || "none";
+    const answer = (await readline.question(`Identifiants séparés par des virgules ; none pour aucun [${fallback}]: `)).trim();
+    selected = parseCapabilities(answer || fallback);
   }
 } finally {
   readline?.close();
@@ -67,6 +75,6 @@ if (!appTypes.includes(answers.type)) {
   throw new Error(`App type must be one of: ${appTypes.join(", ")}.`);
 }
 
-const next = await writeAppSpec(root, { ...current, app: { ...current.app, ...answers } });
+const next = await writeAppSpec(root, { ...current, app: { ...current.app, ...answers }, capabilities: selected });
 await syncProductBrief(root, next);
-stdout.write("App specification and product brief are synchronized. Next: npm run feature:new -- <slug>.\n");
+stdout.write(`Spécification et brief synchronisés.\n${renderCapabilityPlan(selected)}\nProchaine action : npm run app:doctor.\n`);

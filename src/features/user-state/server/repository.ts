@@ -27,7 +27,7 @@ export class SqlUserStateRepository implements UserStateRepository {
   async list(owner: string, cursor: string): Promise<StateRow[]> {
     return this.executor.query({
       name: "user-state-list-analyses", statement: LIST_STATE,
-      parameters: [quoteQualifiedIdentifier(this.tables.analyses), this.appId, owner, cursor],
+      parameters: { table: quoteQualifiedIdentifier(this.tables.analyses), appId: this.appId, owner, cursor },
       rowSchema, requestId: this.requestId, maxRows: 51,
     });
   }
@@ -35,7 +35,7 @@ export class SqlUserStateRepository implements UserStateRepository {
   async get(kind: StateKind, owner: string, id: string): Promise<StateRow | null> {
     const rows = await this.executor.query({
       name: `user-state-get-${kind}`, statement: GET_STATE,
-      parameters: [quoteQualifiedIdentifier(this.tables[kind]), this.appId, owner, id],
+      parameters: { table: quoteQualifiedIdentifier(this.tables[kind]), appId: this.appId, owner, id },
       rowSchema, requestId: this.requestId, maxRows: 1,
     });
     return rows[0] ?? null;
@@ -45,8 +45,8 @@ export class SqlUserStateRepository implements UserStateRepository {
     try {
       await this.executor.query({
         name: `user-state-write-${kind}`, statement: APPEND_STATE,
-        parameters: [quoteQualifiedIdentifier(this.tables[kind]), this.appId, owner, row.entity_id,
-          row.version_id, row.updated_at, row.deleted, row.payload_json],
+        parameters: { table: quoteQualifiedIdentifier(this.tables[kind]), appId: this.appId, owner,
+          id: row.entity_id, version: row.version_id, updatedAt: row.updated_at, deleted: row.deleted, payload: row.payload_json },
         rowSchema: z.unknown(), requestId: this.requestId, maxRows: 1,
       });
     } catch {

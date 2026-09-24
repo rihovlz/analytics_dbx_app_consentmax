@@ -73,11 +73,9 @@ export function toGenieStreamErrorEvent(error: unknown, requestId: string): Geni
   const normalized = toGenieError(error);
   return {
     type: "error",
-    data: {
-      code: normalized.code as GeniePublicErrorCode,
-      message: normalized.userMessage,
-      requestId,
-      retryable: normalized.retryable,
-    },
+    code: normalized.code as GeniePublicErrorCode,
+    error: normalized.userMessage,
+    requestId,
+    retryable: normalized.retryable,
   };
 }

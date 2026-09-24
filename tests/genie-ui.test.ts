@@ -7,7 +7,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { GenieErrorCard, TrackingStoppedNotice } from "../src/features/genie/genie-chat";
 import { GenieMarkdown, isAllowedGenieLink } from "../src/features/genie/genie-markdown";
 import {
-  applyPostDispatchRetryPolicy,
+  preventGenieReplay,
   type GenieClientError,
 } from "../src/features/genie/use-genie-conversation";
 
@@ -64,48 +64,9 @@ test("describes a local tracking stop without claiming remote cancellation", () 
   assert.doesNotMatch(markup, /annul/i);
 });
 
-test("locks ambiguous post-dispatch failures while preserving explicit HTTP rejections", () => {
-  const explicitHttpRejection: GenieClientError = {
-    code: "GENIE_UNAVAILABLE",
-    message: "Capacité momentanément atteinte.",
-    retryable: true,
-  };
-  const ambiguousPostDispatchFailure: GenieClientError = {
-    code: "GENIE_UNAVAILABLE",
-    message: "Flux interrompu.",
-    retryable: true,
-  };
-
-  assert.equal(applyPostDispatchRetryPolicy(explicitHttpRejection, false), explicitHttpRejection);
-  assert.deepEqual(applyPostDispatchRetryPolicy(ambiguousPostDispatchFailure, true), {
-    ...ambiguousPostDispatchFailure,
-    retryable: false,
-    submissionMayHaveStarted: true,
-  });
-});
-
-test("tracks replay safety at the POST dispatch boundary", async () => {
-  const hookSource = await readFile(
-    new URL("../src/features/genie/use-genie-conversation.ts", import.meta.url),
-    "utf8",
-  );
-  const sendSource = hookSource.slice(
-    hookSource.indexOf("const sendMessage = useCallback"),
-    hookSource.indexOf("const newConversation = useCallback"),
-  );
-  const dispatchedIndex = sendSource.indexOf("requestMayHaveSubmitted = true;");
-  const fetchIndex = sendSource.indexOf("await fetch(");
-  const rejectedIndex = sendSource.indexOf("if (!response.ok)");
-  const rejectionResetIndex = sendSource.indexOf("requestMayHaveSubmitted = false;", rejectedIndex);
-  const readErrorIndex = sendSource.indexOf("throw await readHttpError(response);", rejectedIndex);
-
-  assert.ok(dispatchedIndex >= 0 && dispatchedIndex < fetchIndex);
-  assert.ok(fetchIndex < rejectedIndex);
-  assert.ok(rejectedIndex < rejectionResetIndex && rejectionResetIndex < readErrorIndex);
-  assert.match(
-    sendSource,
-    /applyPostDispatchRetryPolicy\(rawClientError, requestMayHaveSubmitted\)/,
-  );
+test("locks every failed dispatched request instead of replaying a possible submission", () => {
+  const error: GenieClientError = { code: "GENIE_UNAVAILABLE", message: "Flux interrompu.", retryable: true };
+  assert.deepEqual(preventGenieReplay(error), { ...error, retryable: false, submissionMayHaveStarted: true });
 });
 
 test("guards every conversation-history action while a response is streaming", async () => {

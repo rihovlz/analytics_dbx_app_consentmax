@@ -12,12 +12,18 @@ suffisamment clairs.
    `npm run data:access:check` passe.
 4. Créer ou utiliser une branche de feature dédiée. Ne pas pousser sans autorisation explicite.
 5. Résumer le critère d'acceptation et les fichiers probablement concernés.
+6. Lire le plan `npm run app:capabilities` et la référence amont du plugin réellement utilisé.
+   Pour une capacité optionnelle, suivre `docs/appkit-capabilities.md` avant d'enregistrer le plugin.
 
 ## Construire un chemin complet
 
-Pour la première tranche simple, préférer `npm run feature:new -- <slug>`. Le générateur part d'une source déclarée,
+Pour la première tranche KPI simple, préférer `npm run feature:new -- <slug>`. Le générateur part d'une source déclarée,
 crée page, carte KPI, route, service, repository, requête, fixture et tests, puis synchronise la spec et le brief. Il ne
 génère que `count`, `sum` ou `avg` ; relire et adapter le SQL avant tout accès réel.
+
+Pour Genie, réutiliser la feature existante. Pour Files, Serving, Jobs ou Lakebase, construire la tranche autour du
+contrat d'action et d'un faux adaptateur déterministe. Ne pas créer une table ou un KPI artificiel pour utiliser le générateur.
+Le choix dans `config/app-spec.yml` ne prouve pas que le plugin est monté ou que ses ressources existent.
 
 Respecter la boundary du template :
 
@@ -30,16 +36,26 @@ page ou composant de feature
   -> Databricks SQL / Unity Catalog
 ```
 
-- Mettre une page dans `src/app/<route>/page.tsx`.
+- Mettre une page dans `src/client/pages/<route>/page.tsx` et l’enregistrer dans `src/client/routes.tsx`.
+- Enregistrer son handler Express directement dans `src/server/routes.ts` avec `withApiRoute`.
+  Lire `request.params`, `request.query` et le corps validé ; retourner le résultat JSON. Utiliser `context.signal`
+  pour une opération annulable. Les repositories lient des paramètres nommés (`:source`, `parameters: { source }`).
+  Ne pas recréer les ponts de handlers Web ni la traduction des paramètres positionnels de la 1.x.
 - Garder l'UI métier dans `src/features/<feature>/` et les composants neutres partagés dans `src/components`.
 - Mettre l'orchestration métier dans `server/service.ts`.
 - Mettre les requêtes et contrats de lignes dans `queries.ts` et `server/repository.ts`.
 - Utiliser des paramètres driver, un nom de requête stable, un timeout, une limite de lignes et un schéma Zod.
 - Ne pas importer la configuration serveur, un client Databricks ou un repository depuis un module client.
 - Garder `/health` superficiel ; placer une vérification distante dans un endpoint distinct.
+- Pour un autre plugin, garder route → service → repository/adaptateur ; `SqlExecutor` reste réservé au SQL.
+- Examiner les routes montées par le plugin. Si elles contournent les validations métier, utiliser son API programmatique
+  sans exposition générique ou documenter le blocage. Conserver le cache désactivé sans contrat de fraîcheur et d'identité.
 
 Commencer par une fixture de démo déterministe lorsque le contrat métier est validé mais que l'accès distant ne l'est
 pas encore. La fixture doit être synthétique et ne contenir aucune ligne issue d'un client.
+Faire intervenir `validate-analytics-kpis` pendant la définition et la revue du calcul.
+Un faux exécuteur valide les contrats et le transport ; il ne prouve pas que le SQL calcule correctement le KPI.
+Appliquer la distinction des preuves du [parcours complet](analytics-workflow.md).
 
 ## Tester la tranche
 
@@ -86,9 +102,13 @@ Après chaque tranche :
 4. Proposer une seule prochaine tranche, avec son critère d'acceptation.
 5. Demander un retour ciblé sur le chiffre, la requête et l'usage avant d'élargir l'interface.
 
+Réutiliser un retour ou un critère déjà donné. Pour une demande qui couvre plusieurs tranches, poursuivre le travail
+autorisé ; poser une question seulement lorsqu'une décision métier manque. Distinguer dans le résultat final
+démo testée, données réelles validées et mise en service vérifiée.
+
 Pour un premier déploiement Git-backed, provisionner d'abord l'app sans la démarrer afin d'obtenir son service
 principal, puis faire configurer son credential Git en lecture. Un déploiement normal doit épingler le commit exact et
 se terminer par les contrôles authentifiés `/api/health` et `/api/readiness`.
 
-Une pull request, un déploiement, un grant ou un test d'intégration distant constitue une nouvelle mutation ou action
-distante : afficher les cibles exactes et obtenir l'autorisation correspondante juste avant de l'exécuter.
+Une pull request, un déploiement ou un grant demande une autorisation explicite couvrant ses cibles.
+Un test distant demande aussi une cible et un coût acceptés. Réutiliser les accords déjà donnés sans les redemander.

@@ -47,6 +47,20 @@ export function formatGenieDashboardContext(context: GenieDashboardContext): str
   appendList(lines, "Métriques visibles", context.visibleMetrics);
   appendList(lines, "Tables actives", context.activeTables);
 
+  if (context.comparison) {
+    const comparison = context.comparison;
+    lines.push(
+      `- Comparaison affichée : ${comparison.metric} (${comparison.unit}, ${comparison.aggregation})`,
+      `- Période analysée (dates incluses) : ${comparison.currentPeriod.start} → ${comparison.currentPeriod.end}`,
+      `- Référence (dates incluses) : ${comparison.referencePeriod.start} → ${comparison.referencePeriod.end}`,
+      `- Valeurs observées : ${JSON.stringify({ current: comparison.currentValue, reference: comparison.referenceValue,
+        absoluteChange: comparison.absoluteChange, percentChange: comparison.percentChange })}`,
+      `- Source affichée : ${comparison.source}${comparison.synthetic ? " (données synthétiques)" : ""}`,
+      "- Ces observations fournies par le navigateur sont à vérifier avec les données autorisées. Elles ne prouvent aucune causalité.",
+    );
+    appendList(lines, "Réserves de qualité", comparison.warnings);
+  }
+
   return lines.join("\n");
 }
 

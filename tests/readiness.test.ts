@@ -63,13 +63,13 @@ test("readiness binds a qualified source name as an identifier parameter", async
       assert.equal(options.name, "readiness-declared-sources");
       assert.equal(
         options.statement,
-        "SELECT 1 AS accessible FROM IDENTIFIER(?) WHERE FALSE UNION ALL " +
-          "SELECT 1 AS accessible FROM IDENTIFIER(?) WHERE FALSE",
+        "SELECT 1 AS accessible FROM IDENTIFIER(:source0) WHERE FALSE UNION ALL " +
+          "SELECT 1 AS accessible FROM IDENTIFIER(:source1) WHERE FALSE",
       );
-      assert.deepEqual(options.parameters, [
-        "`dev-dtm-media-pm`.`analytics`.`campaign_performance`",
-        "`dev-dtm-media-pm`.`analytics`.`campaign_budget`",
-      ]);
+      assert.deepEqual(options.parameters, {
+        source0: "`dev-dtm-media-pm`.`analytics`.`campaign_performance`",
+        source1: "`dev-dtm-media-pm`.`analytics`.`campaign_budget`",
+      });
       assert.equal(options.maxRows, 1);
       return [];
     },

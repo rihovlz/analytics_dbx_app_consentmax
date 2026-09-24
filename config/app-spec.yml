@@ -5,4 +5,6 @@ app:
   audience: À confirmer
   decision: À confirmer
   success: À confirmer
+capabilities:
+  - analytics
 features: []

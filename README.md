@@ -1,8 +1,8 @@
 # Databricks App Template
 
-![Databricks App Boilerplate — de la copie du repository au déploiement](docs/assets/databricks-app-boilerplate.png)
+![Databricks App Boilerplate — de la copie du repository au déploiement](docs/assets/databricks-app-boilerplate-v2.png)
 
-Golden path Next.js/TypeScript pour construire des Databricks Apps analytics. Il fournit un shell UI Valiuz, une
+Golden path AppKit/Express/Vite/React/TypeScript pour construire des Databricks Apps analytics. Il fournit un shell UI Valiuz, une
 configuration validée, une couche Databricks SQL centralisée, des erreurs publiques sûres, des logs structurés, des
 tests, une bibliothèque de visualisation et un déploiement reproductible avec Databricks Asset Bundles.
 
@@ -14,27 +14,55 @@ Prérequis : Node.js 22.16+, npm et Git. Aucun accès Databricks n’est requis 
 git clone https://github.com/valiuz/analytics_dbx_app_template.git my-new-app
 cd my-new-app
 npm ci
-npm run init-app -- my-new-app
-npm run template:status
-npm run app:guide
-npm run app:doctor
-npm run dev
+npm run app
+npm run app -- init my-new-app
+npm run app -- guide
+npm run app -- next
+npm run app -- dev
 ```
 
 Ouvrir <http://localhost:3000>. Le mode démo est explicite et n’effectue aucun appel distant. La page
 <http://localhost:3000/visualizations> présente tous les composants avec des données synthétiques.
+`npm run init-app -- --help` affiche les options sans lancer l'initialisation ni modifier les fichiers.
+`npm run app -- <commande> --help` donne l'aide du parcours. Les anciennes commandes npm restent disponibles.
+L'initialisation refuse une app existante ; utiliser `app next` pour la reprendre ou le guide de migration pour changer de version.
+Voir [le parcours CLI complet](docs/cli-workflow.md) pour un essai guidé par une seule personne, du besoin aux données et à l'app.
 
 ## Parcours guidé pour une app interne
 
 Le parcours reste volontairement léger pour une app maintenue par une seule personne :
 
-1. `npm run app:guide` consigne utilisateurs, décision et succès attendu dans `config/app-spec.yml` et synchronise
-   `docs/product-brief.md`.
-2. `npm run data:init -- <nom>` choisit `direct`, `notebook` ou `pipeline`. Utiliser `direct` tant qu'une table ou vue
-   existante suffit.
-3. `npm run feature:new -- <slug>` crée une première tranche verticale : page, carte KPI, route, service, repository,
-   requête paramétrée, fixture démo et tests.
+1. `npm run app:guide` consigne utilisateurs, décision, succès et capacités envisagées dans `config/app-spec.yml`.
+   Il synchronise `docs/product-brief.md` et propose Analytics, Genie, Files, Serving, Jobs ou les autres capacités utiles.
+2. `npm run app:capabilities` décrit les ressources et tests de chaque choix. `npm run app:skills` propose les skills
+   Databricks correspondants, à installer hors du code de l'app.
+3. Pour un KPI, `npm run data:init -- <nom>` déclare la source, puis `npm run feature:new -- <slug>` génère la tranche.
+   Garder le mode `direct` si une table existante suffit. Pour une autre capacité, suivre son guide d'intégration.
 4. `npm run app:doctor` indique la prochaine action utile. `npm run check` valide ensuite l'ensemble localement.
+
+Une app Genie seule peut choisir `npm run app:guide -- --type assistant --capabilities genie`.
+Elle n'a pas à générer un KPI. Les choix de cadrage n'activent aucun plugin, droit ou ressource.
+Voir [le parcours des capacités AppKit](docs/appkit-capabilities.md) pour les intégrations disponibles et leurs limites.
+
+Avec un assistant de développement, demander par exemple :
+
+> Utilise create-analytics-dbx-app pour construire une petite app Valiuz de suivi des commandes.
+> Je m'occupe du besoin, des données et de l'app. Prends en charge le parcours complet, en commençant par une démo testée.
+> Réutilise ce qui est connu, recommande les choix techniques et pose seulement les questions bloquantes.
+
+`npm run app -- prompt --idea "Suivre les commandes"` produit une variante à copier dans l'assistant.
+Le parcours couvre besoin, sources et qualité, KPI, préparation utile, interface, tests et mise en service.
+L'agent choisit les commandes et consulte les skills au moment utile. Aucun choix de métier n'est nécessaire.
+
+Le skill orchestre le cadrage, la sélection des skills, l'implémentation et les contrôles dans le périmètre demandé.
+`npm run app:orchestrate` propose l'étape de reprise depuis les fichiers actuels, sans les modifier.
+Ajouter `-- --json --skills-dir /chemin/vers/les/skills` pour obtenir le plan détaillé et les skills manquants utiles à l'étape.
+L'agent peut installer ces skills avec le CLI officiel lorsque la mise en place locale est autorisée.
+Il conserve les décisions et les preuves dans `docs/creation-progress.md` de l'app, sans remplacer la spec.
+Une feature présente reste à tester ; le diagnostic ne certifie ni son fonctionnement ni les accès distants.
+`app next` montre aussi les revues du parcours complet et les contrats data déclarés.
+Le résultat distingue une démo testée, des données réelles validées et une mise en service vérifiée.
+Voir [le fonctionnement de l'orchestrateur](.agents/skills/create-analytics-dbx-app/references/orchestration.md).
 
 Exemple minimal après avoir confirmé une table existante :
 
@@ -51,7 +79,7 @@ rien.
 
 ## Version du template
 
-`template/manifest.yml` donne la version courante et les capabilities du template. La version courante est `1.5.0`.
+`template/manifest.yml` donne la version courante et les capabilities du template. La version courante est `2.0.0`, encore non publiée.
 La version `1.0.0` représente la baseline initiale. Les versions suivantes ajoutent les mises à niveau suivies,
 l’historisation bornée, les visualisations, l’assistant Genie OBO et les analyses personnelles.
 
@@ -63,13 +91,23 @@ Ces commandes restent locales et ne modifient pas le code de l'app :
 ```bash
 npm run template:status
 npm run template:check
-npm run template:diff -- --from 1.4.0 --to 1.5.0
+npm run template:diff -- --from 1.5.0 --to 2.0.0
 npm run template:release:check -- --base origin/main
 ```
 
 Le diff est un guide sémantique. Il donne les fichiers, les changements et les commandes de validation. Il ne
 télécharge rien et n'écrase aucune adaptation métier. Suivre [le guide de mise à niveau](docs/template-upgrades.md)
 pour une app qui provient d'une ancienne copie du repository.
+
+Pour une app 1.4 ou 1.5, lancer depuis un checkout **2.0 relu et installé** :
+
+```bash
+npm run app -- migrate --app-dir /chemin/vers/ancienne-app
+```
+
+Ce bilan en lecture seule ordonne les guides et inventorie le code à porter. L'app inspectée reste intacte.
+Le chemin 1.4 passe par les contrats 1.5, avec l'état personnel désactivé si inutile.
+React reste utilisé : [la migration](docs/migration-2.0.md) remplace le runtime Next.js par AppKit/Express, Vite et React Router.
 
 ## Identité Valiuz et support
 
@@ -95,15 +133,14 @@ Ne pas coder un contact personnel en dur dans un composant métier. Modifier `AP
 
 Le point d’entrée public `@/components/data-visualization` exporte les composants, leurs types et les fonctions de
 formatage. Il expose `DataCard`, `BigNumberKPI`, `Sparkline`, `MiniAreaChart`, `CircularProgress`, `Gauge`,
-`MultiMetricCard`, `TimeSeriesChart`, `AnalyticsMap` et `ChartState`.
+`MultiMetricCard`, `TimeSeriesChart`, `WaterfallChart`, `AnalyticsMap` et `ChartState`.
 
 `BigNumberKPI` accepte les variantes `plain`, `sparkline` et `gauge`. `MultiMetricCard` combine des valeurs, des
 tendances, des mini-barres et des sparklines. `TimeSeriesChart` gère plusieurs séries, une légende interactive, des
 infobulles et un tableau de valeurs. `AnalyticsMap` reçoit du GeoJSON, des valeurs par zone et des repères facultatifs.
 
 `NumberFormat` décrit un format numérique `Intl`. `AxisValueFormat` décrit un axe texte, numérique ou date.
-Ces contrats sont sérialisables et l’API publique ne déclare aucune prop de callback. Une page serveur peut ainsi
-préparer les données et composer les composants interactifs à travers la frontière React Server Components.
+Ces contrats sont sérialisables et l’API publique ne déclare aucune prop de callback. Une API de feature peut ainsi préparer les données pour les composants React.
 
 Les composants de données utilisent un même état public :
 
@@ -128,13 +165,30 @@ au runtime. Son SVG, ses contrôles et ses repères acceptent le focus. Le zoom 
 flèches du clavier. Les régions restent hors de l’ordre de tabulation, car le tableau accessible fournit leurs valeurs
 exactes.
 
-La page `/visualizations` compose la démonstration côté serveur et ne contacte pas Databricks. Le module
-`demo-map-data.ts` importe `server-only`, puis convertit l’atlas `world-atlas` embarqué en GeoJSON.
+La page `/visualizations` charge ses données synthétiques via `/api/visualizations`, sans Databricks.
+Le module serveur `visualization-demo.ts` convertit l’atlas `world-atlas` embarqué en GeoJSON.
+
+La page propose aussi une [comparaison facultative de périodes](docs/period-comparison.md) : période précédente,
+année précédente ou dates personnalisées, filtre commun, valeurs, écarts et contributions en waterfall.
+`npm run app -- feature <slug> --date-column <colonne_DATE>` génère cette variante ; ajouter
+`--breakdown-column <dimension>` pour les segments et un waterfall sur `count` ou `sum`.
+Les moyennes restent pondérées et n'obtiennent pas de waterfall automatique. Les périodes partielles et les références
+nulles sont explicites. La démo utilise `/api/period-comparison/demo` ; aucun résultat analytique n'est persisté.
+
+Le partage facultatif ajoute un lien de reprise et une synthèse à copier avec les périodes, filtres, chiffres et réserves.
+`--share-analysis` l'active sur une nouvelle feature de comparaison. `--share-segment` autorise une dimension revue comme non sensible.
+Le lien fixe les dates et recalcule les données à l'ouverture, sans accorder de droit. La synthèse conserve les chiffres consultés.
+Aucun résultat n'est stocké par cette option et aucun message n'est envoyé. Voir [le contrat de partage](docs/period-comparison.md#partager-une-comparaison).
 
 Voir [le design system analytics](docs/design-system.md) pour les API de composition, les tokens et les règles
 d’accessibilité.
 
 ## Assistant Genie conversationnel
+
+En mode Databricks, le flux passe par le plugin Genie d’AppKit et un client de compatibilité lié à chaque requête.
+Le chat Valiuz conserve l’identité OBO, le contexte, le SQL inspectable et l’épinglage. Voir [le contrat et le parcours Genie](docs/genie.md).
+Depuis une comparaison compatible, la prop facultative `genie` ouvre une question préremplie avec les deux périodes,
+les filtres et les réserves de qualité. L’utilisateur relit puis envoie la question ; les cartes restent en mémoire.
 
 La page `/genie` montre le composant `GenieChat` en vue autonome et à côté de KPI. Le mode démo utilise une
 conversation synthétique. Il ne contacte pas Databricks et ne demande aucun jeton.
@@ -167,7 +221,7 @@ Le client envoie uniquement l’alias, la question et un contexte validé. Le se
 message et appelle l’API Conversation. Dans Databricks Apps, il utilise `x-forwarded-access-token` pour chaque
 utilisateur. Le jeton ne passe jamais dans les propriétés React, le JSON de réponse ou les logs.
 
-Le template utilise une Route Handler Next.js, car son runtime ne contient pas AppKit. Il n’ajoute aucun gateway IA.
+La route Express dédiée utilise le plugin Genie programmatique. Le client de compatibilité préserve les garanties décrites dans [les exceptions AppKit](docs/appkit-maintenance.md).
 La route accepte uniquement les requêtes JSON de même origine. Elle limite le corps à 64 Kio, la question à 10 000
 caractères et le contexte sérialisé à 12 000 caractères. Elle résout ensuite le Space et l’identité côté serveur.
 
@@ -183,7 +237,8 @@ restent du texte inerte.
 « Arrêter le suivi » ferme uniquement le flux dans cette page. Le traitement Databricks peut continuer. Cette
 conversation est alors verrouillée et l’utilisateur doit en démarrer une nouvelle. Dès que le `POST` est envoyé, une
 erreur réseau ou un flux incomplet rend la soumission ambiguë. Le client ne propose pas de rejeu et exige une nouvelle
-conversation. Seul un refus HTTP explicite reçu avant le flux peut conserver une action de reprise sûre.
+conversation. Le lecteur AppKit ne fournit que le statut d’un refus HTTP avant le flux ; le client conserve donc
+la même règle après tout POST échoué, sans proposer de nouvelle soumission automatique.
 
 Le serveur ne rejoue jamais le `POST` qui crée un message. Il retente uniquement les lectures `GET` du message et des
 résultats. Ces lectures utilisent cinq reprises au maximum, un délai exponentiel avec jitter, l’en-tête `Retry-After`
@@ -237,7 +292,7 @@ Le repository fournit des workflows compatibles avec le standard ouvert Agent Sk
 
 | Skill | Usage |
 | --- | --- |
-| `create-analytics-dbx-app` | Créer le repository Valiuz, initialiser le clone, découvrir les sources Databricks et cadrer progressivement KPI, requêtes et fonctionnalités |
+| `create-analytics-dbx-app` | Orchestrer une création ou une reprise, préparer les skills utiles, implémenter et vérifier la tranche demandée |
 | `design-cost-aware-data-history` | Concevoir une historisation avec reprise bornée ou hot/cold, sans imposer un recalcul complet |
 | `github-engineer` | Isoler une tâche dans une branche ou un worktree, publier une pull request et nettoyer prudemment le travail fusionné |
 | `prepare-template-release` | Décider la version SemVer d'une évolution du template et synchroniser manifeste, migration, tests et documentation |
@@ -249,6 +304,11 @@ Les descriptions des skills permettent leur sélection implicite. `AGENTS.md` im
 `prepare-template-release` et `review-analytics-app-docs` à la fin d'une feature du template : il n'est pas nécessaire
 de les rappeler dans chaque session. Le bootstrap pose au maximum trois questions à la fois. Toute mutation GitHub ou
 Databricks demande une autorisation explicite.
+
+Les skills Valiuz sont inclus dans le template. Les six skills Databricks recommandés restent externes : Core, Apps,
+App Design, Data Discovery, DBSQL et Bundles. Les spécialistes Jobs, Model Serving, Lakebase et Vector Search sont proposés selon le besoin.
+`npm run app:skills -- --directory /chemin/vers/les/skills` vérifie les points d'entrée sans les modifier.
+Le clonage seul n'installe aucun skill amont. Voir [l'installation et la maintenance](docs/appkit-maintenance.md#skills-et-plugins-dagents).
 
 ## Infrastructure Valiuz préremplie
 
@@ -272,7 +332,8 @@ Catalog et l’accès des utilisateurs à l’app restent à configurer séparé
 
 ## Configuration
 
-`parseAppDisplayConfig` valide la configuration publique pendant le build. Le serveur valide la configuration
+`parseAppDisplayConfig` valide la configuration publique au démarrage et pour `/api/config`.
+Le navigateur valide aussi ce contrat. Aucune variable runtime n’est requise au build. Le serveur valide la configuration
 Databricks complète au démarrage dans `src/lib/config/server-config.ts`.
 
 | Variable | Local démo | Local Databricks | Databricks Apps |
@@ -347,13 +408,17 @@ avant la lecture source si le checkout local ne correspond pas à la préparatio
 | Commande | Usage |
 | --- | --- |
 | `npm run dev` | serveur local avec rechargement |
-| `npm run lint` | lint Next.js/TypeScript |
+| `npm run lint` | lint TypeScript et React |
 | `npm run typecheck` | vérification TypeScript stricte |
 | `npm test` | tests unitaires Node |
 | `npm run test:e2e` | parcours Genie dans Chromium avec les fixtures de démo |
-| `npm run build` | build standalone de production |
+| `npm run build` | build Vite et serveur AppKit |
 | `npm run check` | manifeste, lint, types, tests unitaires et build de production |
 | `npm run app:guide` | cadre l'app et synchronise le brief produit |
+| `npm run app` | entrée CLI commune : aide, prompt du parcours complet, génération, reprise et bilan de migration |
+| `npm run app:orchestrate` | propose la reprise, les références et les skills utiles depuis l'état du projet, sans mutation |
+| `npm run app:capabilities -- --all` | présente les capacités AppKit, ressources, guides et tests à prévoir, sans activation |
+| `npm run app:skills` | propose les skills amont utiles et leur installation externe, sans l'exécuter |
 | `npm run app:spec:check` | vérifie la spec et le brief |
 | `npm run feature:new -- <slug>` | génère une tranche KPI complète à relire |
 | `npm run data:init -- <nom>` | déclare une source directe ou prépare un starter notebook/pipeline |
@@ -384,16 +449,16 @@ de l’exécuter.
 ## Structure du repository
 
 ```text
-src/app/                         pages, layouts et routes HTTP
-src/app/visualizations/          composition serveur et données synthétiques de démonstration
-src/app/genie/                   démonstration autonome et intégrée du chat Genie
+src/client/                     React Router, pages, shell et styles
+src/server/                     serveur AppKit, routes Express et données synthétiques
+src/shared/                     contrats publics sans environnement serveur
 src/components/                  shell, états UI et composants génériques
 src/components/data-visualization/ point d’entrée public, types et formatage
 src/components/{cards,charts,kpi}/ composants de visualisation réutilisables
 src/components/maps/            carte cliente, géométrie D3 et sous-composants internes
 src/components/theme/            sélection locale du thème clair, système ou sombre
 src/features/<feature>/          UI, contrat et logique applicative d’une feature
-src/features/<feature>/server/   queries, repository et service server-only
+src/features/<feature>/server/   queries, repository et service serveur
 src/features/genie/              chat, contrats, rendu riche et intégration Conversation API
 src/lib/config/                  parsing et validation de l’environnement
 src/lib/databricks/              authentification et exécution SQL
@@ -418,10 +483,13 @@ La boundary attendue est : `UI → service de feature → repository → SqlExec
 Après avoir déclaré la source, lancer `npm run feature:new -- <slug>`. Le générateur demande le KPI minimal, crée la
 tranche complète et met à jour la navigation, la spec et le brief. Relire systématiquement la requête générée : elle
 ne couvre volontairement que `count`, `sum` et `avg` sur une colonne simple.
+La carte générée distingue une absence de valeur (« Aucune donnée ») d'une valeur numérique égale à zéro.
 
 Pour une tranche plus riche, conserver la même structure : contrat et composant dans `src/features/<nom>/`, logique
 métier dans `server/service.ts`, accès aux données dans `server/repository.ts`, route avec `withApiRoute`, puis tests
 avec un `SqlExecutor` factice.
+Les handlers sont natifs Express et les paramètres SQL sont nommés. Le lecteur SSE Genie vient d’AppKit UI,
+avec les reprises de POST désactivées. La 2.0 ne conserve aucun pont pour les anciens handlers ou paramètres positionnels.
 
 Les composants client ne doivent importer ni la configuration serveur, ni le driver Databricks, ni des credentials.
 
@@ -433,7 +501,7 @@ un fichier `.sql` voisin du repository et documenter son contrat d’entrée/sor
 
 Avant d'utiliser une nouvelle table ou vue, l'ajouter à `config/data-access.json`. Son `fullName` doit commencer par le
 projet choisi et utiliser le format `projet.schema.objet`. Le repository valide les trois segments et ajoute leurs
-backticks. Il lie ensuite la valeur à `IDENTIFIER(?)`. Il n'interpole aucune entrée utilisateur dans le SQL.
+backticks. Il lie ensuite la valeur à `IDENTIFIER(:source)`. Il n'interpole aucune entrée utilisateur dans le SQL.
 
 L’exemple `SELECT current_user()` se trouve dans `src/features/connection-check/server/`.
 
@@ -459,7 +527,9 @@ La CI exécute `template:check` et compare la release à la branche de base avec
 feature du template sans décision SemVer, guide de migration, README et guide des versions mis à jour. Elle exécute
 aussi `npm run template:journey`. Ce parcours crée une copie Git propre et exécute `npm ci`, `init-app`,
 `template:status`, `app:guide`, `data:init`, `feature:new`, `app:doctor` et `npm run check`. Un job séparé exécute
-le parcours `/genie` dans Chromium avec les données de démonstration.
+les parcours de navigation, visualisation, Genie et analyses personnelles dans Chromium.
+Il vérifie le serveur de développement puis le serveur compilé de production sans credentials.
+La migration d’une fixture métier 1.5 est également validée dans le repository source.
 
 Un autre job initialise une app et un contrat notebook borné temporaires. Il valide leurs bundles `dev` et `prod` avec
 le vrai Databricks CLI. La matrice couvre les versions `0.295.0` et `1.14.1`. Aucun credential Databricks réel n'est lu.
@@ -479,7 +549,7 @@ le vrai Databricks CLI. La matrice couvre les versions `0.295.0` et `1.14.1`. Au
 - Le build local utilise une mauvaise version Node : exécuter `nvm use` puis `npm ci`.
 - Le déploiement Git-backed ne lit pas GitHub : ajouter un credential Git au service principal de l’app.
 - `Data project must be one of` : choisir l'un des quatre projets autorisés dans `config/data-projects.json`.
-- `Data access bundle is stale` : lancer `npm run data:access:render` et committer les deux fichiers.
+- `Data access bundle is stale` : lancer `npm run data:access:render` et committer les bindings et métadonnées générés.
 - `Data preparation bundle is stale` : lancer `npm run data:prepare:render` et relire le contrat concerné.
 - `Product brief is stale` : lancer `npm run app:guide -- --non-interactive`.
 - Une capability du template manque : lancer `npm run template:status`, puis lire `docs/template-upgrades.md`.
@@ -489,3 +559,15 @@ le vrai Databricks CLI. La matrice couvre les versions `0.295.0` et `1.14.1`. Au
 
 Voir aussi [développement local](docs/local-development.md), [architecture](docs/architecture.md),
 [Databricks](docs/databricks.md), [déploiement](docs/deployment.md) et [AGENTS.md](AGENTS.md).
+
+## Runtime 2.0 et mises à jour amont
+
+AppKit 0.76.1 fournit le serveur Express, Vite en développement et les fichiers statiques en production.
+Les APIs des features conservent les services, repositories et validations Valiuz.
+Les lectures compatibles utilisent AppKit analytics ; Genie et les écritures personnelles conservent leurs garanties existantes.
+Le registre de compatibilité documente chaque exception et son critère de suppression.
+
+La migration reste volontaire : suivre [le guide 1.5 vers 2.0](docs/migration-2.0.md).
+`npm run template:migration` valide une fixture métier 1.5 après portage.
+La [maintenance amont](docs/appkit-maintenance.md) décrit les versions, skills externes, PR hebdomadaires et contrôles en lecture seule.
+Un déploiement de développement explicitement autorisé et sa recette restent nécessaires avant adoption en production.

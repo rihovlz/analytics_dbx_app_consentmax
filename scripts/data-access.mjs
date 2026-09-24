@@ -367,6 +367,19 @@ export async function renderDataAccess({ root, check = false, allowPlaceholder =
     /^DATABRICKS_CATALOG=([^\s]+)$/m,
     manifest.project,
   );
+  const metadataPath = join(root, "config/appkit-resources.generated.json");
+  const metadata = JSON.stringify({
+    schemaVersion: 1,
+    warehouse: { binding: "sql-warehouse", environmentVariable: "DATABRICKS_SQL_WAREHOUSE_ID", appkitEnvironmentVariable: "DATABRICKS_WAREHOUSE_ID", permission: "CAN_USE" },
+    project: manifest.project,
+    sources: manifest.sources.map((source) => ({ fullName: source.fullName, permission: "SELECT" })),
+    personalState: Object.entries(manifest.personalState ?? {}).map(([kind, fullName]) => ({ kind, fullName, permission: "MODIFY" })),
+    genie: genieSpacesManifest.spaces.map((space) => ({ key: space.key, aliases: space.aliases, environmentVariable: space.environmentVariable, permission: "CAN_RUN" })),
+  }, null, 2) + "\n";
+  if (check) {
+    const existing = await readFile(metadataPath, "utf8").catch(() => "");
+    if (existing !== metadata) throw new Error("AppKit resource metadata is stale. Run npm run data:access:render.");
+  } else await writeFile(metadataPath, metadata, "utf8");
   const outputPath = join(root, "resources/data-access.generated.yml");
   const rendered = renderDataAccessBundle(manifest, genieSpacesManifest);
   if (check) {

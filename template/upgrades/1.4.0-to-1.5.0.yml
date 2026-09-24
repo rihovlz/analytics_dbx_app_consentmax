@@ -42,9 +42,10 @@ changes:
       - tests/bundle-compatibility.test.ts
     instructions:
       - Ajouter user-state:init aux scripts npm et les variables USER_STATE dans les manifests ; garder le flag désactivé.
-      - Initialiser le projet puis lancer npm run user-state:init -- --schema my_app_user_state.
-      - Examiner config/data-access.json, le DDL généré et les bindings ; conserver SELECT pour les sources analytiques.
-      - Faire créer les tables après revue de la cible, puis valider identité proxy, écritures et isolation avant activation.
+      - Si l’état personnel reste inutilisé, conserver USER_STATE_ENABLED=false sans lancer user-state:init ni déclarer de table personnelle.
+      - Pour une activation demandée seulement, lancer npm run user-state:init -- --schema my_app_user_state dans l’app déjà initialisée.
+      - Avant cette activation, examiner config/data-access.json, le DDL et les bindings ; conserver SELECT pour les sources analytiques.
+      - Faire créer les tables seulement après autorisation et revue de la cible, puis valider identité proxy, écritures et isolation avant activation.
       - Étendre les fixtures de parcours et de bundle aux deux tables ; ces validations restent locales.
       - Ne pas migrer automatiquement les tables CAS d’une app IKEA existante.
   - id: template-version-1-5

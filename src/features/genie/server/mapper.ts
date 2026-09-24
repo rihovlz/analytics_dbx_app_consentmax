@@ -1,4 +1,4 @@
-import type { GenieMessageStatus } from "@/features/genie/contract";
+import { MAX_GENIE_RESULT_ROWS, type GenieMessageStatus } from "@/features/genie/contract";
 import type {
   GenieRemoteMessage,
   GenieRemoteQueryResult,
@@ -8,7 +8,6 @@ import type {
   UpstreamQueryResult,
 } from "@/features/genie/server/upstream-schemas";
 
-const MAX_RESULT_ROWS = 500;
 
 function normalizeMessageStatus(status: UpstreamMessage["status"]): GenieMessageStatus {
   return status === "IN_PROGRESS" ? "ASKING_AI" : status;
@@ -58,7 +57,7 @@ export function mapUpstreamMessage(message: UpstreamMessage): GenieRemoteMessage
 export function mapUpstreamQueryResult(payload: UpstreamQueryResult): GenieRemoteQueryResult {
   const statement = payload.statement_response;
   const sourceRows = statement.result?.data_array ?? [];
-  const rows = sourceRows.slice(0, MAX_RESULT_ROWS);
+  const rows = sourceRows.slice(0, MAX_GENIE_RESULT_ROWS);
   const columns = [...(statement.manifest?.schema?.columns ?? [])]
     .sort((left, right) => (left.position ?? 0) - (right.position ?? 0))
     .map((column) => ({

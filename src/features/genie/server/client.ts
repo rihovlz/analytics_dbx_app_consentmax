@@ -1,5 +1,3 @@
-import "server-only";
-
 import { z } from "zod";
 
 import { GenieError, mapGenieHttpError } from "@/features/genie/server/errors";

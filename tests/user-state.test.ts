@@ -10,6 +10,8 @@ import { userStateRoutes } from "../src/features/user-state/server/route";
 import { GET_STATE, LIST_STATE } from "../src/features/user-state/server/queries";
 import { parseDataAccessManifest } from "../src/lib/config/data-access";
 import type { SqlExecutor, SqlQueryOptions } from "../src/lib/databricks/types";
+import { withApiRoute } from "../src/lib/http/with-api-route";
+import { requestHandler } from "./fixtures/http";
 
 const analysis = {
   title: "Région Nord", note: "Ma note",
@@ -26,8 +28,8 @@ function fixture() {
   return { repository, service: new UserStateService(repository, () => new Date(clock++)) };
 }
 const hasCode = (code: string) => (error: unknown) => !!error && typeof error === "object" && "code" in error && error.code === code;
-function request(method = "GET", body?: unknown, user = "user-a") {
-  return new Request("https://app.example/api/saved-analyses", {
+function request(method = "GET", body?: unknown, user = "user-a", id?: string) {
+  return new Request(`https://app.example/api/saved-analyses${id ? `/${id}` : ""}`, {
     method,
     headers: { "x-forwarded-user": user, origin: config.origin, "content-type": "application/json" },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
@@ -41,6 +43,9 @@ test("personal definitions accept filters only and reject unknown versions, URLs
   }
   assert.equal(analysisInputSchema.safeParse({ ...analysis, definition: { ...analysis.definition, schemaVersion: 2 } }).success, false);
   assert.equal(analysisInputSchema.safeParse({ ...analysis, title: "   " }).success, false);
+  const comparison = { currentValue: 1200, referenceValue: 1000, absoluteChange: 200 };
+  assert.equal(analysisInputSchema.safeParse({ ...analysis, context: { comparison } }).success, false);
+  assert.equal(analysisInputSchema.safeParse({ ...analysis, definition: { ...analysis.definition, comparison } }).success, false);
 });
 
 test("CRUD and preferences survive service recreation and remain private to their owner", async () => {
@@ -96,15 +101,22 @@ test("pagination is bounded and covers more than one page without leaking other 
   await assert.rejects(service.list("alice", "' or true"), hasCode("INVALID_REQUEST"));
 });
 
-test("proxy identity is mandatory and scoped to app and environment; demo ignores supplied identity", () => {
-  const owner = resolveOwner(request(), config);
+test("proxy identity is mandatory and scoped to app and environment; demo ignores supplied identity", async () => {
+  async function ownerFor(input: Request, selectedConfig = config): Promise<string> {
+    const response = await requestHandler(withApiRoute((incoming) => ({ owner: resolveOwner(incoming, selectedConfig) })), input);
+    assert.equal(response.status, 200);
+    return (await response.json()).owner;
+  }
+  const owner = await ownerFor(request());
   assert.match(owner, /^[a-f0-9]{64}$/);
-  assert.notEqual(owner, resolveOwner(request("GET", undefined, "user-b"), config));
-  assert.notEqual(owner, resolveOwner(request(), { ...config, appId: "example:prod" }));
-  assert.notEqual(owner, resolveOwner(request(), { ...config, appId: "other:dev" }));
-  assert.throws(() => resolveOwner(new Request(config.origin), config), hasCode("USER_STATE_AUTH_REQUIRED"));
+  assert.notEqual(owner, await ownerFor(request("GET", undefined, "user-b")));
+  assert.notEqual(owner, await ownerFor(request(), { ...config, appId: "example:prod" }));
+  assert.notEqual(owner, await ownerFor(request(), { ...config, appId: "other:dev" }));
+  const missing = await requestHandler(withApiRoute((incoming) => resolveOwner(incoming, config)), new Request(config.origin));
+  assert.equal(missing.status, 401);
+  assert.equal((await missing.json()).error.code, "USER_STATE_AUTH_REQUIRED");
   const demo = { ...config, mode: "demo" as const };
-  assert.equal(resolveOwner(request(), demo), resolveOwner(request("GET", undefined, "spoofed"), demo));
+  assert.equal(await ownerFor(request(), demo), await ownerFor(request("GET", undefined, "spoofed"), demo));
 });
 
 test("config fails closed outside local demo or trusted Apps runtime", () => {
@@ -122,45 +134,52 @@ test("config fails closed outside local demo or trusted Apps runtime", () => {
   assert.throws(() => resolveUserStateConfig({ ...deployed, USER_STATE_NAMESPACE: "" }, manifest));
 });
 
-test("mutations require exact configured origin and bounded valid JSON, including chunked input", async () => {
-  assert.deepEqual(await readMutation(request("PUT", analysis), config), analysis);
+test("mutations require exact configured origin and bound the parsed JSON payload", async () => {
+  const route = withApiRoute((incoming) => readMutation(incoming, config));
+  const valid = await requestHandler(route, request("PUT", analysis));
+  assert.equal(valid.status, 200);
+  assert.deepEqual(await valid.json(), analysis);
   const forged = request("PUT", analysis);
   forged.headers.set("origin", "https://evil.test");
   forged.headers.set("x-forwarded-host", "evil.test");
-  await assert.rejects(readMutation(forged, config), hasCode("INVALID_REQUEST"));
   const absent = request("PUT", analysis); absent.headers.delete("origin");
-  await assert.rejects(readMutation(absent, config), hasCode("INVALID_REQUEST"));
   const crossSite = request("PUT", analysis); crossSite.headers.set("sec-fetch-site", "cross-site");
-  await assert.rejects(readMutation(crossSite, config), hasCode("INVALID_REQUEST"));
-  await assert.rejects(readMutation(request("PUT", { note: "x".repeat(17 * 1024) }), config), hasCode("INVALID_REQUEST"));
-  const streamed = new Request(config.origin, {
+  const wrongType = request("PUT", analysis); wrongType.headers.set("content-type", "text/plain");
+  const malformed = new Request(config.origin, {
     method: "PUT", headers: { origin: config.origin, "content-type": "application/json" },
-    body: new ReadableStream({ start(controller) { controller.enqueue(new Uint8Array(17 * 1024)); controller.close(); } }),
-    duplex: "half",
-  } as RequestInit);
-  await assert.rejects(readMutation(streamed, config), hasCode("INVALID_REQUEST"));
+    body: "{",
+  });
+  for (const invalid of [forged, absent, crossSite, wrongType, malformed,
+    request("PUT", { note: "x".repeat(17 * 1024) }), request("PUT", { note: "é".repeat(9 * 1024) })]) {
+    const response = await requestHandler(route, invalid);
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).error.code, "INVALID_REQUEST");
+  }
 });
 
 test("routes preserve common envelopes and no-store on success, validation and identity errors", async () => {
   const { service } = fixture();
   const routes = userStateRoutes(() => ({ config, service }));
-  const params = { params: Promise.resolve({ id: randomUUID() }) };
-  assert.equal((await routes.put(request("PUT", analysis), params)).status, 200);
-  assert.equal((await routes.get(request(), params)).status, 200);
-  const foreign = await routes.get(request("GET", undefined, "other"), params);
+  const id = randomUUID();
+  const path = "/api/saved-analyses/:id";
+  const saved = await requestHandler(routes.put, request("PUT", analysis, "user-a", id), path);
+  const found = await requestHandler(routes.get, request("GET", undefined, "user-a", id), path);
+  assert.equal(saved.status, 200);
+  assert.equal(found.status, 200);
+  const foreign = await requestHandler(routes.get, request("GET", undefined, "other", id), path);
   assert.equal(foreign.status, 404);
   assert.equal((await foreign.json()).error.code, "USER_STATE_NOT_FOUND");
-  const invalid = await routes.put(request("PUT", { ...analysis, owner: "other" }), params);
+  const invalid = await requestHandler(routes.put, request("PUT", { ...analysis, owner: "other" }, "user-a", id), path);
   assert.equal(invalid.status, 400);
-  const unauthenticated = await routes.get(new Request(config.origin), params);
+  const unauthenticated = await requestHandler(routes.get, new Request(`${config.origin}/api/saved-analyses/${id}`), path);
   assert.equal(unauthenticated.status, 401);
-  for (const response of [foreign, invalid, unauthenticated]) {
+  for (const response of [saved, found, foreign, invalid, unauthenticated]) {
     assert.equal(response.headers.get("cache-control"), "private, no-store");
     assert.ok(response.headers.get("x-request-id"));
   }
-  const remove = await routes.remove(request("DELETE", {}), params);
+  const remove = await requestHandler(routes.remove, request("DELETE", {}, "user-a", id), path);
   assert.equal(remove.status, 200);
-  assert.equal((await routes.get(request(), params)).status, 404);
+  assert.equal((await requestHandler(routes.get, request("GET", undefined, "user-a", id), path)).status, 404);
 });
 
 test("SQL binds app, owner, entity and payload; tombstones are ranked before filtering", async () => {
@@ -174,16 +193,16 @@ test("SQL binds app, owner, entity and payload; tombstones are ranked before fil
     payload_json: "'quoted payload'",
   });
   for (const call of calls) {
-    assert.equal(call.parameters?.[1], "my-app:dev");
-    assert.equal(call.parameters?.[2], "opaque-owner");
+    assert.equal(call.parameters?.appId, "my-app:dev");
+    assert.equal(call.parameters?.owner, "opaque-owner");
     assert.equal(call.requestId, "request-id");
     assert.ok(call.maxRows && call.maxRows <= 51);
     assert.doesNotMatch(call.statement, /opaque-owner|my-app|quoted payload/);
   }
-  assert.match(LIST_STATE, /where app_id = \? and owner_id = \?/);
+  assert.match(LIST_STATE, /where app_id = :appId and owner_id = :owner/);
   assert.match(LIST_STATE, /where position = 1 and deleted = false/);
-  assert.match(GET_STATE, /entity_id = \?/);
-  assert.equal(calls[2]!.parameters?.at(-1), "'quoted payload'");
+  assert.match(GET_STATE, /entity_id = :id/);
+  assert.equal(calls[2]!.parameters?.payload, "'quoted payload'");
 });
 
 test("ambiguous SQL writes are not retried or reported as successful", async () => {

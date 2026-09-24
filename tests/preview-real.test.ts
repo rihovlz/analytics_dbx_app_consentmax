@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { copyFile, mkdir, mkdtemp, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
+const { renderProductBrief } = await import(new URL("../scripts/app-spec.mjs", import.meta.url).href) as {
+  renderProductBrief: (spec: Record<string, unknown>) => string;
+};
 
-const productBrief = "# Brief produit\n\n## Objectif et utilisateurs\n\n- Type : dashboard\n- Utilisateurs : Analyste\n- Décision à faciliter : Suivre les ventes\n- Critère de succès : Usage hebdomadaire\n\n## KPI, sources et fonctionnalités\n\nÀ confirmer avec la première tranche verticale.\n\n## Accès, confidentialité et exploitation\n\nÀ confirmer avant le premier accès à des données réelles.\n\n## Backlog\n\nConstruire et faire valider une tranche à la fois.\n";
+const productBrief = renderProductBrief({ app: { type: "dashboard", audience: "Analyste", decision: "Suivre les ventes", success: "Usage hebdomadaire" }, features: [] });
 
 test("real preview requires an explicit confirmation before remote changes", async () => {
   const root = await mkdtemp(join(tmpdir(), "preview-real-"));
@@ -13,9 +16,13 @@ test("real preview requires an explicit confirmation before remote changes", asy
     "config/data-projects.json",
     "config/genie-spaces.json",
     "scripts/app-doctor.mjs",
+    "scripts/appkit-compatibility.mjs",
     "scripts/template-manifest.mjs",
     "scripts/template-status.mjs",
     "scripts/app-spec.mjs",
+    "scripts/app-capabilities.mjs",
+    "scripts/app-skills.mjs",
+    "config/appkit-capabilities.json",
     "scripts/data-access.mjs",
     "scripts/data-preparation.mjs",
     "scripts/preview-real.mjs",
@@ -58,6 +65,8 @@ test("real preview requires an explicit confirmation before remote changes", asy
   );
   await writeFile(join(root, "docs/product-brief.md"), productBrief, "utf8");
   await symlink(join(process.cwd(), "node_modules"), join(root, "node_modules"), "dir");
+
+  execFileSync(process.execPath, ["--input-type=module", "-e", 'import { renderDataAccess } from "./scripts/data-access.mjs"; await renderDataAccess({ root: process.cwd() });'], { cwd: root });
 
   const result = spawnSync(process.execPath, ["scripts/preview-real.mjs"], {
     cwd: root,

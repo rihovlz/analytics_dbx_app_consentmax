@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  content: ["./src/**/*.{ts,tsx}"],
+  content: ["./src/**/*.{ts,tsx}", "./node_modules/@databricks/appkit-ui/dist/react/ui/dialog.js"],
   theme: {
     extend: {
       colors: {

@@ -9,8 +9,11 @@ import type {
   GenieMessageStatus,
   GeniePublicErrorCode,
   GenieQueryResult,
-  GenieStreamEvent,
+  GenieMessageResult,
 } from "@/features/genie/contract";
+
+import { queryResultFromEvent } from "@/features/genie/contract";
+import { sendGenieRequest } from "@/features/genie/stream";
 
 export type GenieClientError = {
   code: GeniePublicErrorCode;
@@ -66,170 +69,6 @@ function createEmptySession(): GenieSessionConversation {
   };
 }
 
-const genieStatuses = new Set<GenieMessageStatus>([
-  "SUBMITTED",
-  "FETCHING_METADATA",
-  "FILTERING_CONTEXT",
-  "ASKING_AI",
-  "PENDING_WAREHOUSE",
-  "EXECUTING_QUERY",
-  "COMPLETED",
-  "FAILED",
-  "CANCELLED",
-  "QUERY_RESULT_EXPIRED",
-]);
-
-const genieErrorCodes = new Set<GeniePublicErrorCode>([
-  "INVALID_REQUEST",
-  "UNKNOWN_SPACE",
-  "GENIE_AUTH_REQUIRED",
-  "GENIE_PERMISSION_DENIED",
-  "GENIE_TIMEOUT",
-  "GENIE_CANCELLED",
-  "GENIE_RESULT_EXPIRED",
-  "GENIE_UNAVAILABLE",
-  "UNEXPECTED_ERROR",
-]);
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
-function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((item) => typeof item === "string");
-}
-
-function isQueryResult(value: unknown): value is GenieQueryResult {
-  if (!isRecord(value)) {
-    return false;
-  }
-  const validColumns = Array.isArray(value.columns) && value.columns.every((column) =>
-    isRecord(column) && typeof column.name === "string" && typeof column.type === "string",
-  );
-  const validRows = Array.isArray(value.rows) && value.rows.every((row) =>
-    Array.isArray(row) && row.every((cell) =>
-      cell === null || typeof cell === "string" || typeof cell === "boolean" || (typeof cell === "number" && Number.isFinite(cell)),
-    ),
-  );
-  return (
-    typeof value.attachmentId === "string" &&
-    (value.statementId === null || typeof value.statementId === "string") &&
-    (value.title === null || typeof value.title === "string") &&
-    (value.description === null || typeof value.description === "string") &&
-    (value.sql === null || typeof value.sql === "string") &&
-    validColumns &&
-    validRows &&
-    typeof value.rowCount === "number" &&
-    Number.isInteger(value.rowCount) &&
-    value.rowCount >= 0 &&
-    typeof value.truncated === "boolean"
-  );
-}
-
-function isGenieStreamEvent(value: unknown): value is GenieStreamEvent {
-  if (!isRecord(value) || !isRecord(value.data)) {
-    return false;
-  }
-  const data = value.data;
-
-  switch (value.type) {
-    case "message_start":
-      return typeof data.conversationId === "string" && typeof data.messageId === "string";
-    case "status":
-      return typeof data.status === "string" && genieStatuses.has(data.status as GenieMessageStatus);
-    case "message_result":
-      return (
-        typeof data.conversationId === "string" &&
-        typeof data.messageId === "string" &&
-        (data.answer === null || typeof data.answer === "string") &&
-        isStringArray(data.suggestedQuestions) &&
-        isStringArray(data.queryAttachmentIds)
-      );
-    case "query_result":
-      return isQueryResult(data);
-    case "error":
-      return (
-        typeof data.code === "string" &&
-        genieErrorCodes.has(data.code as GeniePublicErrorCode) &&
-        typeof data.message === "string" &&
-        typeof data.requestId === "string" &&
-        typeof data.retryable === "boolean"
-      );
-    default:
-      return false;
-  }
-}
-
-function parseSseBlock(block: string): GenieStreamEvent | null {
-  let eventName = "";
-  const dataLines: string[] = [];
-
-  block.split("\n").forEach((rawLine) => {
-    const line = rawLine.endsWith("\r") ? rawLine.slice(0, -1) : rawLine;
-    if (line.startsWith("event:")) {
-      eventName = line.slice(6).trim();
-    } else if (line.startsWith("data:")) {
-      dataLines.push(line.slice(5).trimStart());
-    }
-  });
-
-  const serializedData = dataLines.join("\n");
-  if (!serializedData || serializedData === "[DONE]") {
-    return null;
-  }
-
-  let parsedData: unknown;
-  try {
-    parsedData = JSON.parse(serializedData);
-  } catch {
-    throw new Error("Invalid Genie event payload");
-  }
-  if (isGenieStreamEvent(parsedData)) {
-    return parsedData;
-  }
-  const combinedEvent = { type: eventName, data: parsedData };
-  if (isGenieStreamEvent(combinedEvent)) {
-    return combinedEvent;
-  }
-  throw new Error("Unexpected Genie event contract");
-}
-
-async function consumeGenieStream(
-  stream: ReadableStream<Uint8Array>,
-  onEvent: (event: GenieStreamEvent) => void,
-) {
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  try {
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) {
-        break;
-      }
-      buffer += decoder.decode(value, { stream: true }).replaceAll("\r\n", "\n");
-      let separatorIndex = buffer.indexOf("\n\n");
-      while (separatorIndex >= 0) {
-        const event = parseSseBlock(buffer.slice(0, separatorIndex));
-        buffer = buffer.slice(separatorIndex + 2);
-        if (event) {
-          onEvent(event);
-        }
-        separatorIndex = buffer.indexOf("\n\n");
-      }
-    }
-
-    buffer += decoder.decode();
-    const trailingEvent = parseSseBlock(buffer);
-    if (trailingEvent) {
-      onEvent(trailingEvent);
-    }
-  } finally {
-    reader.releaseLock();
-  }
-}
-
 function fallbackError(message: string, retryable = true): GenieClientError {
   return {
     code: "GENIE_UNAVAILABLE",
@@ -238,38 +77,18 @@ function fallbackError(message: string, retryable = true): GenieClientError {
   };
 }
 
-export function applyPostDispatchRetryPolicy(
-  error: GenieClientError,
-  requestMayHaveSubmitted: boolean,
-): GenieClientError {
-  return requestMayHaveSubmitted
-    ? { ...error, retryable: false, submissionMayHaveStarted: true }
-    : error;
+export function preventGenieReplay(error: GenieClientError): GenieClientError {
+  return { ...error, retryable: false, submissionMayHaveStarted: true };
 }
 
-async function readHttpError(response: Response): Promise<GenieClientError> {
-  try {
-    const payload = await response.json() as {
-      error?: { code?: GeniePublicErrorCode; message?: string; requestId?: string; retryable?: boolean };
-    };
-    if (payload.error?.message) {
-      const publicCode = payload.error.code && genieErrorCodes.has(payload.error.code)
-        ? payload.error.code
-        : "GENIE_UNAVAILABLE";
-      return {
-        code: publicCode,
-        message: payload.error.message,
-        requestId: payload.error.requestId,
-        retryable: payload.error.retryable ?? (response.status === 429 || response.status >= 500),
-      };
-    }
-  } catch {
-    // The public fallback below deliberately hides an unreadable upstream response.
-  }
-  return fallbackError(
-    "Genie est momentanément indisponible. Réessayez dans quelques instants.",
-    response.status === 429 || response.status >= 500,
-  );
+function connectionError(error: unknown): GenieClientError {
+  // AppKit connectSSE exposes the status, never the pre-stream response body.
+  const status = error instanceof Error ? /^HTTP (\d{3})$/.exec(error.message)?.[1] : undefined;
+  if (status === "401") return { code: "GENIE_AUTH_REQUIRED", retryable: false,
+    message: "Votre session Databricks ne permet pas d’interroger Genie. Reconnectez-vous puis réessayez." };
+  if (status === "403") return { code: "GENIE_PERMISSION_DENIED", retryable: false,
+    message: "Vous n’avez pas l’autorisation d’utiliser cet espace Genie ou ses données." };
+  return fallbackError("Impossible de terminer la réponse Genie. Vérifiez votre connexion et ouvrez une nouvelle conversation.", false);
 }
 
 export function useGenieConversation(alias: string) {
@@ -319,7 +138,7 @@ export function useGenieConversation(alias: string) {
 
   const sendMessage = useCallback(async (content: string, options: SendMessageOptions = {}) => {
     const normalizedContent = content.trim();
-    if (!normalizedContent || isStreaming || requiresNewConversation(activeSession)) {
+    if (!normalizedContent || abortControllerRef.current || isStreaming || requiresNewConversation(activeSession)) {
       return;
     }
 
@@ -359,11 +178,8 @@ export function useGenieConversation(alias: string) {
 
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
-    let messageResultReceived = false;
     let streamErrorReceived = false;
-    let requestMayHaveSubmitted = false;
-    let expectedAttachmentIds: string[] = [];
-    const receivedAttachmentIds = new Set<string>();
+    let answer: GenieMessageResult | undefined;
 
     function updateAssistant(updater: (message: GenieUiMessage) => GenieUiMessage) {
       updateSession(sessionId, (session) => ({
@@ -374,83 +190,65 @@ export function useGenieConversation(alias: string) {
     }
 
     try {
-      const requestBody = JSON.stringify({
-        content: normalizedContent,
-        conversationId: conversationId ?? undefined,
-        context: options.context,
-      });
-      requestMayHaveSubmitted = true;
-      const response = await fetch(`/api/genie/${encodeURIComponent(alias)}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
-        body: requestBody,
-        signal: abortController.signal,
-      });
-
-      if (!response.ok) {
-        requestMayHaveSubmitted = false;
-        throw await readHttpError(response);
-      }
-      if (!response.body) {
-        throw fallbackError("La réponse de Genie ne peut pas être lue. Réessayez.");
-      }
-
-      await consumeGenieStream(response.body, (event) => {
+      await sendGenieRequest(alias, {
+        content: normalizedContent, conversationId: conversationId ?? undefined, context: options.context,
+      }, abortController.signal, (event) => {
         switch (event.type) {
           case "message_start":
             updateSession(sessionId, (session) => ({
               ...session,
-              conversationId: event.data.conversationId,
+              conversationId: event.conversationId,
               updatedAt: new Date().toISOString(),
               messages: session.messages.map((message) => message.id === assistantMessageId
-                ? { ...message, serverMessageId: event.data.messageId }
+                ? { ...message, serverMessageId: event.messageId }
                 : message),
             }));
             break;
           case "status":
-            setActiveStatus(event.data.status);
+            setActiveStatus(event.status);
             updateAssistant((message) => ({
               ...message,
-              status: event.data.status,
-              statusHistory: message.statusHistory.at(-1) === event.data.status
+              status: event.status,
+              statusHistory: message.statusHistory.at(-1) === event.status
                 ? message.statusHistory
-                : [...message.statusHistory, event.data.status],
+                : [...message.statusHistory, event.status],
             }));
             break;
           case "message_result":
-            messageResultReceived = true;
-            expectedAttachmentIds = event.data.queryAttachmentIds;
+            answer = event.message;
             updateSession(sessionId, (session) => ({
               ...session,
-              conversationId: event.data.conversationId,
+              conversationId: event.message.conversationId,
               updatedAt: new Date().toISOString(),
               messages: session.messages.map((message) => message.id === assistantMessageId
                 ? {
                     ...message,
-                    serverMessageId: event.data.messageId,
-                    content: event.data.answer ?? "",
-                    suggestedQuestions: event.data.suggestedQuestions,
+                    serverMessageId: event.message.messageId,
+                    content: event.message.attachments.map((item) => item.text?.content).filter(Boolean).join("\n\n"),
+                    suggestedQuestions: event.message.attachments.flatMap((item) => item.suggestedQuestions ?? []),
                   }
                 : message),
             }));
             break;
-          case "query_result":
-            receivedAttachmentIds.add(event.data.attachmentId);
+          case "query_result": {
+            if (!answer) throw new Error("Genie result arrived before its message");
+            const result = queryResultFromEvent(event, answer);
             updateAssistant((message) => ({
               ...message,
-              queryResults: message.queryResults.some((result) => result.attachmentId === event.data.attachmentId)
+              queryResults: message.queryResults.some((result) => result.attachmentId === event.attachmentId)
                 ? message.queryResults
-                : [...message.queryResults, event.data],
+                : [...message.queryResults, result],
             }));
             break;
+          }
           case "error": {
             streamErrorReceived = true;
-            const streamError = applyPostDispatchRetryPolicy({
-              code: event.data.code,
-              message: event.data.message,
-              requestId: event.data.requestId,
-              retryable: event.data.retryable,
-            }, requestMayHaveSubmitted);
+            const streamError = preventGenieReplay({
+              code: event.code,
+              message: event.error,
+              requestId: event.requestId,
+              retryable: event.retryable,
+            });
             setError(streamError);
             setActiveStatus("FAILED");
             updateAssistant((message) => ({
@@ -466,12 +264,6 @@ export function useGenieConversation(alias: string) {
         }
       });
 
-      if (!streamErrorReceived && !messageResultReceived) {
-        throw fallbackError("La réponse de Genie est incomplète. Réessayez dans quelques instants.");
-      }
-      if (!streamErrorReceived && expectedAttachmentIds.some((attachmentId) => !receivedAttachmentIds.has(attachmentId))) {
-        throw fallbackError("Certaines données de la réponse sont incomplètes. Réessayez dans quelques instants.");
-      }
       if (!streamErrorReceived) {
         setActiveStatus("COMPLETED");
         updateAssistant((message) => ({
@@ -489,10 +281,7 @@ export function useGenieConversation(alias: string) {
           updateAssistant((message) => ({ ...message, trackingStopped: true }));
         }
       } else {
-        const rawClientError = caughtError && typeof caughtError === "object" && "code" in caughtError
-          ? caughtError as GenieClientError
-          : fallbackError("Impossible de joindre Genie. Vérifiez votre connexion puis réessayez.");
-        const clientError = applyPostDispatchRetryPolicy(rawClientError, requestMayHaveSubmitted);
+        const clientError = preventGenieReplay(connectionError(caughtError));
         setError(clientError);
         setActiveStatus("FAILED");
         updateAssistant((message) => ({

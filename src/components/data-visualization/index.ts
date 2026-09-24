@@ -11,6 +11,8 @@ export {
 } from "@/components/data-visualization/types";
 export { clamp, formatAxisValue, formatNumber, formatSignedPercent, getToneColor, getToneInk } from "@/components/data-visualization/format";
 export { DataCard, type DataCardProps } from "@/components/cards/data-card";
+export { WaterfallChart, type WaterfallChartProps } from "@/components/charts/waterfall-chart";
+export type { WaterfallContribution, WaterfallData } from "@/components/charts/waterfall-model";
 export {
   ChartState,
   MiniAreaChart,

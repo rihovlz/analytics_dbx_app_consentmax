@@ -11,14 +11,19 @@ unrelated work.
 ## Architecture and Boundaries
 
 ```text
-src/app + src/components
+src/client + src/components
+  → src/server/routes (Express + withApiRoute)
   → src/features/<feature>/server/service.ts
   → src/features/<feature>/server/repository.ts
   → src/lib/databricks/SqlExecutor
   → Databricks SQL / Unity Catalog
 ```
 
-- Add a page in `src/app/<route>/page.tsx`.
+- Add a page in `src/client/pages/<route>/page.tsx` and register it in `src/client/routes.tsx`.
+- Register native Express handlers in `src/server/routes.ts` with `withApiRoute`.
+  Read `request.params`, `request.query` and validated `request.body` directly. Return JSON or await writing to the
+  Express response. Use `context.signal` for cancellation; do not recreate Web Request/Response bridges.
+- Read the installed AppKit docs and `docs/appkit-maintenance.md` before changing runtime adapters.
 - Add the shared Valiuz shell and neutral UI in `src/components`; keep business UI inside its feature.
 - Add business orchestration in `src/features/<feature>/server/service.ts`.
 - Add SQL and row contracts in that feature’s `queries.ts` and `repository.ts`.
@@ -39,6 +44,8 @@ Avoid speculative abstractions. Extract a generic helper only when two real feat
   in an ignored `.env.local`. Runtime auth uses credentials injected by Databricks Apps.
 - Never commit or log tokens, client secrets, `.env` files, query results with sensitive rows, or customer identifiers.
 - Do not interpolate user input into SQL. Use driver parameters and validate result rows with Zod.
+- Use named SQL markers (`:source`, `:startDate`) and a matching parameter record. No positional `?` compatibility
+  belongs in the 2.0 runtime; port old repositories once during migration.
 - Keep each query named, bounded by a timeout and row limit, and isolated in a repository.
 - Verify Unity Catalog privileges are minimal: `USE CATALOG`, `USE SCHEMA`, plus object-level access.
 - The data project is the Unity Catalog catalog and must be declared in `config/data-projects.json`. The initial Valiuz
@@ -49,6 +56,16 @@ Avoid speculative abstractions. Extract a generic helper only when two real feat
   `MODIFY` bindings (including `SELECT`). Follow `docs/user-state.md` before activation.
 - Keep `config/app-spec.yml` and `docs/product-brief.md` synchronized with `npm run app:guide`. Prefer
   `npm run feature:new -- <slug>` for the first simple KPI slice, then review every generated query.
+  Select capabilities during framing and use `app:capabilities` for their integration paths. A Genie, Files or workflow
+  app does not require a generated KPI. Spec choices do not activate plugins or authorize resources.
+  Use `create-analytics-dbx-app` to coordinate creation and resumption. `app:orchestrate --json` reports the next local
+  step and relevant skills. Compare optional `docs/creation-progress.md` notes with current files; notes are neither
+  test evidence nor authorization. Continue authorized work through implementation and verification.
+  One person can own analysis, data preparation and the app. `app prompt --idea <need>` covers the full workflow;
+  the agent chooses commands and skills from known requirements. Optional `--role` values only emphasize a topic.
+  `app next` delegates to the same diagnostic and lists workflow reviews without certifying data quality or test results.
+  For an explicitly requested migration, run `app migrate --app-dir <old app>` from a reviewed target template checkout.
+  Treat its version and inventory as unverified; follow `docs/migration-2.0.md` without reinitializing the old app.
 - Use `npm run data:init -- <name>` to choose `direct`, `notebook` or `pipeline`. Default to `direct`. Notebook and
   pipeline modes belong to the separate `data/` bundle, write with the maintainer identity, and expose only their
   declared output to the app with `SELECT`.
@@ -93,7 +110,7 @@ only after applying a declared template upgrade. Always report the version decis
 
 ## Deployment and Git
 
-Use a feature branch and a pull request. Keep commits focused; do not commit generated `.next`, caches or credentials.
+Use a feature branch and a pull request. Keep commits focused; do not commit generated `dist`, caches or credentials.
 Do not push, merge, deploy, grant permissions, dispatch workflows or change GitHub settings without explicit user
 authorization. Do not use destructive cleanup to resolve unrelated changes.
 
@@ -117,12 +134,16 @@ A change is done only when:
 - remote changes were explicitly authorized and smoke-checked;
 - the final diff and status are understood and the handoff lists any unvalidated item.
 
-<!-- BEGIN:nextjs-agent-rules -->
+## Upstream compatibility
 
-# This is NOT the Next.js you know
-
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
-
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
-<!-- END:nextjs-agent-rules -->
+Keep AppKit and AppKit UI on matching exact versions. Update the compatibility record after review.
+Do not expose generic plugin endpoints or enable result caching without an explicit identity and freshness contract.
+Install upstream Databricks skills outside application source with the supported CLI.
+Keep local skills focused on Valiuz governance, design, data contracts and releases.
+Use `app:skills` to identify the core and optional skills for the chosen capabilities. An explicit external directory
+allows read-only entrypoint checks; an unchecked installation must not be reported as verified.
+Read the relevant installed upstream guide on demand. Preserve Valiuz APIs, branding, Genie OBO and private personal state
+when generic upstream scaffolding examples differ. See the creation skill's AppKit capability reference.
+Beta capabilities require a documented adoption decision before implementation; selecting one in the brief is not that decision.
+Run `npm run template:journey`, `npm run bundle:compatibility` and `npm run test:e2e` for runtime changes.
+In the template source with its 1.4 and 1.5 Git history, also run `npm run template:migration`.

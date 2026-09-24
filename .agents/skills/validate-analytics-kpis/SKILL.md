@@ -35,6 +35,11 @@ Lire [references/review-checklist.md](references/review-checklist.md) pour séle
 calcul, statistique et visualisation qui correspondent réellement au KPI. Ne pas exécuter mécaniquement tous les
 contrôles.
 
+Pour une comparaison ou un waterfall, lire `docs/period-comparison.md` lorsqu'il est présent. Vérifier les mêmes filtres,
+les dates civiles, durées, périodes partielles et références nulles ou négatives. Une moyenne exige des pondérations.
+Réconcilier référence + contributions + résidu avec le total analysé ; les segments doivent être disjoints et la mesure additive.
+Un taux, une moyenne ou un stock non additif demande une méthode spécifique. Une contribution ne prouve pas une cause.
+
 # Vérifier la chaîne complète
 
 1. Retracer la source jusqu'au chiffre affiché : objet, requête, repository, service, route et composant.

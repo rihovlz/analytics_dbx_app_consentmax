@@ -27,7 +27,7 @@ test("visualization formatters keep values finite, localized and bounded", () =>
   assert.equal(clamp(-4, 0, 100), 0);
   assert.equal(formatNumber(Number.NaN), "—");
   assert.match(formatNumber(1284600, { locale: "fr-FR", notation: "compact", maximumFractionDigits: 1 }), /1,3\s*M/);
-  assert.match(formatNumber(1284, { locale: "not_a_locale" }), /1[\s ]284/);
+  assert.match(formatNumber(1284, { locale: "not_a_locale" }), /1[\s\u202f]284/);
   assert.match(formatSignedPercent(8.4), /^\+8,4/);
   assert.match(formatSignedPercent(-2), /^-2/);
   assert.match(formatSignedPercent(8.4, "not_a_locale"), /^\+8,4/);
@@ -193,7 +193,7 @@ test("analytics map exposes keyboard data and a tabular fallback", () => {
   assert.match(html, /Utilisez les touches plus et moins/);
   assert.match(html, /faites-la glisser avec un pointeur/);
   assert.match(html, /aria-keyshortcuts="\+ - 0 Home ArrowUp ArrowDown ArrowLeft ArrowRight"/);
-  assert.match(html, /Nord\. Ventes : 1[\s ]280/);
+  assert.match(html, /Nord\. Ventes : 1[\s\u202f]280/);
   assert.match(html, /Consulter les données sous forme de tableau/);
   assert.match(html, /Valeurs représentées sur la carte/);
   assert.match(html, /aria-label="Zoomer sur la carte"/);
@@ -233,8 +233,8 @@ test("analytics map stabilizes projected measurements across server and browser 
 
 test("theme and demo contracts include dark mode and every requested component", async () => {
   const [styles, demo, themeToggle] = await Promise.all([
-    readFile("src/app/globals.css", "utf8"),
-    readFile("src/app/visualizations/visualizations-demo.tsx", "utf8"),
+    readFile("src/client/globals.css", "utf8"),
+    readFile("src/client/pages/visualizations/visualizations-demo.tsx", "utf8"),
     readFile("src/components/theme/theme-toggle.tsx", "utf8"),
   ]);
 

@@ -21,6 +21,7 @@ ni credential, ni configuration du workspace, ni donnée métier.
 | `1.3.0` | `08058f189790546146dabec88a6a0897568b55e9` | Visualisations analytics réutilisables, page de démonstration et modes clair/sombre |
 | `1.4.0` | `19ade7c5882aeb3065453e0aaf3c02552a61fd6c` | Assistant Genie OBO, contexte de dashboard, résultats riches et épinglage composable |
 | `1.5.0` | `26a1d0a64a9fed4d0a9cad1c7031a9d2c07eb95f` | Analyses et préférences personnelles optionnelles sur tables Delta de développement |
+| `2.0.0` | `8b779bcb363a7c57bdea12342964601d0acdfef4` | Runtime AppKit, routes React, adaptateurs bornés, parcours de capacités et skills amont |
 
 Le point historique est le SHA complet de la branche de base examinée pour préparer la version. Il sert à borner le
 diff, pas à reproduire seul le checkout final. Le manifeste et ses sondes définissent le contrat réel de la version.
@@ -36,8 +37,22 @@ npm run template:status
 npm run template:check
 ```
 
-Une nouvelle app reçoit la version `1.5.0`. `npm run check` inclut `template:check` et
+Une nouvelle app reçoit la version `2.0.0`. `npm run check` inclut `template:check` et
 `template:release:check`. Le second reconnaît une app initialisée et n'exige aucun bump pour ses features métier.
+
+La release 2.0.0 inclut le parcours de capacités, de skills et l'orchestration de la création ou de la reprise.
+Elle ajoute l'entrée `npm run app`, un prompt pour tout le parcours et un bilan de migration depuis un checkout cible.
+La migration du runtime impose une version majeure par rapport à la base 1.5.0.
+La comparaison facultative et le waterfall rejoignent cette **2.0.0 non publiée** sous la capability `period-comparison`.
+Cette addition compatible ne demande pas une 2.1 avant publication de la 2.0. Les features existantes restent inchangées.
+La capability `comparison-sharing` rejoint aussi cette version non publiée.
+Elle ajoute un lien de reprise et une synthèse à copier, avec activation explicite par comparaison.
+Elle ne change ni le stockage ni les droits. Les liens recalculent les données sur des dates fixes.
+Fusionner les contrats et composants indiqués dans le guide ; les activer selon [le besoin analytique](period-comparison.md).
+Les anciennes specs restent lisibles. Fusionner les scripts de cadrage et régénérer le brief pour adopter le nouveau champ `capabilities`.
+Ajouter la commande `app:orchestrate` et sa référence au skill de création. Aucun changement de schéma ni nouveau service n'est nécessaire.
+Ajouter aussi `app: node scripts/app.mjs` dans les scripts npm. Voir [le parcours CLI](cli-workflow.md).
+Les notes de reprise sont facultatives ; elles ne remplacent ni les contrats métier ni les tests.
 
 ## App copiée avant le suivi de version
 
@@ -101,7 +116,7 @@ npm run app:doctor
 npm run check
 ```
 
-Une app `1.0.0` applique ensuite chaque guide dans l’ordre, jusqu’au guide `1.4.0 → 1.5.0`.
+Une app `1.0.0` applique ensuite chaque guide dans l’ordre, jusqu’au guide `1.5.0 → 2.0.0`.
 `template:status` propose la prochaine étape disponible au lieu de sauter une migration intermédiaire.
 
 ## Passage de 1.1.0 à 1.2.0
@@ -239,8 +254,9 @@ Fusionner les contrats, les routes personnelles et les composants. Conserver la 
 l’app. Adapter les variantes strictes de définition et les préférences avant activation. La feature IKEA existante
 n’est pas migrée automatiquement ; conserver ses tables, ses versions et ses garanties de concurrence.
 
-Suivre [le guide personnel](user-state.md) pour préparer les deux tables dans le datamart choisi, relire les bindings
-et effectuer la recette distante. Les sources analytiques restent en lecture seule.
+Si l'état personnel est demandé, suivre [le guide personnel](user-state.md) pour préparer les deux tables, relire les
+bindings et effectuer la recette distante. Sinon, garder le flag désactivé, sans table ni nouveau droit.
+Les sources analytiques restent en lecture seule.
 
 ```bash
 npm run template:check -- --to 1.5.0
@@ -249,3 +265,51 @@ npm run template:check -- --to 1.5.0
 Après validation, remplacer la version dans `.valiuz-template.yml`, ajouter `personal-user-state` aux capabilities
 et `1.4.0-to-1.5.0` à `appliedUpgrades`. Exécuter `npm run check`. La création des tables et le déploiement sont des
 mutations distinctes. Désactiver la feature pour un rollback ; ne pas effacer les données personnelles.
+
+## Passage de 1.5.0 à 2.0.0
+
+Cette version majeure change le runtime et le modèle d’écriture des pages et handlers.
+Les données et requêtes métier restent en place. Les apps 1.4.0 et 1.5.0 ne migrent pas automatiquement.
+
+Une app 1.4 applique d'abord les contrats 1.5, sans activer le stockage personnel si inutile.
+React reste présent ; le runtime Next.js et le routage sont portés vers AppKit/Express, Vite et React Router.
+Installer les dépendances d'un checkout 2.0 relu, distinct de l'app, puis y lancer :
+
+```bash
+npm run app -- migrate --app-dir /chemin/vers/ancienne-app
+```
+
+Ce bilan compose les guides 1.4 → 1.5 → 2.0 ou le guide 1.5 → 2.0. Il ne modifie ni l'app ni sa version.
+L'ancienne copie du manifeste ne découvre pas automatiquement les releases futures.
+
+Suivre [la migration détaillée](migration-2.0.md). Depuis le checkout cible, afficher le guide direct :
+
+```bash
+npm run template:diff -- --from 1.5.0 --to 2.0.0
+```
+
+Dans le repository source avec son historique 1.4 et 1.5, `npm run template:migration` vérifie les deux fixtures métier.
+
+Les sondes `fileAnyOf` reconnaissent les emplacements 1.x et 2.0 des capabilities conservées.
+Les nouvelles capabilities vérifient le runtime AppKit, sa maintenance et le parcours guidé des capacités et skills.
+Le parcours de création suppose une personne pour le besoin, les données et l'app. `app prompt --idea <besoin>`
+ne demande aucun profil ; les anciennes valeurs de `--role` restent des priorités facultatives.
+`app next` expose aussi les revues métier, qualité, calcul, préparation, interface, tests et livraison.
+Fusionner les références du skill et conserver les contrats et notes existants, sans relancer l'initialisation.
+Le rollback conserve les tables et redéploie la révision précédente.
+
+La 2.0.0 non publiée inclut aussi `appkit-genie-integration` : plugin Genie programmatique, compatibilité OBO et
+annulation, identité visible et exploration facultative des comparaisons. Les contrats et limites sont décrits dans
+[Genie](genie.md). Cette addition reste dans la migration major 1.5 → 2.0 ; les tables personnelles sont préservées.
+
+La capability `comparison-sharing` ajoute le partage facultatif à la même migration 1.5 → 2.0.
+Fusionner ses modules, ses options de génération et la référence de skill indiqués dans le guide YAML.
+Une app existante conserve le partage désactivé tant qu'elle ne fournit pas la prop `sharing`.
+Avant activation, examiner les filtres partageables et tester la reprise du lien sur la bonne vue.
+Après validation, ajouter `comparison-sharing` aux capabilities de `.valiuz-template.yml` avec les autres contrats 2.0.
+Voir [le contrat de partage](period-comparison.md#partager-une-comparaison) pour la distinction entre copie datée et recalcul.
+
+La 2.0.0 fixe aussi un seul contrat d’écriture d’app : handlers Express natifs, paramètres SQL nommés et événements
+Genie alignés sur AppKit. Les anciens handlers, paramètres positionnels et événements enveloppés ne sont pas acceptés
+au runtime. Les guides et fixtures réalisent ce portage une fois, sans modifier les calculs métier ni les données stockées.
+Ces ruptures restent dans la major non publiée ; aucune version 2.1 n’est créée.

@@ -288,7 +288,7 @@ export function TimeSeriesChart({
           <figure aria-label={`${title}. ${description ?? "Évolution temporelle."}`}>
             <div style={{ height: safeHeight }}>
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={preparedData} margin={{ top: 14, right: 8, bottom: 2, left: -8 }} accessibilityLayer>
+                <ComposedChart data={preparedData} margin={{ top: 14, right: 8, bottom: 2, left: 0 }} accessibilityLayer>
                   <defs>
                     {series.map((definition, index) => definition.area ? (
                       <linearGradient key={definition.key} id={`${gradientPrefix}-${index}`} x1="0" y1="0" x2="0" y2="1">
@@ -313,7 +313,7 @@ export function TimeSeriesChart({
                     tickLine={false}
                     tick={{ fill: "var(--muted)", fontSize: 12 }}
                     tickMargin={10}
-                    width={58}
+                    width="auto"
                     tickFormatter={(value: number) => formatNumber(value, valueFormat)}
                   />
                   <Tooltip

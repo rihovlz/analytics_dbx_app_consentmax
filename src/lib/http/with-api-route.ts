@@ -1,85 +1,72 @@
-import { NextResponse } from "next/server";
-
-import { normalizeError, type AppError } from "@/lib/errors/app-error";
+import type { ErrorRequestHandler, Request, RequestHandler, Response } from "express";
+import { normalizeError, RequestValidationError, type AppError } from "@/lib/errors/app-error";
 import { createRequestContext, type RequestContext } from "@/lib/logging/request-context";
 
-type ApiHandler<T, TRouteContext> = (
-  request: Request,
-  context: RequestContext,
-  routeContext: TRouteContext,
-) => Promise<T | Response> | T | Response;
+export type ApiContext = RequestContext & { signal: AbortSignal };
+type ApiHandler<T> = (request: Request, context: ApiContext, response: Response) => T | Promise<T>;
 
-type WrappedApiRoute<TRouteContext> = TRouteContext extends undefined
-  ? (request: Request) => Promise<Response>
-  : (request: Request, routeContext: TRouteContext) => Promise<Response>;
-
-function attachRequestId(response: Response, requestId: string): Response {
-  const headers = new Headers(response.headers);
-  headers.set("x-request-id", requestId);
-  return new Response(response.body, {
-    headers,
-    status: response.status,
-    statusText: response.statusText,
-  });
+function prepareResponse(response: Response, requestId: string): void {
+  response.set("x-request-id", requestId);
+  response.set("cache-control", "private, no-store");
+  response.vary("Cookie, x-forwarded-user");
 }
 
-function publicErrorMetadata(error: AppError): { retryable?: boolean; retryAfterMs?: number } {
-  const candidate = error as AppError & { retryable?: unknown; retryAfterMs?: unknown };
-  return {
-    ...(typeof candidate.retryable === "boolean" ? { retryable: candidate.retryable } : {}),
-    ...(typeof candidate.retryAfterMs === "number" && Number.isFinite(candidate.retryAfterMs)
-      ? { retryAfterMs: Math.max(0, candidate.retryAfterMs) }
-      : {}),
-  };
+function sendError(error: unknown, request: Request, response: Response, context: RequestContext): void {
+  const normalized = normalizeError(error);
+  context.log.error({ errorName: normalized.name, code: normalized.code,
+    method: request.method, path: request.path }, "request failed");
+  const metadata = normalized as AppError & { retryable?: unknown; retryAfterMs?: unknown };
+  if (typeof metadata.retryAfterMs === "number" && Number.isFinite(metadata.retryAfterMs)) {
+    response.set("retry-after", String(Math.ceil(Math.max(0, metadata.retryAfterMs) / 1_000)));
+  }
+  response.status(normalized.status).json({ error: {
+    code: normalized.code, message: normalized.userMessage, requestId: context.requestId,
+    ...(typeof metadata.retryable === "boolean" ? { retryable: metadata.retryable } : {}),
+  } });
 }
 
-export function withApiRoute<T, TRouteContext = undefined>(
-  handler: ApiHandler<T, TRouteContext>,
-): WrappedApiRoute<TRouteContext> {
-  const apiRoute = async (request: Request, routeContext?: TRouteContext): Promise<Response> => {
-    const context = createRequestContext(request);
+/** Native Express handler: return JSON, or await writing a response (including SSE). */
+export function withApiRoute<T>(handler: ApiHandler<T>): RequestHandler {
+  return (request, response, next) => {
+    const controller = new AbortController();
+    const context: ApiContext = { ...createRequestContext(request), signal: controller.signal };
     const startedAt = performance.now();
-
-    try {
-      const result = await handler(request, context, routeContext as TRouteContext);
-      context.log.info(
-        { method: request.method, path: new URL(request.url).pathname, durationMs: performance.now() - startedAt },
-        "request completed",
-      );
-      if (result instanceof Response) {
-        return attachRequestId(result, context.requestId);
+    const abort = () => { if (!response.writableFinished) controller.abort(); };
+    request.once("aborted", abort);
+    response.once("close", abort);
+    if (request.aborted) abort();
+    prepareResponse(response, context.requestId);
+    void Promise.resolve().then(() => handler(request, context, response)).then((result) => {
+      if (!response.headersSent && !response.writableEnded) {
+        if (result === undefined) response.status(204).end();
+        else response.json(result);
       }
-      return NextResponse.json(result, { headers: { "x-request-id": context.requestId } });
-    } catch (error) {
-      const normalized = normalizeError(error);
-      context.log.error(
-        {
-          errorName: normalized.name,
-          code: normalized.code,
-          method: request.method,
-          path: new URL(request.url).pathname,
-          durationMs: performance.now() - startedAt,
-        },
-        "request failed",
-      );
-      const metadata = publicErrorMetadata(normalized);
-      const headers = new Headers({ "x-request-id": context.requestId });
-      if (metadata.retryAfterMs !== undefined) {
-        headers.set("retry-after", String(Math.ceil(metadata.retryAfterMs / 1_000)));
+      context.log.info({ method: request.method, path: request.path,
+        durationMs: performance.now() - startedAt }, "request completed");
+    }).catch((error: unknown) => {
+      if (controller.signal.aborted || response.headersSent) {
+        controller.abort();
+        response.destroy();
       }
-      return NextResponse.json(
-        {
-          error: {
-            code: normalized.code,
-            message: normalized.userMessage,
-            requestId: context.requestId,
-            ...(metadata.retryable !== undefined ? { retryable: metadata.retryable } : {}),
-          },
-        },
-        { status: normalized.status, headers },
-      );
-    }
+      else {
+        try { sendError(error, request, response, context); }
+        catch (failure) { next(failure); }
+      }
+    }).finally(() => {
+      request.off("aborted", abort);
+      response.off("close", abort);
+    });
   };
-
-  return apiRoute as WrappedApiRoute<TRouteContext>;
 }
+
+/** AppKit's Express parser runs before feature routes; normalize its errors too. */
+export const expressErrorHandler: ErrorRequestHandler = (error, request, response, next) => {
+  if (response.headersSent) { next(error); return; }
+  const context = createRequestContext(request);
+  prepareResponse(response, context.requestId);
+  const parserError = typeof error?.type === "string" && new Set([
+    "entity.parse.failed", "entity.too.large", "encoding.unsupported", "charset.unsupported",
+    "request.aborted", "request.size.invalid", "stream.encoding.set", "stream.not.readable",
+  ]).has(error.type);
+  sendError(parserError ? new RequestValidationError("Invalid HTTP request") : error, request, response, context);
+};

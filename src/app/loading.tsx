@@ -1,5 +1,0 @@
-import { LoadingState } from "@/components/states/loading-state";
-
-export default function Loading() {
-  return <LoadingState label="Chargement de l’application…" />;
-}

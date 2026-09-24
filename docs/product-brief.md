@@ -7,9 +7,15 @@
 - Décision à faciliter : À confirmer
 - Critère de succès : À confirmer
 
+## Capacités envisagées
+
+Ces choix cadrent le besoin ; ils n’activent ni plugin, ni ressource, ni droit.
+
+- **analytics** : KPI, filtres et agrégations SQL. Guide : [docs/databricks.md](../docs/databricks.md).
+
 ## KPI, sources et fonctionnalités
 
-À confirmer avec la première tranche verticale.
+Aucun KPI généré. La première tranche suit les capacités et le critère de succès ci-dessus.
 
 ## Accès, confidentialité et exploitation
 

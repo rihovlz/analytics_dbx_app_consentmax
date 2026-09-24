@@ -1,12 +1,19 @@
 # Cadrage produit, données et requêtes
 
-Utiliser ce parcours après l'initialisation ou lorsqu'une application existante manque de cadrage. Le but n'est pas de
+Utiliser ce parcours dès qu'un besoin d'app apparaît ou lorsqu'une application existante manque de cadrage. Le but n'est pas de
 remplir un questionnaire : il est de réduire progressivement l'incertitude jusqu'à une première tranche testable.
+
+Après l'action utilisateur et le critère de succès, lire [appkit-capabilities.md](appkit-capabilities.md).
+Proposer les capacités utiles et les consigner avec `app:guide --capabilities`.
+Ne lire les sections KPI et SQL que si le besoin les utilise. Pour une app fichiers, modèle ou workflow,
+cadrer plutôt les entrées, les sorties, l'identité et les effets de chaque action.
 
 ## Poser les questions par petits lots
 
 Choisir le prochain lot selon les inconnues qui bloquent réellement l'avancement. Poser au maximum trois questions par
 message.
+Les listes ci-dessous sont des aides à la décision, pas un formulaire à faire remplir. Une même personne peut porter
+le besoin, les données et l'app. Recommander les choix techniques et remplir les commandes depuis les informations connues.
 
 ### Résultat métier
 
@@ -54,6 +61,10 @@ grain, limite de lignes, timeout et exemple de critère d'acceptation. Refuser t
 Ne pas ajouter une fonctionnalité simplement parce qu'elle est habituelle dans un dashboard. La relier à une décision
 utilisateur ou la placer dans le backlog.
 
+Consulter `databricks-app-design` pour les écrans de données et de conversation, lorsqu'il est installé.
+Relier chaque élément au composant Valiuz existant ou au composant AppKit effectivement exporté dans la version installée.
+Préserver les médias, Outfit, les tokens, les thèmes et les contrats de visualisation du template.
+
 ### Accès et exploitation
 
 - Quels groupes peuvent utiliser ou gérer l'application ? Certaines données demandent-elles un filtrage par utilisateur ?
@@ -82,5 +93,8 @@ politique de l'équipe l'autorise. Les credentials, extraits clients et données
 
 Une tranche MVP doit relier un besoin utilisateur à un chemin complet : page, route, service, repository, requête ou
 fixture, contrat validé et test. Choisir la plus petite tranche qui réduit un risque important, par exemple valider un
-KPI prioritaire avec une seule source et un seul filtre. Faire confirmer ses critères d'acceptation avant de passer à
-l'implémentation.
+KPI prioritaire avec une seule source et un seul filtre. Réutiliser les critères déjà donnés ; demander une précision
+seulement si leur ambiguïté peut changer le résultat. Poursuivre l'implémentation locale autorisée.
+
+Le KPI est un exemple, pas un passage obligatoire. Une app Genie peut commencer par une question avec contexte de dashboard.
+Une app Files peut commencer par un import validé en démo. Le critère de succès de la spec sert de première preuve.

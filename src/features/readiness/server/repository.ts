@@ -15,7 +15,7 @@ export async function verifySourceAccess(
   await executor.query({
     name: "readiness-declared-sources",
     statement: buildSourceAccessQuery(sources.length),
-    parameters: sources.map((source) => quoteQualifiedIdentifier(source.fullName)),
+    parameters: Object.fromEntries(sources.map((source, index) => [`source${index}`, quoteQualifiedIdentifier(source.fullName)])),
     rowSchema: emptyRowSchema,
     requestId,
     maxRows: 1,

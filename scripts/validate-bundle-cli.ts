@@ -3,12 +3,13 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { once } from "node:events";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
+import { parse, stringify } from "yaml";
 
 import { copyTrackedFiles, findRepositoryRoot, linkRepositoryNodeModules } from "./repository-fixture";
 
@@ -198,25 +199,59 @@ function isolatedCliEnvironment(configFile: string, host: string): NodeJS.Proces
 }
 
 async function initializeFixture(fixtureRoot: string, host: string): Promise<void> {
-  const initialized = await runCommand(
-    process.execPath,
-    [
-      "scripts/init-app.mjs",
-      fixtureAppName,
-      "--non-interactive",
-      "--description", "CI bundle compatibility fixture",
-      "--support-name", "Analytics",
-      "--support-slack-url", "https://valiuz.slack.com",
-      "--host", host,
-      "--data-project", "dev-dtm-operating",
-      "--schema", "ci_bundle_app",
-      "--repository-url", fixtureRepositoryUrl,
-      "--can-use-group", "analytics-users",
-      "--can-manage-group", "analytics-admins",
-    ],
-    { cwd: fixtureRoot },
-  );
-  process.stdout.write(initialized.stdout);
+  const pkg = JSON.parse(await readFile(join(fixtureRoot, "package.json"), "utf8"));
+  if (pkg.name === "__PACKAGE_NAME__") {
+    const initialized = await runCommand(
+      process.execPath,
+      [
+        "scripts/init-app.mjs",
+        fixtureAppName,
+        "--non-interactive",
+        "--description", "CI bundle compatibility fixture",
+        "--support-name", "Analytics",
+        "--support-slack-url", "https://valiuz.slack.com",
+        "--host", host,
+        "--data-project", "dev-dtm-operating",
+        "--schema", "ci_bundle_app",
+        "--repository-url", fixtureRepositoryUrl,
+        "--can-use-group", "analytics-users",
+        "--can-manage-group", "analytics-admins",
+      ],
+      { cwd: fixtureRoot },
+    );
+    process.stdout.write(initialized.stdout);
+  } else {
+    // The caller is a consumer app. Only this disposable copy receives synthetic configuration;
+    // never re-run init-app or change the consumer's version/history to build a compatibility fixture.
+    await writeFile(join(fixtureRoot, "config/data-access.json"), JSON.stringify({ project: "dev-dtm-operating", sources: [] }));
+    await rm(join(fixtureRoot, "data/contracts"), { recursive: true, force: true });
+    await mkdir(join(fixtureRoot, "data/contracts"), { recursive: true });
+    await writeFile(join(fixtureRoot, "config/genie-spaces.json"), JSON.stringify({ version: 1, spaces: [{
+      key: fixtureGenieSpaceKey, displayName: fixtureGenieSpaceName, aliases: [fixtureGenieSpaceKey],
+      environmentVariable: "DATABRICKS_GENIE_SPACE_ID_FRAIM_SALES", spaceId: fixtureGenieSpaceId,
+    }] }));
+    const appManifest = parse(await readFile(join(fixtureRoot, "app.yaml"), "utf8"));
+    appManifest.env = appManifest.env.filter((entry: { name: string }) => !entry.name.startsWith("DATABRICKS_GENIE_SPACE_ID_") && entry.name !== "DATABRICKS_CATALOG");
+    appManifest.env.push({ name: "DATABRICKS_GENIE_SPACE_ID_FRAIM_SALES", valueFrom: fixtureGenieSpaceKey });
+    appManifest.env.push({ name: "DATABRICKS_CATALOG", value: "dev-dtm-operating" });
+    await writeFile(join(fixtureRoot, "app.yaml"), stringify(appManifest));
+    await writeFile(join(fixtureRoot, ".env.example"), `DATABRICKS_CATALOG=dev-dtm-operating\nDATABRICKS_GENIE_SPACE_ID_FRAIM_SALES=${fixtureGenieSpaceId}\n`);
+    for (const path of ["databricks.yml", "data/databricks.yml"]) {
+      const bundle = parse(await readFile(join(fixtureRoot, path), "utf8"));
+      bundle.bundle.name = path.startsWith("data/") ? `${fixtureAppName}-data` : fixtureAppName;
+      for (const target of Object.values(bundle.targets) as Array<{ workspace?: Record<string, unknown> }>) {
+        target.workspace = { ...target.workspace, host };
+      }
+      bundle.targets.prod.workspace.root_path = `/Workspace/Shared/.bundle/${fixtureAppName}/prod${path.startsWith("data/") ? "/data" : ""}`;
+      const values = path.startsWith("data/") ? { sql_warehouse_id: "ci-warehouse", schedule_pause_status: "PAUSED" } : {
+        app_name: fixtureAppName, app_description: "CI consumer bundle fixture", sql_warehouse_id: "ci-warehouse",
+        git_repo_url: fixtureRepositoryUrl, git_commit: "0000000000000000000000000000000000000000",
+        can_use_group: "analytics-users", can_manage_group: "analytics-admins", prod_root_path: `/Workspace/Shared/.bundle/${fixtureAppName}/prod`,
+      };
+      for (const [name, value] of Object.entries(values)) bundle.variables[name] = { ...bundle.variables[name], default: value };
+      await writeFile(join(fixtureRoot, path), stringify(bundle));
+    }
+  }
 
   const source = await runCommand(
     process.execPath,

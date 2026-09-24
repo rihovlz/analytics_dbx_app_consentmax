@@ -6,9 +6,9 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 import { parse } from "yaml";
 
-test("declares the historical baselines and the current 1.5.0 template", async () => {
+test("declares the historical baselines and the current 2.0.0 template", async () => {
   const manifest = parse(await readFile("template/manifest.yml", "utf8"));
-  assert.equal(manifest.template.currentVersion, "1.5.0");
+  assert.equal(manifest.template.currentVersion, "2.0.0");
   assert.equal(manifest.versions["1.0.0"].sourceCommit, "05d914c6863c92304b1bc662e40c17e0f97b2c29");
   assert.equal(manifest.versions["1.1.0"].sourceCommit, "5df063bd0dc7b3664f1bf2cbe624119ddf5568ac");
   assert.equal(manifest.versions["1.1.0"].extends, "1.0.0");
@@ -32,6 +32,18 @@ test("declares the historical baselines and the current 1.5.0 template", async (
   assert.equal(manifest.versions["1.5.0"].sourceCommit, "26a1d0a64a9fed4d0a9cad1c7031a9d2c07eb95f");
   assert.equal(manifest.versions["1.5.0"].extends, "1.4.0");
   assert.deepEqual(manifest.versions["1.5.0"].capabilities, ["personal-user-state"]);
+  assert.equal(manifest.versions["2.0.0"].sourceCommit, "8b779bcb363a7c57bdea12342964601d0acdfef4");
+  assert.equal(manifest.versions["2.0.0"].extends, "1.5.0");
+  assert.deepEqual(manifest.versions["2.0.0"].capabilities, ["appkit-native-runtime", "upstream-compatibility", "guided-appkit-capabilities", "period-comparison", "appkit-genie-integration", "comparison-sharing"]);
+  assert.ok(manifest.capabilities["guided-appkit-capabilities"].probes.some(
+    (probe: { type: string; name?: string }) => probe.type === "packageScript" && probe.name === "app:orchestrate",
+  ));
+  assert.ok(manifest.capabilities["guided-appkit-capabilities"].probes.some(
+    (probe: { type: string; name?: string }) => probe.type === "packageScript" && probe.name === "app",
+  ));
+  assert.ok(manifest.capabilities["guided-appkit-capabilities"].probes.some(
+    (probe: { type: string; path?: string }) => probe.type === "file" && probe.path === ".agents/skills/create-analytics-dbx-app/references/analytics-workflow.md",
+  ));
 
   const genieProbes = JSON.stringify(manifest.capabilities["genie-natural-language-analytics"].probes);
   assert.match(genieProbes, /validateGenieEnvironmentReferences/);
@@ -41,7 +53,7 @@ test("declares the historical baselines and the current 1.5.0 template", async (
 test("verifies the source capabilities and exposes the latest upgrade by default", () => {
   const status = JSON.parse(execFileSync(process.execPath, ["scripts/template-status.mjs", "--json"], { encoding: "utf8" }));
   assert.notEqual(status.instance.kind, "legacy");
-  assert.equal(status.instance.effectiveVersion, "1.5.0");
+  assert.equal(status.instance.effectiveVersion, "2.0.0");
   assert.equal(status.capabilities.every((capability: { ok: boolean }) => capability.ok), true);
 
   const upgrade = JSON.parse(execFileSync(
@@ -52,17 +64,21 @@ test("verifies the source capabilities and exposes the latest upgrade by default
   assert.deepEqual(
     upgrade.changes.map((change: { id: string }) => change.id),
     [
-      "personal-state-feature",
-      "personal-state-datamart",
-      "template-version-1-5",
+      "appkit-runtime",
+      "capability-adapters",
+      "upstream-maintenance",
+      "optional-period-comparison",
+      "optional-comparison-sharing",
     ],
   );
   assert.deepEqual(upgrade.validation, [
     "npm run template:status",
-    "npm run template:check -- --to 1.5.0",
+    "npm run template:check -- --to 2.0.0",
     "npm run template:release:check -- --base origin/main",
     "npm run app:doctor",
     "npm run check",
+    "npm run test:e2e",
+    "npm run bundle:compatibility",
   ]);
 });
 

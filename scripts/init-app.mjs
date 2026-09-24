@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
-import { readFile, writeFile } from "node:fs/promises";
+import { lstat, readFile, writeFile } from "node:fs/promises";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 
@@ -17,6 +17,25 @@ const DEFAULT_SUPPORT_NAME = "Alexis";
 const DEFAULT_SUPPORT_SLACK_URL = "https://valiuz.slack.com/team/U01C3FT98HE";
 
 const args = process.argv.slice(2);
+if (args.includes("--help") || args.includes("-h")) {
+  stdout.write(`Usage: npm run init-app -- <name> [--non-interactive] [options]
+
+Initialise une nouvelle copie du template. Sans --non-interactive, les valeurs manquantes sont demandées.
+Options : --description, --support-name, --support-slack-url, --data-project (alias --catalog),
+          --schema, --host, --warehouse, --repository-url, --can-use-group, --can-manage-group.
+Chaque option attend une valeur. --help affiche cette aide sans modifier de fichier.
+Le mode démo fonctionne sans credentials. Confirmer les valeurs distantes avant tout accès réel.
+`);
+  process.exit(0);
+}
+const existingPackage = JSON.parse(await readFile("package.json", "utf8"));
+const existingState = await lstat(".valiuz-template.yml").catch((error) => {
+  if (error.code === "ENOENT") return null;
+  throw error;
+});
+if (existingPackage.name !== "__PACKAGE_NAME__" || existingState) {
+  throw new Error("Cette app est déjà initialisée. Reprendre avec npm run app -- next ; pour une migration, suivre docs/migration-2.0.md depuis le template cible. Aucun fichier modifié.");
+}
 const option = (name) => {
   const index = args.indexOf(`--${name}`);
   return index >= 0 ? args[index + 1] : undefined;

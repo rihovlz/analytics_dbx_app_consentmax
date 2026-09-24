@@ -52,3 +52,13 @@ y compris `template/manifest.yml`, demande une décision de release. Il n'existe
 Préparer une version reste une modification locale. Ne pas pousser, créer une pull request, fusionner, taguer, publier
 une release ou déployer sans autorisation explicite. Signaler dans le handoff la décision SemVer, les documents revus et
 les actions distantes non exécutées.
+
+# Runtime AppKit 2.0
+
+Lire `docs/appkit-maintenance.md` et le registre `config/appkit-compatibility.json`.
+Consulter la guidance Databricks installée hors du repository pour Apps, auth, SQL et Bundles.
+Conserver les règles Valiuz du repository et les exceptions documentées des adaptateurs.
+Lorsque l'accompagnement évolue, synchroniser le catalogue des capacités, la spec, le brief, les références de skills et le parcours consommateur.
+Vérifier les empreintes des points d'entrée avant de modifier la révision de guidance revue. Ne pas confondre cette révision avec l'installation du poste.
+Une migration de runtime demande les parcours consommateur et E2E.
+Dans le repository source avec son historique Git, valider aussi les fixtures de migration 1.4 et 1.5.

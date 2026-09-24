@@ -65,15 +65,4 @@ export class GenieConcurrencyLimiter {
   }
 }
 
-export async function* releaseConcurrencySlot<T>(
-  values: AsyncIterable<T>,
-  release: () => void,
-): AsyncGenerator<T> {
-  try {
-    yield* values;
-  } finally {
-    release();
-  }
-}
-
 export const genieConcurrencyLimiter = new GenieConcurrencyLimiter();

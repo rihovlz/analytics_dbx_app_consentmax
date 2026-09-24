@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { requestHandler } from "./http";
+import { withApiRoute } from "../../src/lib/http/with-api-route";
 
 import { createDatabricksGenieClient } from "../../src/features/genie/server/client";
 import { resolveGenieRuntimeConfiguration } from "../../src/features/genie/server/config";
@@ -156,24 +158,19 @@ assert.equal(deployedConfiguration.space.key, "fraim-sales");
 if (deployedConfiguration.mode !== "databricks") {
   assert.fail("Expected Databricks Genie configuration");
 }
-const oboIdentity = await resolveGenieRequestIdentity(
-  new Request("https://app.example/api/genie", {
-    headers: {
-      "x-forwarded-user": "workspace-user",
-      "x-forwarded-access-token": TOKEN,
-    },
-  }),
-  deployedConfiguration,
-);
-assert.deepEqual(oboIdentity, {
-  userId: "workspace-user",
-  accessToken: TOKEN,
-  authType: "obo",
-});
-await assert.rejects(
-  resolveGenieRequestIdentity(new Request("https://app.example/api/genie"), deployedConfiguration),
-  (error: unknown) => error instanceof GenieError && error.code === "GENIE_AUTH_REQUIRED",
-);
+const oboResponse = await requestHandler(withApiRoute(async (request) => {
+  const identity = await resolveGenieRequestIdentity(request, deployedConfiguration);
+  assert.deepEqual(identity, { userId: "workspace-user", accessToken: TOKEN, authType: "obo" });
+  return { ok: true };
+}), new Request("https://app.example/api/genie", { headers: {
+  "x-forwarded-user": "workspace-user", "x-forwarded-access-token": TOKEN,
+} }));
+assert.equal(oboResponse.status, 200);
+const missingIdentity = await requestHandler(withApiRoute(async (request) => {
+  await resolveGenieRequestIdentity(request, deployedConfiguration);
+}), new Request("https://app.example/api/genie"));
+assert.equal(missingIdentity.status, 401);
+assert.equal((await missingIdentity.json()).error.code, "GENIE_AUTH_REQUIRED");
 
 const localConfiguration = resolveGenieRuntimeConfiguration("fraim-sales", {
   APP_MODE: "databricks",
@@ -183,9 +180,9 @@ const localConfiguration = resolveGenieRuntimeConfiguration("fraim-sales", {
 if (localConfiguration.mode !== "databricks") {
   assert.fail("Expected local Databricks Genie configuration");
 }
-const localIdentity = await resolveGenieRequestIdentity(
-  new Request("http://localhost/api/genie"),
-  localConfiguration,
-  { getCliToken: async () => TOKEN },
-);
-assert.equal(localIdentity.authType, "oauth-u2m-cli");
+const localResponse = await requestHandler(withApiRoute(async (request) => {
+  const identity = await resolveGenieRequestIdentity(request, localConfiguration, { getCliToken: async () => TOKEN });
+  assert.equal(identity.authType, "oauth-u2m-cli");
+  return { ok: true };
+}), new Request("http://localhost/api/genie"));
+assert.equal(localResponse.status, 200);
