@@ -79,7 +79,8 @@ rien.
 
 ## Version du template
 
-`template/manifest.yml` donne la version courante et les capabilities du template. La version courante est `2.0.0`, encore non publiée.
+`template/manifest.yml` donne la version courante et les capabilities du template. La version courante est `2.0.1`.
+Ce patch corrige les résultats SQL JSON vides confirmés par Databricks, notamment pour `/api/readiness`.
 La version `1.0.0` représente la baseline initiale. Les versions suivantes ajoutent les mises à niveau suivies,
 l’historisation bornée, les visualisations, l’assistant Genie OBO et les analyses personnelles.
 
@@ -91,7 +92,7 @@ Ces commandes restent locales et ne modifient pas le code de l'app :
 ```bash
 npm run template:status
 npm run template:check
-npm run template:diff -- --from 1.5.0 --to 2.0.0
+npm run template:diff -- --from 2.0.0 --to 2.0.1
 npm run template:release:check -- --base origin/main
 ```
 

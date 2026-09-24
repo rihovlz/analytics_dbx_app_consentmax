@@ -65,6 +65,12 @@
       "implementation": "src/server/workspace-client.ts",
       "reason": "0.76.1 ignores profile when host is also passed. Local OAuth uses the existing named CLI token provider for each operation.",
       "removeWhen": "Upstream supports named CLI U2M credentials, host verification and token refresh together."
+    },
+    {
+      "id": "empty-json-result",
+      "implementation": "src/server/workspace-client.ts",
+      "reason": "Statement Execution can return result {} after a successful zero-row JSON_ARRAY query. The client supplies data_array [] only when the non-truncated manifest proves zero rows and zero chunks with a column schema. Unknown or incomplete results remain errors; no resubmission occurs.",
+      "removeWhen": "AppKit returns data [] for an empty result proven by the statement manifest, while still rejecting incomplete and truncated responses."
     }
   ]
 }

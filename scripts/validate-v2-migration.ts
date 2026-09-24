@@ -44,7 +44,7 @@ async function migrateFixture(baseline: { version: string; revision: string }) {
     assert.equal(plan.readOnly, true);
     assert.equal(plan.app.from, baseline.version);
     assert.deepEqual(plan.upgrades.map((step: { id: string }) => step.id), baseline.version === "1.4.0"
-      ? ["1.4.0-to-1.5.0", "1.5.0-to-2.0.0"] : ["1.5.0-to-2.0.0"]);
+      ? ["1.4.0-to-1.5.0", "1.5.0-to-2.0.0", "2.0.0-to-2.0.1"] : ["1.5.0-to-2.0.0", "2.0.0-to-2.0.1"]);
     assert.ok(plan.inventory.pages.includes("src/app/sales-kpi/page.tsx"));
     assert.ok(plan.inventory.apiHandlers.includes("src/app/api/sales-kpi/route.ts"));
     const preservedPaths = [
@@ -166,10 +166,10 @@ test("migrated business endpoint serves its preserved demo through Express", asy
     lock.name = pkg.name; lock.packages[""].name = pkg.name;
     await writeFile(join(fixture, "package-lock.json"), JSON.stringify(lock, null, 2) + "\n");
     run(process.execPath, ["scripts/render-data-access.mjs"]);
-    run(process.execPath, ["scripts/template-status.mjs", "--check", "--to", "2.0.0"]);
-    oldState.template.version = "2.0.0";
+    run(process.execPath, ["scripts/template-status.mjs", "--check", "--to", "2.0.1"]);
+    oldState.template.version = "2.0.1";
     oldState.capabilities.push("appkit-native-runtime", "upstream-compatibility", "guided-appkit-capabilities", "period-comparison", "appkit-genie-integration", "comparison-sharing");
-    oldState.appliedUpgrades.push("1.5.0-to-2.0.0");
+    oldState.appliedUpgrades.push("1.5.0-to-2.0.0", "2.0.0-to-2.0.1");
     await writeFile(join(fixture, ".valiuz-template.yml"), stringify(oldState));
     const after = await Promise.all(preservedPaths.map((file) => readFile(join(fixture, file), "utf8")));
     assert.deepEqual(after, before.map((original, index) => businessPorts.get(preservedPaths[index]) ?? original),

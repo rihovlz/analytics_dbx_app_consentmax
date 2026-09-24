@@ -17,6 +17,9 @@ npm run app -- migrate --app-dir /chemin/vers/ancienne-app --json
 La version vient de `.valiuz-template.yml`. Si elle n'est pas suivie, examiner l'historique puis fournir `--from 1.4.0` ou `--from 1.5.0`.
 Une version fournie ne remplace jamais silencieusement un état contradictoire.
 Les guides viennent du checkout cible : le manifeste copié dans une ancienne app ne connaît pas les versions futures.
+Si la cible déclare `2.0.1`, appliquer ensuite le [correctif des résultats SQL vides](../template/upgrades/2.0.0-to-2.0.1.yml)
+sur la même branche. Les étapes ci-dessous décrivent le portage du runtime vers `2.0.0` ; le guide du patch complète
+les validations et la mise à jour finale de `.valiuz-template.yml`, sans nouvelle capability.
 `template:diff` affiche toujours un seul guide direct ; le bilan `app migrate` assemble les étapes nécessaires.
 
 Le bilan repère les pages, layouts, handlers, imports Next.js, candidats serveur et noms `NEXT_PUBLIC_*`.
