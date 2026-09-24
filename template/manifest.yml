@@ -2,7 +2,7 @@ schemaVersion: 1
 template:
   id: valiuz/analytics_dbx_app_template
   repository: https://github.com/valiuz/analytics_dbx_app_template
-  currentVersion: 2.0.0
+  currentVersion: 2.0.1
 requirements:
   node: ">=22.16 <23"
   databricksCli: ">=0.295.0"
@@ -60,6 +60,11 @@ versions:
       - period-comparison
       - appkit-genie-integration
       - comparison-sharing
+  2.0.1:
+    sourceCommit: ba98c16999674181c76a65a5efd5a4e7bdf7cd7e
+    summary: Résultats SQL JSON vides reconnus sans masquer les réponses incomplètes ni rejouer la requête.
+    extends: 2.0.0
+    capabilities: []
 capabilities:
   guided-app-workflow:
     since: 1.0.0
@@ -453,3 +458,6 @@ upgrades:
   - from: 1.5.0
     to: 2.0.0
     path: template/upgrades/1.5.0-to-2.0.0.yml
+  - from: 2.0.0
+    to: 2.0.1
+    path: template/upgrades/2.0.0-to-2.0.1.yml

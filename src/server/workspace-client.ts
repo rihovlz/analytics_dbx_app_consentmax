@@ -29,6 +29,15 @@ export function guardStatementClient(client: WorkspaceClient): WorkspaceClient {
                 return { ...response, status: { ...response.status, error: { message: "SQL execution failed" } } };
               }
               if (response?.manifest?.truncated) throw new Error("SQL result was truncated");
+              // Statement Execution omits data_array on successful zero-row results.
+              // Give AppKit its expected array only when the manifest proves emptiness.
+              if (response?.status?.state === "SUCCEEDED" && response.manifest?.format === "JSON_ARRAY"
+                && response.manifest.total_row_count === 0 && response.manifest.total_chunk_count === 0
+                && Array.isArray(response.manifest.schema?.columns) && response.manifest.schema.columns.length > 0
+                && response.result?.data_array === undefined && response.result?.data === undefined
+                && response.result?.next_chunk_index === undefined) {
+                return { ...response, result: { ...response.result, data_array: [] } };
+              }
               return response;
             } catch { throw new Error("Databricks SQL request failed"); }
           };

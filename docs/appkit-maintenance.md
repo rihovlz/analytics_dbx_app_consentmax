@@ -33,6 +33,12 @@ Les APIs des features gardent les limites de corps, l’identité et leurs valid
 | Driver SQL conservé | Écritures privées, paramètres nuls, types natifs, chaînes JSON exactes et diagnostics CLI | Parité explicite de ces contrats dans l’API programmatique |
 | Client de démo | AppKit lit l’identité workspace dès son démarrage | Serveur upstream utilisable sans identité distante |
 | Fournisseur OAuth CLI | AppKit ignore le profil lorsque le host est fourni | Profil nommé, host validé et renouvellement natifs |
+| Résultat JSON vide | Statement Execution peut renvoyer `result: {}` après succès sans ligne ; AppKit ne produit alors pas `data` | AppKit retourne un tableau vide pour un résultat vide prouvé par le manifeste |
+
+Le client normalise le résultat vide seulement après `SUCCEEDED`, avec format `JSON_ARRAY`, schéma de colonnes,
+zéro ligne et zéro chunk déclarés, sans troncature ni données ou chunk suivant. Un résultat incomplet reste une erreur.
+Cette adaptation corrige `/api/readiness` sans modifier sa requête, masquer un refus d’accès ou rejouer une soumission.
+La fixture `tests/fixtures/appkit-contract.ts` vérifie ce contrat avec le package AppKit installé.
 
 L’adaptateur SQL transmet un signal de délai et borne le résultat inline.
 Il demande l’annulation d’un statement connu lors du dépassement.

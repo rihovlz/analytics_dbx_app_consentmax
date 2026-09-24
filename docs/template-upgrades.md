@@ -22,6 +22,7 @@ ni credential, ni configuration du workspace, ni donnée métier.
 | `1.4.0` | `19ade7c5882aeb3065453e0aaf3c02552a61fd6c` | Assistant Genie OBO, contexte de dashboard, résultats riches et épinglage composable |
 | `1.5.0` | `26a1d0a64a9fed4d0a9cad1c7031a9d2c07eb95f` | Analyses et préférences personnelles optionnelles sur tables Delta de développement |
 | `2.0.0` | `8b779bcb363a7c57bdea12342964601d0acdfef4` | Runtime AppKit, routes React, adaptateurs bornés, parcours de capacités et skills amont |
+| `2.0.1` | `ba98c16999674181c76a65a5efd5a4e7bdf7cd7e` | Résultats SQL JSON vides confirmés, sans nouvelle capability |
 
 Le point historique est le SHA complet de la branche de base examinée pour préparer la version. Il sert à borner le
 diff, pas à reproduire seul le checkout final. Le manifeste et ses sondes définissent le contrat réel de la version.
@@ -37,15 +38,15 @@ npm run template:status
 npm run template:check
 ```
 
-Une nouvelle app reçoit la version `2.0.0`. `npm run check` inclut `template:check` et
+Une nouvelle app reçoit la version `2.0.1`. `npm run check` inclut `template:check` et
 `template:release:check`. Le second reconnaît une app initialisée et n'exige aucun bump pour ses features métier.
 
 La release 2.0.0 inclut le parcours de capacités, de skills et l'orchestration de la création ou de la reprise.
 Elle ajoute l'entrée `npm run app`, un prompt pour tout le parcours et un bilan de migration depuis un checkout cible.
 La migration du runtime impose une version majeure par rapport à la base 1.5.0.
-La comparaison facultative et le waterfall rejoignent cette **2.0.0 non publiée** sous la capability `period-comparison`.
-Cette addition compatible ne demande pas une 2.1 avant publication de la 2.0. Les features existantes restent inchangées.
-La capability `comparison-sharing` rejoint aussi cette version non publiée.
+La comparaison facultative et le waterfall rejoignent la **2.0.0** sous la capability `period-comparison`.
+Ces ajouts ont été intégrés pendant la préparation de la 2.0.0. Les features existantes restent inchangées.
+La capability `comparison-sharing` fait aussi partie de cette version.
 Elle ajoute un lien de reprise et une synthèse à copier, avec activation explicite par comparaison.
 Elle ne change ni le stockage ni les droits. Les liens recalculent les données sur des dates fixes.
 Fusionner les contrats et composants indiqués dans le guide ; les activer selon [le besoin analytique](period-comparison.md).
@@ -116,7 +117,7 @@ npm run app:doctor
 npm run check
 ```
 
-Une app `1.0.0` applique ensuite chaque guide dans l’ordre, jusqu’au guide `1.5.0 → 2.0.0`.
+Une app `1.0.0` applique ensuite chaque guide dans l’ordre, jusqu’au guide `2.0.0 → 2.0.1`.
 `template:status` propose la prochaine étape disponible au lieu de sauter une migration intermédiaire.
 
 ## Passage de 1.1.0 à 1.2.0
@@ -298,7 +299,7 @@ ne demande aucun profil ; les anciennes valeurs de `--role` restent des priorit�
 Fusionner les références du skill et conserver les contrats et notes existants, sans relancer l'initialisation.
 Le rollback conserve les tables et redéploie la révision précédente.
 
-La 2.0.0 non publiée inclut aussi `appkit-genie-integration` : plugin Genie programmatique, compatibilité OBO et
+La 2.0.0 inclut aussi `appkit-genie-integration` : plugin Genie programmatique, compatibilité OBO et
 annulation, identité visible et exploration facultative des comparaisons. Les contrats et limites sont décrits dans
 [Genie](genie.md). Cette addition reste dans la migration major 1.5 → 2.0 ; les tables personnelles sont préservées.
 
@@ -312,4 +313,28 @@ Voir [le contrat de partage](period-comparison.md#partager-une-comparaison) pour
 La 2.0.0 fixe aussi un seul contrat d’écriture d’app : handlers Express natifs, paramètres SQL nommés et événements
 Genie alignés sur AppKit. Les anciens handlers, paramètres positionnels et événements enveloppés ne sont pas acceptés
 au runtime. Les guides et fixtures réalisent ce portage une fois, sans modifier les calculs métier ni les données stockées.
-Ces ruptures restent dans la major non publiée ; aucune version 2.1 n’est créée.
+Ces ruptures ont été intégrées pendant la préparation de la version majeure 2.0.0.
+
+## Passage de 2.0.0 à 2.0.1
+
+Ce patch corrige le résultat vide de Statement Execution avec AppKit 0.76.1. Une requête réussie peut renvoyer
+`result: {}` ; sans adaptation, le contrat strict de l’executor rejette ce résultat et `/api/readiness` renvoie 502.
+
+```bash
+npm run template:diff -- --from 2.0.0 --to 2.0.1
+```
+
+Fusionner le changement de `guardStatementClient` dans `src/server/workspace-client.ts`, le registre de compatibilité
+et le test `tests/fixtures/appkit-contract.ts` selon le [guide YAML](../template/upgrades/2.0.0-to-2.0.1.yml).
+Conserver les personnalisations du client, les requêtes, les types, les délais, les limites et les écritures personnelles.
+Les dépendances et les capabilities restent inchangées.
+
+Le client fournit `data_array: []` seulement après `SUCCEEDED`, avec format `JSON_ARRAY`, un schéma de colonnes,
+zéro ligne et zéro chunk déclarés, sans troncature ni données ou chunk suivant. Les résultats incomplets restent
+des erreurs. Il n’y a ni nouvelle soumission ni bascule vers le driver après exécution.
+
+Valider les résultats vides et non vides avec le package AppKit installé, ainsi que les erreurs, la troncature et
+la soumission unique. Après les validations du guide, mettre à jour `.valiuz-template.yml` vers `2.0.1`, conserver
+les capabilities de `2.0.0` et ajouter `2.0.0-to-2.0.1` à `appliedUpgrades`, puis relancer `app:doctor` et `check`.
+La recette Databricks après déploiement autorisé vérifie `/api/readiness` et une vue métier vide ; ce patch
+ne demande ni écriture SQL ni changement de droits.
