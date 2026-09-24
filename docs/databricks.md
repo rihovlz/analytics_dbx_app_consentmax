@@ -60,7 +60,7 @@ Le catalogue est le projet de données de l'application. Le template limite ce c
 
 La liste maintenue se trouve dans `config/data-projects.json`. `npm run init-app` et la configuration serveur refusent
 une autre valeur. Les noms contiennent des tirets. Le repository valide chaque segment, ajoute ses backticks, puis lie
-l'identifiant à `IDENTIFIER(?)`. Il ne concatène aucune entrée utilisateur dans le SQL.
+l'identifiant à `IDENTIFIER(:source)`. Il ne concatène aucune entrée utilisateur dans le SQL.
 
 Le template préremplit l’infrastructure partagée Valiuz suivante :
 
@@ -174,8 +174,8 @@ mono-mainteneur, garder `manual` tant qu'une exécution planifiée n'apporte pas
 ## Pattern SQL
 
 - Requêtes dans `src/features/<feature>/server/queries.ts` ou dans un fichier `.sql` voisin si elles sont longues.
-- Entrées liées avec `ordinalParameters`; jamais d’interpolation d’entrée utilisateur.
-- Identifiants qualifiés validés, délimités segment par segment, puis liés à `IDENTIFIER(?)`.
+- Entrées liées avec un record `parameters: { source, startDate }` et des marqueurs `:source`, `:startDate`; jamais d’interpolation d’entrée utilisateur.
+- Identifiants qualifiés validés, délimités segment par segment, puis liés à `IDENTIFIER(:source)`.
 - Résultats validés par un schéma Zod dans le repository.
 - Nom de requête stable pour les logs et query tags.
 - Timeout borné et limite de lignes explicite.

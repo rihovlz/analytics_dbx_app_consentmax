@@ -1,3 +1,4 @@
+import type { Request } from "express";
 import type { GenieRuntimeConfiguration } from "@/features/genie/server/config";
 import { GenieError } from "@/features/genie/server/errors";
 import { extractForwardedGenieIdentity } from "@/features/genie/server/identity";

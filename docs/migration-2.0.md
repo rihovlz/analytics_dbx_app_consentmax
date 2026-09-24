@@ -55,8 +55,11 @@ Le Vite utilisé correspond à la dépendance d’AppKit. Le lockfile reste dans
 | `src/app/<route>/page.tsx` | `src/client/pages/<route>/page.tsx`, enregistré dans `src/client/routes.tsx` |
 | `src/app/layout.tsx` | Shell dans `src/client/main.tsx` et document dans `index.html` |
 | Server Component ou page `async` | Handler dans `src/server/routes/`, service existant, chargement client avec états explicites |
-| `src/app/api/<route>/route.ts` | Handler Web dans `src/server/routes/<route>/route.ts`, enregistré avec `expressRoute` |
-| `NextResponse.json` | `Response.json` |
+| `src/app/api/<route>/route.ts` | Handler Express dans `src/server/routes/<route>/route.ts`, enregistré directement dans `src/server/routes.ts` |
+| `NextResponse.json` | Valeur JSON retournée par `withApiRoute`, ou `response.status(...).json(...)` |
+| `await routeContext.params` | `request.params` |
+| `new URL(request.url).searchParams`, `await request.json()` | `request.query`, `request.body`, validés avec Zod |
+| `request.signal` | `context.signal` fourni par `withApiRoute` |
 | `next/navigation` | `useLocation`, `Link`, paramètres de React Router |
 | `next/image` | `img` avec dimensions et texte alternatif |
 | `generateMetadata` | Configuration publique validée par `/api/config` et métadonnées HTML |
@@ -65,7 +68,12 @@ Le Vite utilisé correspond à la dépendance d’AppKit. Le lockfile reste dans
 | `npm run start` | Serveur AppKit en production, port injecté par Databricks Apps |
 
 Les handlers conservent `withApiRoute`, les identifiants de requête et l’enveloppe publique d’erreur.
-Le pont Express transmet le corps, les paramètres et l’annulation des flux.
+Le callback devient `(request, context, response)` avec les objets Express natifs. Supprimer les ponts
+`expressRoute`, les handlers Web et les paramètres de route asynchrones. Pour un flux, attendre son écriture
+dans `response` et respecter `context.signal` ; ne pas retourner un objet Web `Response`.
+Le parseur AppKit borne le corps JSON décodé à 64 Kio. L’état personnel borne en plus le JSON sérialisé à 16 Kio.
+La 2.0 adopte le décodage JSON d’Express ; elle ne reproduit plus le lecteur brut strict UTF-8 de la 1.x.
+Les réponses et erreurs d’API reçoivent `private, no-store`, un `requestId` et l’enveloppe d’erreur commune.
 Supprimer les exports `dynamic`, `runtime` et les mécanismes propres à Next.js après leur portage.
 Supprimer `next.config.mjs`, `next-env.d.ts`, `src/instrumentation.ts` et `scripts/prepare-standalone.mjs`.
 Retirer les dépendances `next`, `eslint-config-next` et `server-only`.
@@ -73,9 +81,19 @@ Retirer aussi les directives `use client` devenues inutiles lors des prochaines 
 
 ## Préserver les données et identités
 
-Les contrats `service → repository → SqlExecutor` restent identiques.
+Les responsabilités `service → repository → SqlExecutor` restent séparées.
 Le runtime utilise AppKit analytics pour les lectures compatibles.
-Les paramètres ordinaux deviennent des paramètres nommés ; leurs valeurs restent liées.
+Porter explicitement les marqueurs SQL et les bindings des repositories :
+
+```ts
+// 1.x : statement: "SELECT ... FROM IDENTIFIER(?) WHERE day >= ?", parameters: [source, startDate]
+statement: "SELECT ... FROM IDENTIFIER(:source) WHERE day >= :startDate",
+parameters: { source, startDate },
+```
+
+Les valeurs restent liées par le transport. Les marqueurs répétés réutilisent la même clé.
+Ne pas remplacer aveuglément les `?` présents dans les chaînes ou commentaires SQL. Mettre à jour les tests du repository.
+L’exécuteur 2.0 ne réécrit pas le SQL et n’accepte plus de tableau de paramètres positionnels.
 Les lignes restent validées avec Zod. Le nom, la limite et le délai restent obligatoires au niveau du contrat.
 
 AppKit omet les paramètres nuls et transforme certaines chaînes JSON en objets.
@@ -138,7 +156,9 @@ Cette commande de recette du template n’est pas exécutable dans un repository
 Cette validation initialise deux fixtures avec une feature métier, vérifie le bilan, applique le portage décrit et vérifie les builds.
 La fixture 1.4 garde l'état personnel désactivé sans table déclarée ni binding MODIFY.
 La fixture 1.5 conserve ses déclarations de tables personnelles. Aucun DDL n'est exécuté.
-Les requêtes, sources, contrats métier et personnalisations sont comparés avant et après migration.
+Les sources, services, contrats métier et personnalisations sont comparés avant et après migration.
+Pour le SQL, seuls les marqueurs, bindings et attentes des tests correspondants changent ; les calculs sont conservés.
+Une requête HTTP sur le handler natif vérifie aussi la valeur de démo après portage.
 Les seuls ajouts de configuration à la fixture 1.4 sont les variables personnelles optionnelles et désactivées.
 Ces fixtures couvrent le contrat du template ; chaque application doit aussi tester ses adaptations.
 
@@ -158,6 +178,10 @@ doivent aussi configurer le plugin ou injecter cette dépendance ; la fixture `t
 exerce le vrai plugin avec un client synthétique, sans credential.
 
 `GenieChat` garde son API ; `initialQuestion` est facultatif et n’envoie rien automatiquement.
+Porter un client SSE personnalisé vers les champs AppKit au premier niveau : `status`, `message`, `data`, selon
+le type d’événement. L’ancienne enveloppe `{ type, data: ... }` n’est plus acceptée. Le message final précède ses
+résultats ; attendre la fin du flux et toutes les pièces jointes attendues avant de permettre une nouvelle question.
+Le lecteur `connectSSE` est configuré avec `maxRetries: 0` ; ne pas adopter les reprises de POST du hook amont par défaut.
 La prop `genie` de `PeriodComparison` est également facultative. La renseigner seulement après validation du Space,
 des sources, des définitions et des périodes. Voir [le parcours](genie.md).
 Les tables d’état personnel restent inchangées ; le contexte enrichi et les résultats ne sont pas persistés.

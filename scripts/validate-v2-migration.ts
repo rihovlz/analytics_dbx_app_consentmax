@@ -62,7 +62,6 @@ async function migrateFixture(baseline: { version: string; revision: string }) {
       oldNav = oldNav.replace("export function AppNav() {", "export function AppNav({ personalStateEnabled = false }: { personalStateEnabled?: boolean }) {")
         .replace("  const pathname = usePathname();", '  const pathname = usePathname();\n  const navigation = personalStateEnabled ? [...links, { href: "/saved-analyses", label: "Mes analyses" }] : links;')
         .replace("{links.map(", "{navigation.map(");
-      await cp(join(root, "src/features/user-state"), join(fixture, "src/features/user-state"), { recursive: true });
       const optionalConfig = {
         ".env.example": "\n# Optional personal state stays disabled during migration.\nUSER_STATE_ENABLED=false\nUSER_STATE_ORIGIN=\nUSER_STATE_NAMESPACE=dev\n",
         "app.yaml": '  - name: USER_STATE_ENABLED\n    value: "false"\n  - name: USER_STATE_ORIGIN\n    value: ""\n  - name: USER_STATE_NAMESPACE\n    value: "dev"\n',
@@ -76,23 +75,51 @@ async function migrateFixture(baseline: { version: string; revision: string }) {
       oldState.capabilities.push("personal-user-state");
       oldState.appliedUpgrades.push("1.4.0-to-1.5.0");
     }
-    // Apply only the template-owned files named by the guide. Preserve app configuration and business source.
+    // Apply template-owned files; business SQL gets only the explicit native binding port below.
     const files = execFileSync("git", ["ls-files", "-z"], { cwd: root, encoding: "utf8" }).split("\0").filter(Boolean);
-    const templatePaths = /^(src\/(client|server|shared|lib)\/|src\/features\/(period-comparison|genie)\/|src\/components\/charts\/(waterfall-chart\.tsx|waterfall-model\.ts|time-series-chart\.tsx)$|src\/components\/data-visualization\/index\.ts$|scripts\/|template\/|tests\/|e2e\/|\.github\/|\.agents\/|docs\/|AGENTS\.md$|vite\.config\.ts$|index\.html$|tsconfig\.json$|eslint\.config\.mjs$|playwright\.config\.ts$|config\/appkit-(compatibility|capabilities)\.json$)/;
+    const templatePaths = /^(src\/(client|server|shared|lib)\/|src\/features\/(period-comparison|genie|readiness|user-state)\/|src\/components\/charts\/(waterfall-chart\.tsx|waterfall-model\.ts|time-series-chart\.tsx)$|src\/components\/data-visualization\/index\.ts$|scripts\/|template\/|tests\/|e2e\/|\.github\/|\.agents\/|docs\/|AGENTS\.md$|vite\.config\.ts$|index\.html$|tsconfig\.json$|eslint\.config\.mjs$|playwright\.config\.ts$|config\/appkit-(compatibility|capabilities)\.json$)/;
     for (const file of files.filter((file) => templatePaths.test(file))) {
       if (["docs/product-brief.md", ...preservedPaths].includes(file)) continue;
       await copyCurrent(file);
     }
     await copyCurrent("src/components/app-shell/app-header.tsx");
     await copyCurrent("src/components/app-shell/app-shell.tsx");
-    await copyCurrent("src/features/user-state/server/runtime.ts");
-    await copyCurrent("src/features/user-state/server/request.ts");
-    // Remove only the framework poison imports; all feature logic remains byte-equivalent otherwise.
+    // Remove remaining Next.js poison imports from older feature modules.
     for (const file of files.filter((file) => file.startsWith("src/features/") && file.endsWith(".ts"))) {
       const path = join(fixture, file);
       const text = await readFile(path, "utf8");
       await writeFile(path, text.replace('import "server-only";\n\n', ""));
     }
+    // This fixture has one reviewed identifier parameter. Do not replace arbitrary SQL with a parser.
+    const businessPorts = new Map<string, string>();
+    const sqlPorts = [
+      ["src/features/sales-kpi/server/queries.ts", "IDENTIFIER(?)", "IDENTIFIER(:source)"],
+      ["src/features/sales-kpi/server/repository.ts", "parameters: [quoteQualifiedIdentifier(source)]", "parameters: { source: quoteQualifiedIdentifier(source) }"],
+    ];
+    for (const [file, previous, replacement] of sqlPorts) {
+      const original = before[preservedPaths.indexOf(file)];
+      assert.ok(original.includes(previous), `The ${baseline.version} fixture must exercise the old SQL contract`);
+      const migrated = original.replace(previous, replacement);
+      businessPorts.set(file, migrated);
+      await writeFile(join(fixture, file), migrated);
+    }
+    const businessTestPath = join(fixture, "tests/sales-kpi.test.ts");
+    const businessTest = await readFile(businessTestPath, "utf8");
+    const sourceParameter = JSON.stringify("`dev-dtm-operating`.`analytics`.`sales`");
+    const oldAssertion = `assert.deepEqual(options.parameters, [${sourceParameter}]);`;
+    assert.ok(businessTest.includes(oldAssertion));
+    await writeFile(businessTestPath, businessTest.replace(oldAssertion,
+      `assert.deepEqual(options.parameters, { source: ${sourceParameter} });`) + `
+test("migrated business endpoint serves its preserved demo through Express", async () => {
+  const { GET } = await import("../src/server/routes/sales-kpi/route");
+  const { requestHandler } = await import("./fixtures/http");
+  const response = await requestHandler(GET, new Request("http://localhost/api/sales-kpi"));
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).value, 73);
+  assert.equal(response.headers.get("cache-control"), "private, no-store");
+  assert.ok(response.headers.get("x-request-id"));
+});
+`);
     await writeFile(join(fixture, "src/client/globals.css"), oldCss);
     await writeFile(join(fixture, "src/components/app-shell/app-nav.tsx"), oldNav
       .replace('import { usePathname } from "next/navigation";', 'import { Link, useLocation } from "react-router-dom";')
@@ -113,7 +140,7 @@ async function migrateFixture(baseline: { version: string; revision: string }) {
     const serverRoutes = join(fixture, "src/server/routes.ts");
     await writeFile(serverRoutes, (await readFile(serverRoutes, "utf8"))
       .replace("// feature:new inserts imports", 'import { GET as getSalesKpi } from "./routes/sales-kpi/route";\n// feature:new inserts imports')
-      .replace("  // feature:new inserts routes", '  app.get("/api/sales-kpi", expressRoute(getSalesKpi));\n  // feature:new inserts routes'));
+      .replace("  // feature:new inserts routes", '  app.get("/api/sales-kpi", getSalesKpi);\n  // feature:new inserts routes'));
     const pkg = JSON.parse(await readFile(join(fixture, "package.json"), "utf8"));
     const currentPkg = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
     Object.assign(pkg, { scripts: currentPkg.scripts, dependencies: currentPkg.dependencies, devDependencies: currentPkg.devDependencies });
@@ -130,7 +157,8 @@ async function migrateFixture(baseline: { version: string; revision: string }) {
     oldState.appliedUpgrades.push("1.5.0-to-2.0.0");
     await writeFile(join(fixture, ".valiuz-template.yml"), stringify(oldState));
     const after = await Promise.all(preservedPaths.map((file) => readFile(join(fixture, file), "utf8")));
-    assert.deepEqual(after, before, "Business queries, sources, tables and branding configuration must survive migration");
+    assert.deepEqual(after, before.map((original, index) => businessPorts.get(preservedPaths[index]) ?? original),
+      "Only the reviewed SQL marker and binding may change; business logic, sources, tables and branding must survive");
     run(process.execPath, ["scripts/app-guide.mjs", "--non-interactive"]);
     const migratedSpec = parse(await readFile(join(fixture, "config/app-spec.yml"), "utf8"));
     const originalSpec = parse(before[preservedPaths.indexOf("config/app-spec.yml")]);

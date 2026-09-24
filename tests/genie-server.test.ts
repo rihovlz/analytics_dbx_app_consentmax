@@ -3,6 +3,8 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import test, { before } from "node:test";
 import { startTestGenie } from "./fixtures/genie-appkit";
+import { requestHandler, withHttpApp } from "./fixtures/http";
+import { withApiRoute } from "../src/lib/http/with-api-route";
 
 import {
   genieMessageRequestSchema,
@@ -11,7 +13,6 @@ import {
 import { buildGenieMessageContent } from "../src/features/genie/context";
 import {
   GenieConcurrencyLimiter,
-  releaseConcurrencySlot,
   resolveGenieConcurrencyLimits,
 } from "../src/features/genie/server/concurrency";
 import { GenieError } from "../src/features/genie/server/errors";
@@ -22,7 +23,7 @@ import {
   streamDemoGenieMessage,
   streamGenieMessage,
 } from "../src/features/genie/server/service";
-import { createGenieSseResponse, encodeGenieSseEvent } from "../src/features/genie/server/sse";
+import { writeGenieSse, encodeGenieSseEvent } from "../src/features/genie/server/sse";
 import type {
   GenieClient,
   GenieRemoteMessage,
@@ -83,65 +84,40 @@ test("validates a bounded alias-free message request and rejects browser-supplie
 });
 
 test("accepts only bounded same-origin JSON requests before OBO work", async () => {
-  const valid = await parseGenieMessageRequest(new Request("https://app.example/api/genie/sales/messages", {
+  const route = withApiRoute((request) => parseGenieMessageRequest(request));
+  const response = await requestHandler(route, new Request("https://app.example/api/genie/sales/messages", {
     method: "POST",
     headers: {
-      "content-type": "application/json; charset=utf-8",
-      origin: "https://app.example",
-      "sec-fetch-site": "same-origin",
+      "content-type": "application/json; charset=utf-8", origin: "https://app.example",
+      "sec-fetch-site": "same-origin", "x-forwarded-host": "app.example", "x-forwarded-proto": "https",
     },
     body: JSON.stringify({ content: "Question autorisée" }),
   }));
-  assert.equal(valid.content, "Question autorisée");
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).content, "Question autorisée");
 
-  await assert.rejects(
-    parseGenieMessageRequest(new Request("https://app.example/api/genie/sales/messages", {
-      method: "POST",
-      headers: { "content-type": "text/plain" },
-      body: JSON.stringify({ content: "Question" }),
-    })),
-    /content type must be application\/json/,
-  );
-  await assert.rejects(
-    parseGenieMessageRequest(new Request("http://internal:3000/api/genie/sales/messages", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        origin: "https://attacker.example",
-        "sec-fetch-site": "cross-site",
-        "x-forwarded-host": "app.example",
-        "x-forwarded-proto": "https",
-      },
-      body: JSON.stringify({ content: "Question" }),
-    })),
-    /same-origin/,
-  );
-  await assert.rejects(
-    parseGenieMessageRequest(new Request("https://app.example/api/genie/sales/messages", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ content: "x".repeat(65 * 1024) }),
-    })),
-    /too large/,
-  );
-
-  let cancelled = false;
-  const chunkedBody = new ReadableStream<Uint8Array>({
-    pull(controller) {
-      controller.enqueue(new Uint8Array(40 * 1024));
-    },
-    cancel() {
-      cancelled = true;
-    },
-  });
-  const chunkedRequest = new Request("https://app.example/api/genie/sales/messages", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: chunkedBody,
-    duplex: "half",
-  } as RequestInit & { duplex: "half" });
-  await assert.rejects(parseGenieMessageRequest(chunkedRequest), /too large/);
-  assert.equal(cancelled, true);
+  const invalidRequests = [
+    new Request("https://app.example/api/genie/sales/messages", {
+      method: "POST", headers: { "content-type": "text/plain" }, body: JSON.stringify({ content: "Question" }),
+    }),
+    new Request("http://internal:3000/api/genie/sales/messages", {
+      method: "POST", headers: {
+        "content-type": "application/json", origin: "https://attacker.example", "sec-fetch-site": "cross-site",
+        "x-forwarded-host": "app.example", "x-forwarded-proto": "https",
+      }, body: JSON.stringify({ content: "Question" }),
+    }),
+    new Request("https://app.example/api/genie/sales/messages", {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ content: "x".repeat(65 * 1024) }),
+    }),
+    new Request("https://app.example/api/genie/sales/messages", {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ content: "Question", spaceId: "undeclared" }),
+    }),
+  ];
+  for (const request of invalidRequests) {
+    const response = await requestHandler(route, request);
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).error.code, "INVALID_REQUEST");
+  }
 });
 
 test("bounds active Genie streams globally and per user without retaining released users", async () => {
@@ -171,56 +147,46 @@ test("bounds active Genie streams globally and per user without retaining releas
   releaseSecond();
   releaseReplacement();
 
-  let released = false;
-  async function* oneValue(): AsyncGenerator<number> {
-    yield 1;
-  }
-  const values: number[] = [];
-  for await (const value of releaseConcurrencySlot(oneValue(), () => { released = true; })) {
-    values.push(value);
-  }
-  assert.deepEqual(values, [1]);
-  assert.equal(released, true);
 });
 
 test("emits SSE comment heartbeats while the next Genie event is pending", async () => {
   async function* delayedEvents(): AsyncGenerator<GenieStreamEvent> {
     await new Promise((resolve) => setTimeout(resolve, 18));
-    yield { type: "status", data: { status: "ASKING_AI" } };
+    yield { type: "status", status: "ASKING_AI" };
   }
-  const response = createGenieSseResponse(delayedEvents(), "request-heartbeat", undefined, 5);
+  const route = withApiRoute((_request, { signal }, response) => writeGenieSse(response, delayedEvents(), signal, 5));
+  const response = await requestHandler(route, new Request("http://localhost/stream"));
   const body = await response.text();
-
   assert.match(body, /: heartbeat\n\n/);
   assert.match(body, /event: status/);
-  assert.equal(response.headers.get("cache-control"), "no-cache, no-store, no-transform");
+  assert.equal(response.headers.get("cache-control"), "private, no-cache, no-store, no-transform");
 });
 
-test("closes the Genie iterator and releases its slot when the response is cancelled", async () => {
-  const abortController = new AbortController();
-  let released = false;
-
-  async function* cancellableEvents(): AsyncGenerator<GenieStreamEvent> {
-    yield { type: "status", data: { status: "ASKING_AI" } };
-    await new Promise<void>((resolve) => {
-      if (abortController.signal.aborted) {
-        resolve();
-        return;
-      }
-      abortController.signal.addEventListener("abort", () => resolve(), { once: true });
-    });
-  }
-
-  const events = releaseConcurrencySlot(cancellableEvents(), () => { released = true; });
-  const response = createGenieSseResponse(events, "request-cancel", abortController, 60_000);
-  const reader = response.body?.getReader();
-  assert.ok(reader);
-  const first = await reader.read();
-  assert.equal(first.done, false);
-  await reader.cancel();
-
-  assert.equal(abortController.signal.aborted, true);
-  assert.equal(released, true);
+test("closes the Genie iterator and releases its slot when the response is cancelled", { timeout: 5_000 }, async () => {
+  let released!: () => void;
+  const finished = new Promise<void>((resolve) => { released = resolve; });
+  let observedSignal: AbortSignal | undefined;
+  const route = withApiRoute((_request, { signal }, response) => {
+    observedSignal = signal;
+    async function* cancellableEvents(): AsyncGenerator<GenieStreamEvent> {
+      try {
+        yield { type: "status", status: "ASKING_AI" };
+        await new Promise<void>((resolve) => {
+          if (signal.aborted) { resolve(); return; }
+          signal.addEventListener("abort", () => resolve(), { once: true });
+        });
+      } finally { released(); }
+    }
+    return writeGenieSse(response, cancellableEvents(), signal, 60_000);
+  });
+  await withHttpApp((app) => app.get("/stream", route), async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/stream`);
+    const reader = response.body!.getReader();
+    assert.equal((await reader.read()).done, false);
+    await reader.cancel();
+    await finished;
+    assert.equal(observedSignal?.aborted, true);
+  });
 });
 
 test("adds sorted dashboard context without changing a context-free question", () => {
@@ -239,16 +205,16 @@ test("adds sorted dashboard context without changing a context-free question", (
 });
 
 test("requires both forwarded OBO headers as a request-scoped identity", () => {
-  assert.equal(extractForwardedGenieIdentity(new Headers()), null);
+  assert.equal(extractForwardedGenieIdentity({}), null);
   assert.equal(
-    extractForwardedGenieIdentity(new Headers({ "x-forwarded-user": "user-id" })),
+    extractForwardedGenieIdentity({ "x-forwarded-user": "user-id" }),
     null,
   );
   assert.deepEqual(
-    extractForwardedGenieIdentity(new Headers({
+    extractForwardedGenieIdentity({
       "x-forwarded-user": " user-id ",
       "x-forwarded-access-token": " user-token ",
-    })),
+    }),
     { userId: "user-id", accessToken: "user-token" },
   );
 });
@@ -260,7 +226,8 @@ test("uses the official Genie REST paths and validates malformed upstream respon
     ["--import", "tsx", fixture.pathname],
     { encoding: "utf8" },
   );
-  assert.equal(stdout, "");
+  assert.doesNotMatch(stdout + stderr, /synthetic-user-token|workspace-user|Question initiale|discarded upstream details/);
+  assert.ok(stdout.trim().split("\n").every((line) => typeof JSON.parse(line).requestId === "string"));
   assert.equal(stderr, "");
 });
 
@@ -391,13 +358,13 @@ test("streams official lifecycle states, uses continuation IDs, and emits a rich
     "status",
     "status",
     "status",
-    "query_result",
     "message_result",
+    "query_result",
   ]);
-  const queryEvent = events.find((event) => event.type === "query_result");
-  assert.equal(queryEvent?.data.sql, queryAttachment.sql);
   const resultEvent = events.find((event) => event.type === "message_result");
-  assert.equal(resultEvent?.data.answer, "Produit Alpha recule le plus.");
+  assert.equal(resultEvent?.message.content, "Top produits");
+  assert.equal(resultEvent?.message.attachments.find((attachment) => attachment.text)?.text?.content, "Produit Alpha recule le plus.");
+  assert.equal(resultEvent?.message.attachments.find((attachment) => attachment.query)?.query?.query, queryAttachment.sql);
 });
 
 test("keeps polling a completed message until its known query result succeeds", async () => {
@@ -456,8 +423,8 @@ test("keeps polling a completed message until its known query result succeeds", 
   assert.deepEqual(events.map((event) => event.type), [
     "message_start",
     "status",
-    "query_result",
     "message_result",
+    "query_result",
   ]);
 });
 
@@ -567,8 +534,8 @@ test("honors Retry-After while retrying an idempotent query-result read", async 
   assert.deepEqual(events.map((event) => event.type), [
     "message_start",
     "status",
-    "query_result",
     "message_result",
+    "query_result",
   ]);
 });
 
@@ -592,9 +559,10 @@ test("turns permission failures into a safe SSE error without leaking technical 
 
   assert.equal(events.length, 1);
   assert.equal(events[0]?.type, "error");
-  assert.deepEqual(events[0]?.data, {
+  assert.deepEqual(events[0], {
+    type: "error",
     code: "GENIE_PERMISSION_DENIED",
-    message: "Vous n’avez pas l’autorisation d’utiliser cet espace Genie ou ses données.",
+    error: "Vous n’avez pas l’autorisation d’utiliser cet espace Genie ou ses données.",
     requestId: "request-denied",
     retryable: false,
   });
@@ -613,7 +581,7 @@ test("maps explicit upstream permission failure types to the permission error", 
   ));
   const error = events.at(-1);
   assert.equal(error?.type, "error");
-  assert.equal(error?.data.code, "GENIE_PERMISSION_DENIED");
+  assert.equal(error?.code, "GENIE_PERMISSION_DENIED");
 });
 
 test("bounds polling with a timeout error", async () => {
@@ -638,8 +606,8 @@ test("bounds polling with a timeout error", async () => {
   assert.deepEqual(events.map((event) => event.type), ["message_start", "status", "error"]);
   const error = events.at(-1);
   assert.equal(error?.type, "error");
-  assert.equal(error?.data.code, "GENIE_TIMEOUT");
-  assert.equal(error?.data.retryable, true);
+  assert.equal(error?.code, "GENIE_TIMEOUT");
+  assert.equal(error?.retryable, true);
 });
 
 test("demo mode emits a deterministic synthetic lifecycle and valid SSE frames", async () => {
@@ -652,11 +620,11 @@ test("demo mode emits a deterministic synthetic lifecycle and valid SSE frames",
     "status",
     "status",
     "status",
-    "query_result",
     "status",
     "message_result",
+    "query_result",
   ]);
-  const frame = new TextDecoder().decode(encodeGenieSseEvent(events[0] as GenieStreamEvent));
+  const frame = encodeGenieSseEvent(events[0] as GenieStreamEvent);
   assert.match(frame, /^event: message_start\ndata: \{"type":"message_start"/);
   assert.match(frame, /\n\n$/);
   assert.doesNotMatch(JSON.stringify(events), /customer|client_id|access.token/i);

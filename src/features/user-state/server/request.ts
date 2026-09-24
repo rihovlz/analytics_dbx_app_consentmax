@@ -1,3 +1,4 @@
+import type { Request } from "express";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { AppError, RequestValidationError } from "@/lib/errors/app-error";
@@ -5,7 +6,7 @@ import type { UserStateConfig } from "./config";
 
 export function resolveOwner(request: Request, config: UserStateConfig): string {
   // No owner field, query argument, email fallback or client-selected demo identity.
-  const raw = config.mode === "demo" ? "local-demo-user" : request.headers.get("x-forwarded-user");
+  const raw = config.mode === "demo" ? "local-demo-user" : request.get("x-forwarded-user");
   // Reject control characters in the identity supplied by the trusted proxy.
   // eslint-disable-next-line no-control-regex
   if (!raw?.trim() || raw.length > 512 || /[\u0000-\u001f\u007f]/.test(raw)) {
@@ -22,32 +23,15 @@ export function parseInput<T>(schema: z.ZodType<T>, input: unknown): T {
 }
 
 export async function readMutation(request: Request, config: UserStateConfig): Promise<unknown> {
-  if (request.headers.get("origin") !== config.origin
-    || request.headers.get("sec-fetch-site") === "cross-site"
-    || request.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase() !== "application/json") {
+  if (request.get("origin") !== config.origin
+    || request.get("sec-fetch-site") === "cross-site"
+    || request.get("content-type")?.split(";")[0]?.trim().toLowerCase() !== "application/json") {
     throw new RequestValidationError("Personal state mutations require same-origin JSON");
   }
-  if (!request.body) throw new RequestValidationError("Missing personal state payload");
-  const reader = request.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  try {
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      size += value.byteLength;
-      if (size > 16 * 1024) {
-        await reader.cancel().catch(() => undefined);
-        throw new RequestValidationError("Personal state payload exceeds 16 KiB");
-      }
-      chunks.push(value);
-    }
-  } finally {
-    reader.releaseLock();
+  // AppKit bounds the decoded HTTP body at 64 KiB; this feature bounds its JSON value at 16 KiB.
+  if (request.body === undefined) throw new RequestValidationError("Missing personal state payload");
+  if (Buffer.byteLength(JSON.stringify(request.body), "utf8") > 16 * 1024) {
+    throw new RequestValidationError("Personal state payload exceeds 16 KiB");
   }
-  try {
-    return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks)));
-  } catch {
-    throw new RequestValidationError("Invalid personal state JSON");
-  }
+  return request.body;
 }

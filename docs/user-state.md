@@ -132,7 +132,9 @@ après un commit : le serveur renvoie une erreur et l’utilisateur doit recharg
 Les lectures sont paginées par UUID, avec 51 lignes maximum pour détecter la page suivante. La pagination n’est pas
 un instantané : recharger pour voir les créations concurrentes dont l’UUID précède le curseur. Les requêtes utilisent
 le timeout SQL central. Les succès et les erreurs portent `Cache-Control: private, no-store`. Les écritures exigent
-un JSON de même origine et limitent le flux entrant à 16 Kio.
+un JSON de même origine. Le parseur AppKit borne le corps décodé à 64 Kio ; la feature borne le JSON sérialisé
+à 16 Kio. Les espaces de mise en forme ne comptent pas dans cette seconde limite. Les erreurs du parseur et
+des schémas gardent les en-têtes privés et l’enveloppe publique sûre.
 
 ## Brancher une vue métier
 

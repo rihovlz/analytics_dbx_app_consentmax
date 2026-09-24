@@ -250,6 +250,11 @@ async function inspectGeneratedApp(fixtureRoot: string, environment: NodeJS.Proc
     await readFile(join(fixtureRoot, "src/features/journey-kpi/server/queries.ts"), "utf8"),
     /SUM\(`amount`\)/,
   );
+  assert.match(await readFile(join(fixtureRoot, "src/features/journey-kpi/server/queries.ts"), "utf8"), /IDENTIFIER\(:source\)/);
+  const generatedRoutes = await readFile(join(fixtureRoot, "src/server/routes.ts"), "utf8");
+  assert.ok(generatedRoutes.includes('app.get("/api/journey-kpi", getJourneyKpi)'));
+  assert.ok(generatedRoutes.includes('app.get("/api/journey-comparison", getJourneyComparison)'));
+  assert.doesNotMatch(generatedRoutes, /expressRoute/);
   assert.match(
     await readFile(join(fixtureRoot, ".valiuz-template.yml"), "utf8"),
     new RegExp(`version: ${String(templateContract.currentVersion).replaceAll(".", "\\.")}`),

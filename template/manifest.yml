@@ -311,7 +311,7 @@ capabilities:
         command: node scripts/init-user-state.mjs
   appkit-native-runtime:
     since: 2.0.0
-    description: Démarre AppKit, sert des routes React et protège les APIs des features.
+    description: Démarre AppKit, sert React et des handlers Express natifs, avec SQL nommé et APIs de features validées.
     probes:
       - type: fileContains
         path: src/server/index.ts
@@ -324,6 +324,12 @@ capabilities:
         path: src/shared/app-config.ts
       - type: file
         path: src/lib/databricks/appkit-executor.ts
+      - type: fileContains
+        path: src/lib/http/with-api-route.ts
+        text: RequestHandler
+      - type: fileContains
+        path: src/lib/databricks/sql.ts
+        text: namedParameters
       - type: packageScript
         name: build
         command: vite build && node scripts/build-server.mjs
@@ -400,6 +406,9 @@ capabilities:
         text: appkit.genie.sendMessage
       - type: file
         path: src/features/genie/server/appkit-client.ts
+      - type: fileContains
+        path: src/features/genie/stream.ts
+        text: connectSSE
       - type: file
         path: src/server/routes/genie/[alias]/session/route.ts
       - type: file

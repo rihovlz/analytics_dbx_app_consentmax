@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import express from "express";
-import { createGenieMessageResponse } from "../src/features/genie/server/runtime";
+import { sendGenieMessage } from "../src/features/genie/server/runtime";
 import { parseGenieMessageRequest } from "../src/features/genie/server/request";
-import { expressRoute } from "../src/lib/http/express-adapter";
 import { withApiRoute } from "../src/lib/http/with-api-route";
 import { startTestGenie } from "./fixtures/genie-appkit";
 
@@ -45,8 +44,9 @@ test("concurrent Express Genie streams keep OBO identities and answers isolated"
     });
   });
   const app = express();
-  app.post("/api/genie/fraim-sales/messages", expressRoute(withApiRoute(async (request, context) =>
-    createGenieMessageResponse(request, "fraim-sales", await parseGenieMessageRequest(request), context.requestId))));
+  app.use(express.json({ limit: "64kb" }));
+  app.post("/api/genie/fraim-sales/messages", withApiRoute(async (request, context, response) =>
+    sendGenieMessage(request, response, "fraim-sales", parseGenieMessageRequest(request), context)));
   const server = app.listen(0, "127.0.0.1");
   await new Promise<void>((resolve) => server.once("listening", resolve));
   const address = server.address();

@@ -40,7 +40,7 @@ Ni la dernière observation ni une fréquence de rafraîchissement déclarée ne
 La démo annonce explicitement sa couverture du 1er janvier 2024 au 20 septembre 2026.
 
 Le repository génère une requête nommée avec deux fenêtres liées par paramètres et des bornes de fin exclusives.
-La source déclarée passe par `IDENTIFIER(?)`. Les colonnes viennent de la spec validée, jamais du navigateur.
+La source déclarée passe par `IDENTIFIER(:source)`. Les colonnes viennent de la spec validée, jamais du navigateur.
 Les lignes agrégées par jour et segment passent par Zod. Le timeout de `SqlExecutor` reste applicable.
 Avec une dimension, le repository choisit le transport driver déjà conservé par le template, afin de préserver
 les libellés STRING ressemblant à du JSON, notamment `null`. Sans dimension, il utilise l'adaptateur Analytics AppKit.

@@ -298,3 +298,8 @@ Le rollback conserve les tables et redéploie la révision précédente.
 La 2.0.0 non publiée inclut aussi `appkit-genie-integration` : plugin Genie programmatique, compatibilité OBO et
 annulation, identité visible et exploration facultative des comparaisons. Les contrats et limites sont décrits dans
 [Genie](genie.md). Cette addition reste dans la migration major 1.5 → 2.0 ; les tables personnelles sont préservées.
+
+La 2.0.0 fixe aussi un seul contrat d’écriture d’app : handlers Express natifs, paramètres SQL nommés et événements
+Genie alignés sur AppKit. Les anciens handlers, paramètres positionnels et événements enveloppés ne sont pas acceptés
+au runtime. Les guides et fixtures réalisent ce portage une fois, sans modifier les calculs métier ni les données stockées.
+Ces ruptures restent dans la major non publiée ; aucune version 2.1 n’est créée.

@@ -1,10 +1,10 @@
-import type { Logger } from "pino";
+import type { Request, Response } from "express";
+import type { ApiContext } from "@/lib/http/with-api-route";
 
 import type { GenieMessageRequest } from "@/features/genie/contract";
 import { createDatabricksGenieClient } from "@/features/genie/server/client";
 import {
   genieConcurrencyLimiter,
-  releaseConcurrencySlot,
   resolveGenieConcurrencyLimits,
 } from "@/features/genie/server/concurrency";
 import { resolveGenieRuntimeConfiguration } from "@/features/genie/server/config";
@@ -13,18 +13,17 @@ import {
   streamDemoGenieMessage,
   streamGenieMessage,
 } from "@/features/genie/server/service";
-import { createGenieSseResponse } from "@/features/genie/server/sse";
+import { writeGenieSse } from "@/features/genie/server/sse";
 
-export async function createGenieMessageResponse(
+export async function sendGenieMessage(
   request: Request,
+  response: Response,
   alias: string,
   body: GenieMessageRequest,
-  requestId: string,
-  log?: Logger,
-): Promise<Response> {
+  context: ApiContext,
+): Promise<void> {
   const configuration = resolveGenieRuntimeConfiguration(alias);
-  const abortController = new AbortController();
-  const signal = AbortSignal.any([request.signal, abortController.signal]);
+  const { requestId, log, signal } = context;
   const startedAt = performance.now();
   const logCompletion = ({ queryResultCount }: { queryResultCount: number }) => log?.info(
     { alias, queryResultCount, durationMs: performance.now() - startedAt },
@@ -43,19 +42,20 @@ export async function createGenieMessageResponse(
 
   if (configuration.mode === "demo") {
     log?.info({ alias, authType: "demo" }, "Genie stream started");
-    return createGenieSseResponse(
+    return writeGenieSse(
+      response,
       streamDemoGenieMessage(body, {
         requestId,
         signal,
         onError: logFailure,
         onComplete: logCompletion,
       }),
-      requestId,
-      abortController,
+      signal,
     );
   }
 
   const identity = await resolveGenieRequestIdentity(request, configuration);
+  if (signal.aborted) return;
   const release = genieConcurrencyLimiter.acquire(
     identity.userId,
     resolveGenieConcurrencyLimits(),
@@ -66,8 +66,9 @@ export async function createGenieMessageResponse(
       workspaceUrl: configuration.workspaceUrl,
       accessToken: identity.accessToken,
     });
-    return createGenieSseResponse(
-      releaseConcurrencySlot(streamGenieMessage(body, {
+    await writeGenieSse(
+      response,
+      streamGenieMessage(body, {
         client,
         alias,
         spaceId: configuration.space.spaceId,
@@ -75,12 +76,10 @@ export async function createGenieMessageResponse(
         signal,
         onError: logFailure,
         onComplete: logCompletion,
-      }), release),
-      requestId,
-      abortController,
+      }),
+      signal,
     );
-  } catch (error) {
+  } finally {
     release();
-    throw error;
   }
 }

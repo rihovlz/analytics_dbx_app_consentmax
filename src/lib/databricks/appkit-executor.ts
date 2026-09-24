@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { sql } from "@databricks/appkit";
 import { z } from "zod";
 import type { DatabricksConfig } from "@/lib/config/server-config";
-import type { SqlExecutor, SqlParameter, SqlQueryOptions } from "./types";
+import type { SqlExecutor, SqlQueryOptions } from "./types";
 import { SqlQueryError } from "@/lib/errors/app-error";
 import { logger } from "@/lib/logging/logger";
 
@@ -14,27 +14,6 @@ export const analyticsExecution = new AsyncLocalStorage<{ signal: AbortSignal; o
 let runtimeQuery: AnalyticsQuery | undefined;
 export function configureAnalytics(query: AnalyticsQuery) { runtimeQuery = query; }
 export function getAnalyticsQuery() { return runtimeQuery; }
-
-// Tokenize literals/comments so a '?' in SQL text never becomes a parameter.
-export function bindOrdinalParameters(statement: string, values: SqlParameter[]) {
-  let index = 0;
-  const parameters: Record<string, Marker> = {};
-  const converted = statement.replace(/'(?:''|\\.|[^'\\])*'|"(?:""|\\.|[^"\\])*"|`(?:``|[^`])*`|--[^\r\n]*|\/\*[\s\S]*?\*\/|\?/g, (token) => {
-    if (token !== "?") return token;
-    if (index >= values.length) throw new Error("Missing SQL parameter");
-    const key = `valiuz_p${index}`;
-    const value = values[index++];
-    if (value === null || value === undefined) throw new Error("Null parameters require the driver adapter");
-    parameters[key] = value instanceof Date ? sql.timestamp(value)
-      : typeof value === "bigint" ? sql.bigint(value)
-      : typeof value === "number" ? sql.number(value)
-      : typeof value === "boolean" ? sql.boolean(value)
-      : sql.string(value);
-    return `:${key}`;
-  });
-  if (index !== values.length || /:valiuz_p\d+/.test(statement)) throw new Error("Invalid SQL parameter count or reserved name");
-  return { statement: converted, parameters };
-}
 
 const resultSchema = z.object({ data: z.array(z.unknown()), next_chunk_index: z.number().optional() });
 
@@ -54,13 +33,22 @@ export class AppKitSqlExecutor implements SqlExecutor {
       const sqlPrefix = options.statement.replace(/^(?:\s|--[^\r\n]*(?:\r?\n|$)|\/\*[\s\S]*?\*\/)*/, "");
       if (!/^(SELECT|WITH)\b/i.test(sqlPrefix)) throw new Error("Analytics executor accepts reads only");
       // Select known compatibility exceptions before submission; never retry a native failure.
-      if (options.transport === "driver" || options.parameters?.some((value) => value == null)) {
+      if (Array.isArray(options.parameters)) throw new Error("SQL parameters must be named");
+      const entries = Object.entries(options.parameters ?? {});
+      if (options.transport === "driver" || entries.some(([, value]) => value === null)) {
         return await this.driver.query(options);
       }
-      const bound = bindOrdinalParameters(options.statement, options.parameters ?? []);
+      const parameters = Object.fromEntries(entries.map(([key, value]) => {
+        if (value instanceof Date) return [key, sql.timestamp(value)];
+        if (typeof value === "bigint") return [key, sql.bigint(value)];
+        if (typeof value === "number") return [key, sql.number(value)];
+        if (typeof value === "boolean") return [key, sql.boolean(value)];
+        if (typeof value === "string") return [key, sql.string(value)];
+        throw new Error("Unsupported SQL parameter value");
+      }));
       const result = await Promise.race([
         analyticsExecution.run({ signal: controller.signal, onFinish }, () => this.analytics(
-          bound.statement, bound.parameters, {
+          options.statement, parameters, {
             catalog: this.config.catalog, schema: this.config.schema,
             row_limit: maxRows, byte_limit: 8 * 1024 * 1024,
             disposition: "INLINE", format: "JSON_ARRAY", wait_timeout: "0s",

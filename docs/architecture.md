@@ -84,8 +84,8 @@ Le plugin privé `src/server/genie-plugin.ts` conserve l’implémentation progr
 Ses ressources reprennent les alias et variables du registre Genie. `server/appkit-client.ts`, dans la feature, fournit
 au plugin un client de requête via AsyncLocalStorage, sans recours à l’identité de service. Les exceptions HTTP restent
 bornées et testées. Voir [le contrat Genie](genie.md).
-La route exige du JSON de même origine avant de lire l’identité OBO. Le lecteur arrête le flux entrant au-delà de
-64 Kio. Le contrat limite aussi la question à 10 000 caractères et le contexte sérialisé à 12 000 caractères.
+La route exige du JSON de même origine avant de lire l’identité OBO. Le parseur JSON Express fourni par AppKit
+borne le corps décodé à 64 Kio. Le contrat limite aussi la question à 10 000 caractères et le contexte sérialisé à 12 000 caractères.
 
 Le `POST` de soumission est exécuté une seule fois. Seuls les `GET` de statut et de résultat sont retentés après une
 erreur transitoire. Chaque lecture accepte cinq reprises au maximum. Le délai exponentiel de 1 à 5 secondes utilise un
@@ -96,14 +96,15 @@ variables `GENIE_MAX_CONCURRENT_STREAMS` et `GENIE_MAX_CONCURRENT_STREAMS_PER_US
 acceptent des entiers de 1 à 100, et la limite utilisateur ne peut pas dépasser la limite globale. Le mode démo ne
 réserve aucun slot. Cette protection n’est pas distribuée entre plusieurs réplicas.
 
-Le flux SSE transmet les statuts dès leur disponibilité. AppKit lit les pièces jointes après la fin du message. L’API Genie ne fournit pas de delta de texte. Le client
+Le flux SSE suit les événements AppKit : statuts, message final puis résultats de pièces jointes.
+Le client utilise `connectSSE` avec `maxRetries: 0` et attend la fin complète du flux avant de permettre une suite. L’API Genie ne fournit pas de delta de texte. Le client
 révèle donc la réponse finale progressivement. Des commentaires heartbeat gardent le flux actif pendant une attente.
 Le mode de mouvement réduit affiche le texte sans cette transition.
 
 L’arrêt du `fetch` navigateur termine seulement le suivi local. Il ne prouve pas que Databricks a annulé le traitement.
 La session cliente devient non continuable et demande une nouvelle conversation. Dès l’envoi du `POST`, toute erreur
-cliente, réseau ou de flux rend la création distante ambiguë. Le client interdit alors le rejeu. Seul un refus HTTP
-explicite reçu avant le début du flux peut rester rejouable.
+cliente, réseau ou de flux rend la création distante ambiguë. Le client interdit alors le rejeu. Cette règle vaut aussi
+pour un refus HTTP avant le flux : le lecteur ne fournit au client que le statut HTTP.
 
 Le rendu Markdown ne crée jamais de balise d’image. Il active uniquement les liens HTTP(S), les chemins de même origine
 qui commencent par un seul `/` et les fragments. Une destination refusée conserve son libellé sans `href`.
@@ -266,11 +267,12 @@ L'app conserve seulement un accès `SELECT` sur la sortie publiée.
 Les logs Pino sont des lignes JSON avec `requestId`, nom de requête, durée et nombre de lignes. Les champs courants de
 credentials sont redactés. Ne jamais ajouter un payload métier complet aux logs.
 
-Les erreurs typées portent un code, un statut HTTP et un message utilisateur sûr. La cause technique est loggée côté
-serveur et remplacée dans la réponse par `{ error: { code, message, requestId } }`.
+Les erreurs typées portent un code, un statut HTTP et un message utilisateur sûr. Le wrapper journalise les métadonnées
+sûres (nom, code, méthode, chemin) sans cause brute, puis répond avec `{ error: { code, message, requestId } }`.
 
-`withApiRoute` transmet aussi les réponses SSE. Une erreur qui précède le flux utilise l’enveloppe JSON commune. Une
-erreur qui suit le début du flux utilise un événement SSE typé avec le même `requestId`.
+`withApiRoute` attend aussi les écritures SSE. Une erreur qui précède le flux utilise l’enveloppe JSON commune.
+Le service Genie traduit ses erreurs connues en événements SSE typés avec le même `requestId`. Une exception non
+traitée après les en-têtes annule le travail associé et ferme la connexion ; elle n’ajoute pas une réponse JSON au flux.
 
 ## Extension
 
@@ -292,11 +294,16 @@ Le shell lit le flag runtime depuis `/api/config`. Voir [les contrats et limites
 
 `src/server/index.ts` démarre les plugins AppKit. Le serveur garde un seul `app.yaml`.
 Les routes React sont enregistrées dans `src/client/routes.tsx`. Les APIs sont enregistrées dans `src/server/routes.ts`.
-`withApiRoute` conserve le contrat Web Request/Response. `expressRoute` transmet les corps et flux SSE dans Express.
+`withApiRoute` produit directement un handler Express. Son callback reçoit `(request, context, response)`.
+Il retourne une valeur JSON ou attend l’écriture dans `response`. Les paramètres et le corps viennent d’Express.
+`context.signal` suit la déconnexion. Le SSE écrit directement dans la réponse et respecte la contre-pression.
 La fermeture du navigateur annule le suivi serveur et libère les quotas Genie.
-Le plugin HTTP conserve les lecteurs bornés des features et désactive le recorder UI automatique.
+Le serveur standard AppKit utilise son parseur JSON borné à 64 Kio. L’état personnel borne aussi le JSON sérialisé
+à 16 Kio. Les erreurs du parseur passent par l’enveloppe sûre commune. Aucun accès au champ privé `serverApplication`
+n’est nécessaire. Le recorder UI automatique reste désactivé.
 
 Le plugin Vite refuse les imports de modules serveur dans le graphe navigateur.
 Les modules partagés ne lisent ni environnement, ni fichiers, ni credentials.
 `SqlExecutor` utilise AppKit analytics pour les lectures compatibles. Le repository personnel conserve son driver privé.
+Les deux transports reçoivent les paramètres nommés du repository sans réécriture du SQL.
 Les [exceptions documentées](appkit-maintenance.md) précisent les limites upstream et leurs critères de retrait.

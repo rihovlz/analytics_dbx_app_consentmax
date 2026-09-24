@@ -44,3 +44,10 @@ et l’absence de débordement horizontal de la page.
 - Le consentement OAuth réel.
 - Les droits Unity Catalog du Space de test.
 - La persistance partagée des cartes épinglées.
+
+## Contrat 2.0 et interruptions
+
+Les événements suivent les champs AppKit : `message_result` précède ses `query_result`.
+Simuler une fermeture du flux après le message annonçant une pièce jointe, avant ses lignes.
+Vérifier que la réponse reste en erreur, que l'ancienne conversation est verrouillée et qu'un seul POST a été envoyé.
+Un refus HTTP avant le flux affiche une explication française sans rejouer la question ; le flux conserve les codes et request IDs sûrs.

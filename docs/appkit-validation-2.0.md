@@ -1,4 +1,4 @@
-# Validation AppKit 2.0 — 23 septembre 2026
+# Validation AppKit 2.0 — 23 et 24 septembre 2026
 
 Base examinée : `8b779bcb363a7c57bdea12342964601d0acdfef4` (template 1.5.0).
 Décision : **major 2.0.0**, car les routes, le chargement des pages et le runtime changent.
@@ -223,6 +223,46 @@ La capture mobile sombre a été inspectée. Aucun résultat n’est écrit dans
 Le build signale un chunk Genie chargé à la demande d’environ 816 ko, soit 240 ko gzip. Le build réussit malgré cet avertissement.
 La décision reste **major 2.0.0 non publiée** face à la base 1.5.0. `appkit-genie-integration` est la cinquième capability ajoutée.
 La qualité des réponses d’un Space réel, les droits effectifs et le déploiement de développement restent à vérifier après autorisation.
+
+## Simplification des contrats 2.0 — 24 septembre 2026
+
+Les routes utilisent désormais Express directement. Le pont Web Request/Response, le parseur brut local et
+l’accès au champ privé `serverApplication` ont été retirés. Le serveur AppKit fournit son parseur JSON standard.
+Les identifiants de requête, erreurs publiques sûres, réponses privées et signaux d’annulation restent vérifiés.
+La limite HTTP porte sur 64 Kio décodés ; l’état personnel borne en plus son JSON sérialisé à 16 Kio.
+
+Le SQL utilise des marqueurs nommés et un objet de paramètres. Aucun traducteur de marqueurs positionnels ne reste.
+La lecture driver s’arrête au dépassement du nombre maximal de lignes ; elle refuse un agrégat incomplet.
+Le contrôle porte sur le total lu, et non sur la seule taille des lots retournés par le driver.
+
+Genie utilise les champs et l’ordre des événements AppKit, puis `connectSSE` d’AppKit UI pour leur transport.
+Les doubles formats et le parseur SSE local ont été supprimés. Les reprises de POST restent désactivées.
+Le client de compatibilité serveur reste nécessaire pour l’OBO, les annulations, les erreurs sûres et les résultats exacts.
+Le hook UI complet amont n’est pas adopté : ses reprises de POST et ses limites de contexte/interruption restent incompatibles.
+Un refus HTTP avant le flux ne fournit que son statut au lecteur amont ; l’API conserve son enveloppe et son identifiant.
+
+Vérifications exécutées sur ces contrats :
+
+- `npm run check` : 193 tests, lint, typecheck, contrats, release et build réussis.
+- `npm run template:journey` : installation propre, KPI simple et comparaison générés ; 198 tests et build réussis.
+- `npm run template:migration` : fixtures 1.4 et 1.5, trois tests métier par fixture, lint, types et builds réussis.
+- `npm run bundle:compatibility` : CLI 1.12.1, bundles app/data dev/prod contre le serveur local.
+- `npm run test:e2e -- --workers=1` : 16 parcours Chromium réussis en développement.
+- `E2E_PRODUCTION=1 npm run test:e2e -- --workers=1` : 16 parcours réussis sur le build de production.
+- `npm run template:release:check -- --base origin/main` : passage major 1.5.0 → 2.0.0 confirmé.
+- `git diff --check` et `git diff --cached --check` : aucun défaut d’espacement.
+- Validateur `skill-creator` : skill de création valide ; 51 liens locaux des 14 fichiers Markdown modifiés vérifiés.
+
+Les tests HTTP utilisent un serveur Express réel. Ils couvrent notamment l’annulation d’un POST Genie,
+la libération du quota, les identités distinctes et l’absence de rejeu. Le lecteur refuse les flux incomplets,
+les identifiants incohérents et l’ancien format d’événements. Les valeurs STRING exactes et les lignes Zod restent couvertes.
+Les fixtures de migration autorisent seulement le portage explicite des marqueurs et bindings SQL métier.
+Les services, sources, tables personnelles, médias et personnalisations sont conservés ; un appel HTTP vérifie aussi la démo portée.
+
+Les captures bureau clair et mobile sombre de la comparaison et de son exploration Genie ont été inspectées.
+Le build signale toujours le chunk Genie chargé à la demande : environ 818 ko, soit 241 ko gzip.
+Le registre ne contient plus l’exception du parseur HTTP. Les quatre exceptions restantes ont leurs critères de retrait.
+La décision reste **major 2.0.0 non publiée**. Les sondes des capabilities existantes sont renforcées, sans nouvelle capability.
 
 ## Revue documentaire et réserve distante
 

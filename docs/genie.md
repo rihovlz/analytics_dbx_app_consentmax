@@ -11,7 +11,9 @@ GenieChat → route validée → identité OBO + quota → service
 ## Responsabilités et limites
 
 AppKit orchestre le flux, les statuts et la récupération des pièces jointes après la fin du message.
-Le service adapte les événements au contrat SSE existant. Il transmet les résultats avant de marquer la réponse comme terminée.
+Le service projette les événements sur les champs AppKit : statuts, message final, puis résultats des pièces jointes.
+Il ajoute les métadonnées de limite et d’erreur sûres, et retire les identifiants de ressource inutiles au navigateur.
+Il ne conserve ni l’ancienne enveloppe `data` générale ni un tampon pour réordonner la réponse.
 La configuration du plugin et ses ressources proviennent de `config/genie-spaces.json`.
 Ses routes génériques sont désactivées. Seules les routes Valiuz valident les entrées et les identités.
 
@@ -22,7 +24,7 @@ AppKit 0.76.1 ne propage pas l’annulation à tous ses appels et journalise les
 - délais HTTP de 30 secondes et délai global de dix minutes, annulation du suivi et des appels locaux ;
 - cinq reprises maximum par lecture transitoire, avec délai progressif, jitter et `Retry-After` borné ;
 - erreurs nettoyées avant leur passage dans AppKit et enveloppe publique avec `requestId` ;
-- validation Zod, types de cellules préservés, 500 lignes maximum et troncature explicite ;
+- validation Zod, valeurs exactes au format AppKit `string | null` avec types de colonnes, 500 lignes maximum et troncature explicite ;
 - lecture des pièces jointes sans `statementId`, que cette version d’AppKit ignore.
 
 Les credentials restent dans le client lié à la requête. Le client de service ne peut pas effectuer un appel Genie
@@ -40,12 +42,21 @@ Dans Databricks Apps, l’identité et le jeton OBO sont obligatoires. Aucun fal
 En local, le libellé distingue le profil OAuth et le jeton local. La démo indique l’absence de connexion.
 Un contrôle d’identité indisponible reste visible ; chaque envoi contrôle à nouveau l’identité et les accès.
 
-`GenieChat` conserve le français, les thèmes, le SQL inspectable, les tableaux exacts, l’historique borné et l’épinglage.
+`GenieChat` conserve le français, les thèmes, le SQL inspectable, les tableaux exacts, l’historique en mémoire et l’épinglage.
+Les conversations restent dans la session du navigateur, sans plafond ni éviction automatique ; le bouton d’historique permet de les effacer.
 Il accepte désormais `initialQuestion`, une question initiale modifiable, sans envoi automatique.
 Les réponses rappellent de vérifier les sources et les définitions avant partage.
 Le bouton d’exploration utilise `Button` d’AppKit UI avec les styles Valiuz.
-Le hook et le chat complets d’AppKit ne remplacent pas encore ce contrat : ils utilisent leur propre flux et ne fournissent
-pas les mêmes props de contexte, d’interruption et d’épinglage. Évaluer leur adoption séparément.
+Le transport navigateur utilise `connectSSE` d’AppKit UI avec `maxRetries: 0` ; le parseur SSE local a été supprimé.
+La validation Zod refuse un flux inconnu ou incomplet. Le client attend toutes les pièces jointes avant une continuation.
+Le hook complet amont conserve des reprises de POST et ne propose pas le contexte ni l’interruption nécessaires.
+Le chat Valiuz reste utile pour le français, l’épinglage et les restrictions du rendu Markdown. Une adoption du composant
+complet devra réduire le code local et passer ces tests, sans reproduire son comportement dans une nouvelle couche.
+
+Avant l’ouverture du flux, `connectSSE` 0.76.1 expose seulement le statut HTTP. L’interface affiche un message sûr
+adapté à ce statut ; elle n’accède pas au détail ni au `requestId` du corps d’erreur HTTP. L’API et ses logs conservent
+cet identifiant. Les erreurs reçues dans le SSE conservent leur code, leur caractère rejouable et leur `requestId`.
+Le client n’effectue aucun second appel pour lire une erreur ou retrouver une réponse.
 
 ## Explorer un écart
 

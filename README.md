@@ -232,7 +232,8 @@ restent du texte inerte.
 « Arrêter le suivi » ferme uniquement le flux dans cette page. Le traitement Databricks peut continuer. Cette
 conversation est alors verrouillée et l’utilisateur doit en démarrer une nouvelle. Dès que le `POST` est envoyé, une
 erreur réseau ou un flux incomplet rend la soumission ambiguë. Le client ne propose pas de rejeu et exige une nouvelle
-conversation. Seul un refus HTTP explicite reçu avant le flux peut conserver une action de reprise sûre.
+conversation. Le lecteur AppKit ne fournit que le statut d’un refus HTTP avant le flux ; le client conserve donc
+la même règle après tout POST échoué, sans proposer de nouvelle soumission automatique.
 
 Le serveur ne rejoue jamais le `POST` qui crée un message. Il retente uniquement les lectures `GET` du message et des
 résultats. Ces lectures utilisent cinq reprises au maximum, un délai exponentiel avec jitter, l’en-tête `Retry-After`
@@ -482,6 +483,8 @@ La carte générée distingue une absence de valeur (« Aucune donnée ») d'une
 Pour une tranche plus riche, conserver la même structure : contrat et composant dans `src/features/<nom>/`, logique
 métier dans `server/service.ts`, accès aux données dans `server/repository.ts`, route avec `withApiRoute`, puis tests
 avec un `SqlExecutor` factice.
+Les handlers sont natifs Express et les paramètres SQL sont nommés. Le lecteur SSE Genie vient d’AppKit UI,
+avec les reprises de POST désactivées. La 2.0 ne conserve aucun pont pour les anciens handlers ou paramètres positionnels.
 
 Les composants client ne doivent importer ni la configuration serveur, ni le driver Databricks, ni des credentials.
 
@@ -493,7 +496,7 @@ un fichier `.sql` voisin du repository et documenter son contrat d’entrée/sor
 
 Avant d'utiliser une nouvelle table ou vue, l'ajouter à `config/data-access.json`. Son `fullName` doit commencer par le
 projet choisi et utiliser le format `projet.schema.objet`. Le repository valide les trois segments et ajoute leurs
-backticks. Il lie ensuite la valeur à `IDENTIFIER(?)`. Il n'interpole aucune entrée utilisateur dans le SQL.
+backticks. Il lie ensuite la valeur à `IDENTIFIER(:source)`. Il n'interpole aucune entrée utilisateur dans le SQL.
 
 L’exemple `SELECT current_user()` se trouve dans `src/features/connection-check/server/`.
 

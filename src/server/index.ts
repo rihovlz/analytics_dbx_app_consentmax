@@ -1,8 +1,8 @@
-import { createApp } from "@databricks/appkit";
+import { createApp, server } from "@databricks/appkit";
 import { getServerConfig } from "@/lib/config/server-config";
 import { logger } from "@/lib/logging/logger";
 import { registerRoutes } from "./routes";
-import { disabledVariants, valiuzServer } from "./http-policy";
+import { disabledVariants } from "./http-policy";
 import { configureAnalytics } from "@/lib/databricks/appkit-executor";
 import { privateAnalytics } from "./analytics-plugin";
 import { createRuntimeClient } from "./workspace-client";
@@ -18,7 +18,7 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("Invali
 
 await createApp({
   plugins: [
-    valiuzServer({ port, host: process.env.APP_HOST ?? "0.0.0.0", bodyLimit: "64kb", telemetry: false,
+    server({ port, host: process.env.APP_HOST ?? "0.0.0.0", bodyLimit: "64kb", telemetry: false,
       ...(process.env.NODE_ENV === "production" ? { staticPath: "dist/client" } : {}) }),
     disabledVariants(),
     ...(config.mode === "databricks" ? [privateAnalytics(config.timeoutMs), privateGenie(resolveGeniePluginSpaces())] : []),

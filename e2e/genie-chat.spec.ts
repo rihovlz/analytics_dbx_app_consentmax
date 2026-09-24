@@ -79,7 +79,7 @@ test.describe("Genie conversationnel", () => {
         headers: { "cache-control": "no-store" },
         body: [
           "event: error",
-          "data: {\"type\":\"error\",\"data\":{\"code\":\"GENIE_PERMISSION_DENIED\",\"message\":\"Vous n’avez pas l’autorisation d’utiliser cet espace Genie ou ses données.\",\"requestId\":\"e2e-denied\",\"retryable\":false}}",
+          "data: {\"type\":\"error\",\"code\":\"GENIE_PERMISSION_DENIED\",\"error\":\"Vous n’avez pas l’autorisation d’utiliser cet espace Genie ou ses données.\",\"requestId\":\"e2e-denied\",\"retryable\":false}",
           "",
           "",
         ].join("\n"),
@@ -106,6 +106,42 @@ test.describe("Genie conversationnel", () => {
     await expect(chat.getByLabel("Votre question").getByText("Montre les ventes auxquelles je peux accéder")).toBeVisible();
     await expect(chat.getByText("Réponse Genie prête", { exact: true })).toHaveCount(0);
   });
+
+  for (const failure of ["pièce jointe manquante", "refus HTTP"] as const) {
+    test(`verrouille une réponse après ${failure} sans rejouer la question`, async ({ page }) => {
+      let submissions = 0;
+      await page.route("**/api/genie/fraim-sales/messages", async (route) => {
+        submissions++;
+        if (failure === "refus HTTP") {
+          await route.fulfill({ status: 403, contentType: "application/json",
+            body: JSON.stringify({ error: { code: "GENIE_PERMISSION_DENIED", message: "Accès refusé.", requestId: "pre-stream" } }) });
+          return;
+        }
+        await route.fulfill({ status: 200, contentType: "text/event-stream", body:
+          `data: ${JSON.stringify({ type: "message_start", messageId: "m", conversationId: "c" })}\n\ndata: ${JSON.stringify({
+          type: "message_result", message: {
+            messageId: "m", conversationId: "c", status: "COMPLETED", content: "Question synthétique",
+            attachments: [{ text: { content: "Réponse partielle : les lignes sont encore attendues." } },
+              { attachmentId: "missing", query: { title: "Résultat interrompu", query: "SELECT synthetic" } }],
+          },
+        })}\n\n` });
+      });
+      await page.goto("/genie");
+      const chat = page.getByRole("region", { name: "Les KPI et la conversation, côte à côte" })
+        .getByRole("region", { name: "Conversation Genie, space fraim-sales" });
+      const composer = chat.getByRole("textbox", { name: "Question pour Genie" });
+      await composer.fill("Question interrompue");
+      await composer.press("Enter");
+      await expect(chat.getByRole("alert")).toBeVisible();
+      await expect(chat.getByRole("textbox", { name: "Question pour Genie" })).toHaveCount(0);
+      await expect(chat.getByText("Réponse Genie prête", { exact: true })).toHaveCount(0);
+      await expect(chat.getByRole("button", { name: /Réessayer/ })).toHaveCount(0);
+      if (failure === "refus HTTP") await expect(chat.getByText("Accès aux ressources Databricks requis", { exact: true })).toBeVisible();
+      expect(submissions).toBe(1);
+      await chat.getByRole("button", { name: "Démarrer une nouvelle conversation" }).click();
+      await expect(chat.getByRole("textbox", { name: "Question pour Genie" })).toBeEnabled();
+    });
+  }
 
   test("reste utilisable sur mobile en thème sombre et mouvement réduit", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });

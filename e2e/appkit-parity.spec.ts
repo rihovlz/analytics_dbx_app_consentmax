@@ -78,27 +78,30 @@ test("le serveur AppKit conserve les limites HTTP, les erreurs sûres et les rou
   expect(Object.keys(await config.json()).sort()).toEqual([
     "appDescription", "appName", "mode", "personalStateDemo", "personalStateEnabled", "supportContact",
   ]);
-  expect(config.headers()["cache-control"]).toBe("no-store");
+  expect(config.headers()["cache-control"]).toBe("private, no-store");
   for (const path of ["/api/query/arbitrary", "/api/ui-variants/arbitrary"]) {
     const response = await request.post(path, { data: {} });
     expect(response.status()).toBe(404);
     expect((await response.json()).error.code).toBe("NOT_FOUND");
   }
-  for (const [path, body] of [
-    ["/api/genie/fraim-sales/messages", Buffer.from(JSON.stringify({ content: "x".repeat(70_000) }))],
-    ["/api/saved-analyses/00000000-0000-4000-8000-000000000001", Buffer.from(JSON.stringify({ title: "x".repeat(17_000) }))],
-    ["/api/saved-analyses/00000000-0000-4000-8000-000000000001", Buffer.from([0x7b, 0x22, 0x78, 0x22, 0x3a, 0x22, 0xff, 0x22, 0x7d])],
-  ] as const) {
+  for (const { path, body, parsed } of [
+    { path: "/api/genie/fraim-sales/messages", body: JSON.stringify({ content: "x".repeat(70_000) }), parsed: false },
+    { path: "/api/saved-analyses/00000000-0000-4000-8000-000000000001", body: JSON.stringify({ title: "x".repeat(17_000) }), parsed: true },
+    { path: "/api/saved-analyses/00000000-0000-4000-8000-000000000001", body: "{", parsed: false },
+    { path: "/api/user-preferences", body: JSON.stringify({ content: "x".repeat(70_000) }), parsed: false },
+    { path: "/api/genie/fraim-sales/session", body: "{", parsed: false },
+  ]) {
     const response = await request.fetch(path, {
-      method: path.includes("genie") ? "POST" : "PUT", data: body,
+      method: path.includes("genie") ? "POST" : "PUT", data: Buffer.from(body),
       headers: { "content-type": "application/json", origin: baseURL!, "x-request-id": "bounded-http-test" },
     });
-    const disabledPersonal = process.env.E2E_PRODUCTION === "1" && path.includes("saved-analyses");
+    const disabledPersonal = parsed && process.env.E2E_PRODUCTION === "1" && path.includes("saved-analyses");
     expect(response.status()).toBe(disabledPersonal ? 404 : 400);
     const payload = await response.json();
     expect(payload.error.code).toBe(disabledPersonal ? "USER_STATE_DISABLED" : "INVALID_REQUEST");
     expect(payload.error.requestId).toBe("bounded-http-test");
-    expect(response.headers()["cache-control"]).toContain("no-store");
+    expect(response.headers()["cache-control"]).toBe("private, no-store");
+    expect(response.headers().vary).toContain("x-forwarded-user");
   }
 });
 

@@ -19,8 +19,9 @@ Il ne remplace ni un manifeste AppKit upstream ni le bundle Databricks.
 
 Les caches de résultats AppKit restent désactivés.
 Les routes génériques analytics ne sont pas montées.
-Une sous-classe minimale installe `express.raw` avant JSON via le champ `serverApplication` du package 0.76.1.
-Cette exception privée est vérifiée par les parcours HTTP réels. Elle conserve 64 Kio au transport et 16 Kio pour l’état personnel.
+Le serveur standard AppKit parse le JSON avec une limite de 64 Kio. Les routes utilisent directement Express.
+L’état personnel borne son JSON sérialisé à 16 Kio. Le wrapper normalise aussi les erreurs du parseur.
+L’ancien pont Web Request/Response et l’accès au champ privé `serverApplication` ont été supprimés.
 Le recorder UI automatique de développement est remplacé par un plugin sans route.
 Les APIs des features gardent les limites de corps, l’identité et leurs validations.
 
@@ -32,7 +33,6 @@ Les APIs des features gardent les limites de corps, l’identité et leurs valid
 | Driver SQL conservé | Écritures privées, paramètres nuls, types natifs, chaînes JSON exactes et diagnostics CLI | Parité explicite de ces contrats dans l’API programmatique |
 | Client de démo | AppKit lit l’identité workspace dès son démarrage | Serveur upstream utilisable sans identité distante |
 | Fournisseur OAuth CLI | AppKit ignore le profil lorsque le host est fourni | Profil nommé, host validé et renouvellement natifs |
-| Politique HTTP locale | `extend()` intervient après JSON et le hook brut accepte uniquement des chemins exacts | Hook public avant parsing et contrôle des routes |
 
 L’adaptateur SQL transmet un signal de délai et borne le résultat inline.
 Il demande l’annulation d’un statement connu lors du dépassement.
@@ -44,6 +44,10 @@ Les logs applicatifs gardent seulement le nom de requête, sa durée, son identi
 Le plugin Genie utilise `sendMessage` via le service Valiuz. Le client lié à la requête conserve les garanties
 manquantes et les types exacts des cellules. Les routes génériques restent désactivées et aucun fallback ne suit une soumission.
 Le chat Valiuz garde son contexte et ses callbacks ; le bouton d’exploration utilise AppKit UI.
+Le lecteur de flux utilise `connectSSE` d’AppKit UI avec `maxRetries: 0`. Les événements suivent les champs et l’ordre
+AppKit ; il n’existe plus de parseur SSE local ni de deuxième format d’événements accepté.
+Le hook complet amont n’est pas utilisé : ses reprises de POST et ses limites de contexte/interruption ne conviennent pas.
+Avant le flux, son lecteur ne fournit au client que le statut HTTP ; l’API conserve son enveloppe sûre et son identifiant.
 Voir [le contrat Genie](genie.md) pour la recette avant retrait de l’adaptateur.
 
 ## Skills et plugins d’agents

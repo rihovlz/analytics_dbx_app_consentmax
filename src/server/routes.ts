@@ -1,7 +1,6 @@
 import type { Application } from "express";
-import { expressErrorHandler, expressRoute } from "@/lib/http/express-adapter";
 import { AppError } from "@/lib/errors/app-error";
-import { withApiRoute } from "@/lib/http/with-api-route";
+import { expressErrorHandler, withApiRoute } from "@/lib/http/with-api-route";
 import { parseAppDisplayConfig } from "@/lib/config/server-config";
 import { userStateEnabled } from "@/features/user-state/server/config";
 import { publicAppConfigSchema } from "@/shared/app-config";
@@ -19,27 +18,27 @@ import { GET as genieSession } from "./routes/genie/[alias]/session/route";
 
 export function registerRoutes(app: Application) {
   app.disable("x-powered-by");
-  app.get("/api/health", expressRoute(health));
-  app.get("/api/config", expressRoute(withApiRoute(() => publicAppConfigSchema.parse({
+  app.get("/api/health", health);
+  app.get("/api/config", withApiRoute(() => publicAppConfigSchema.parse({
     ...parseAppDisplayConfig(), personalStateEnabled: userStateEnabled(),
     personalStateDemo: process.env.APP_MODE === "demo" && !process.env.DATABRICKS_APP_NAME
       && ["development", "test"].includes(process.env.NODE_ENV ?? ""),
-  }))));
-  app.get("/api/visualizations", expressRoute(withApiRoute(() => europeFeatures)));
-  app.get("/api/period-comparison/demo", expressRoute(comparisonDemo));
-  app.get("/api/connection-check", expressRoute(connectionCheck));
-  app.get("/api/readiness", expressRoute(readiness));
-  app.post("/api/genie/:alias/messages", expressRoute(genie));
-  app.get("/api/genie/:alias/session", expressRoute(genieSession));
-  app.get("/api/saved-analyses", expressRoute(savedAnalyses));
-  app.get("/api/saved-analyses/:id", expressRoute(getAnalysis));
-  app.put("/api/saved-analyses/:id", expressRoute(putAnalysis));
-  app.delete("/api/saved-analyses/:id", expressRoute(deleteAnalysis));
-  app.get("/api/user-preferences", expressRoute(preferences));
-  app.put("/api/user-preferences", expressRoute(putPreferences));
-  // feature:new inserts routes above this line.
-  app.use("/api", expressRoute(withApiRoute(() => {
-    throw new AppError("Unknown feature route", "NOT_FOUND", 404, "Cette route n’existe pas.");
   })));
+  app.get("/api/visualizations", withApiRoute(() => europeFeatures));
+  app.get("/api/period-comparison/demo", comparisonDemo);
+  app.get("/api/connection-check", connectionCheck);
+  app.get("/api/readiness", readiness);
+  app.post("/api/genie/:alias/messages", genie);
+  app.get("/api/genie/:alias/session", genieSession);
+  app.get("/api/saved-analyses", savedAnalyses);
+  app.get("/api/saved-analyses/:id", getAnalysis);
+  app.put("/api/saved-analyses/:id", putAnalysis);
+  app.delete("/api/saved-analyses/:id", deleteAnalysis);
+  app.get("/api/user-preferences", preferences);
+  app.put("/api/user-preferences", putPreferences);
+  // feature:new inserts routes above this line.
+  app.use("/api", withApiRoute(() => {
+    throw new AppError("Unknown feature route", "NOT_FOUND", 404, "Cette route n’existe pas.");
+  }));
   app.use(expressErrorHandler);
 }

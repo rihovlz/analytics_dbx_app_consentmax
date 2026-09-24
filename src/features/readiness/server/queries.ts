@@ -4,6 +4,6 @@ export function buildSourceAccessQuery(sourceCount: number): string {
   }
   return Array.from(
     { length: sourceCount },
-    () => "SELECT 1 AS accessible FROM IDENTIFIER(?) WHERE FALSE",
+    (_, index) => `SELECT 1 AS accessible FROM IDENTIFIER(:source${index}) WHERE FALSE`,
   ).join(" UNION ALL ");
 }

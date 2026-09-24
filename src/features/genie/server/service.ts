@@ -1,5 +1,5 @@
 import type { genie } from "@databricks/appkit";
-import { genieMessageStatusSchema, MAX_GENIE_RESULT_ROWS, type GenieMessageRequest, type GenieQueryResult, type GenieStreamEvent } from "@/features/genie/contract";
+import { genieStreamEventSchema, MAX_GENIE_RESULT_ROWS, type GenieMessageRequest, type GenieQueryResult, type GenieStreamEvent } from "@/features/genie/contract";
 import { buildGenieMessageContent } from "@/features/genie/context";
 import { createDemoGenieMessageResult, demoComparisonResult, DEMO_GENIE_MESSAGE_ID, DEMO_GENIE_QUERY_RESULT, DEMO_GENIE_STATUS_SEQUENCE } from "@/features/genie/demo-fixtures";
 import { GenieError, toGenieError, toGenieStreamErrorEvent } from "./errors";
@@ -36,11 +36,16 @@ type DemoDependencies = {
   onComplete?: (summary: { queryResultCount: number }) => void;
 };
 
-function publicQueryResult(attachment: GenieRemoteQueryAttachment, result: GenieRemoteQueryResult): GenieQueryResult {
+function queryEvent(attachment: GenieRemoteQueryAttachment, result: GenieRemoteQueryResult | GenieQueryResult): Extract<GenieStreamEvent, { type: "query_result" }> {
   const rows = result.rows.slice(0, MAX_GENIE_RESULT_ROWS);
   return {
-    ...attachment, statementId: result.statementId ?? attachment.statementId,
-    columns: result.columns, rows, rowCount: result.rowCount,
+    type: "query_result", attachmentId: attachment.attachmentId,
+    statementId: result.statementId ?? attachment.statementId ?? "",
+    data: {
+      manifest: { schema: { columns: result.columns.map((column) => ({ name: column.name, type_name: column.type })) } },
+      result: { data_array: rows.map((row) => row.map((cell) => cell === null ? null : String(cell))) },
+    },
+    rowCount: result.rowCount,
     truncated: result.truncated || result.rows.length > rows.length || result.rowCount > rows.length,
   };
 }
@@ -60,7 +65,7 @@ export async function* streamGenieMessage(
       random: dependencies.random ?? Math.random, sleep: dependencies.sleep ?? sleepWithAbort },
   };
   let upstream: ReturnType<AppKitSendMessage> | undefined;
-  let pendingAnswer: Extract<GenieStreamEvent, { type: "message_result" }> | undefined;
+  let receivedAnswer = false;
   const emitted = new Set<string>();
   let lastStatus: string | undefined;
   try {
@@ -75,20 +80,14 @@ export async function* streamGenieMessage(
       if (next.done) break;
       const event = next.value;
       if (event.type === "error") throw scope.failure ?? new GenieError("AppKit Genie failed", "GENIE_UNAVAILABLE", 502, false);
-      if (event.type === "message_start") yield {
-        type: "message_start", data: { conversationId: event.conversationId, messageId: event.messageId },
-      };
+      if (event.type === "message_start") yield genieStreamEventSchema.parse(event);
       if (event.type === "status" && event.status !== lastStatus) {
-        const status = genieMessageStatusSchema.parse(event.status);
-        yield { type: "status", data: { status } }; lastStatus = event.status;
+        yield genieStreamEventSchema.parse(event); lastStatus = event.status;
       }
       if (event.type === "message_result") {
-        const message = scope.message;
-        if (!message || message.status !== "COMPLETED") throw new GenieError("Incomplete Genie message", "GENIE_UNAVAILABLE", 502, false);
-        pendingAnswer = { type: "message_result", data: {
-          conversationId: message.conversationId, messageId: message.messageId, answer: message.answer,
-          suggestedQuestions: message.suggestedQuestions, queryAttachmentIds: message.queryAttachments.map((attachment) => attachment.attachmentId),
-        } };
+        if (scope.message?.status !== "COMPLETED") throw new GenieError("Incomplete Genie message", "GENIE_UNAVAILABLE", 502, false);
+        receivedAnswer = true;
+        yield genieStreamEventSchema.parse({ ...event, message: { ...event.message, content: request.content } });
       }
       if (event.type === "query_result") {
         if (emitted.has(event.attachmentId)) continue;
@@ -96,19 +95,18 @@ export async function* streamGenieMessage(
         const result = scope.results.get(event.attachmentId);
         if (!attachment || !result) throw new GenieError("Unexpected Genie result", "GENIE_UNAVAILABLE", 502, false);
         emitted.add(attachment.attachmentId);
-        yield { type: "query_result", data: publicQueryResult(attachment, result) };
+        yield queryEvent(attachment, result);
         scope.results.delete(event.attachmentId);
       }
     }
-    if (!pendingAnswer) throw new GenieError("Genie ended before completion", "GENIE_UNAVAILABLE", 502, false);
+    if (!receivedAnswer) throw new GenieError("Genie ended before completion", "GENIE_UNAVAILABLE", 502, false);
     // AppKit 0.76.1 skips attachments without a statement ID. Their read endpoint is still valid.
     for (const attachment of scope.message?.queryAttachments ?? []) {
       if (emitted.has(attachment.attachmentId)) continue;
       const result = await readGenieResult(scope, attachment.attachmentId);
-      yield { type: "query_result", data: publicQueryResult(attachment, result) };
+      yield queryEvent(attachment, result);
       emitted.add(attachment.attachmentId);
     }
-    yield pendingAnswer;
     dependencies.onComplete?.({ queryResultCount: emitted.size });
   } catch (error) {
     const normalized = controller.signal.aborted && !dependencies.signal?.aborted
@@ -136,23 +134,27 @@ export async function* streamDemoGenieMessage(
   try {
     yield {
       type: "message_start",
-      data: { conversationId, messageId: DEMO_GENIE_MESSAGE_ID },
+      conversationId, messageId: DEMO_GENIE_MESSAGE_ID,
     };
     for (const status of DEMO_GENIE_STATUS_SEQUENCE) {
       if (statusDelayMs > 0) {
         await sleep(statusDelayMs, dependencies.signal);
       }
-      yield { type: "status", data: { status } };
-      if (status === "EXECUTING_QUERY") {
-        yield { type: "query_result", data: queryResult };
-      }
+      yield { type: "status", status };
     }
-    yield { type: "message_result", data: comparison ? {
-      conversationId, messageId: DEMO_GENIE_MESSAGE_ID,
-      answer: `Cette démonstration reprend la comparaison de ${comparison.metric} affichée à l’écran. `
-        + "Aucune requête Databricks n’a été exécutée. Vérifiez la complétude, les définitions et les contributions par segment avant de rechercher une cause.",
-      suggestedQuestions: ["Quelles vérifications de qualité faut-il effectuer ?"], queryAttachmentIds: [queryResult.attachmentId],
-    } : createDemoGenieMessageResult(conversationId) };
+    const message = createDemoGenieMessageResult(conversationId);
+    message.content = request.content;
+    if (comparison) {
+      message.attachments = [
+        { text: { content: `Cette démonstration reprend la comparaison de ${comparison.metric} affichée à l’écran. `
+          + "Aucune requête Databricks n’a été exécutée. Vérifiez la complétude, les définitions et les contributions par segment avant de rechercher une cause." } },
+        { suggestedQuestions: ["Quelles vérifications de qualité faut-il effectuer ?"] },
+        { attachmentId: queryResult.attachmentId, query: { title: queryResult.title ?? undefined,
+          description: queryResult.description ?? undefined } },
+      ];
+    }
+    yield { type: "message_result", message };
+    yield queryEvent(queryResult, queryResult);
     dependencies.onComplete?.({ queryResultCount: 1 });
   } catch (error) {
     const normalized = toGenieError(error);

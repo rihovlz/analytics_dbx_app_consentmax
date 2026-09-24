@@ -115,9 +115,9 @@ test("chargement, erreur sûre et reprise explicite", async ({ page }) => {
 test("un ancien résultat ne remplace pas la sélection suivante", async ({ page }) => {
   let release!: () => void;
   const gate = new Promise<void>((resolve) => { release = resolve; });
-  let held = false;
   await page.route("**/api/period-comparison/demo?*", async (route) => {
-    if (!held) { held = true; await gate; }
+    // StrictMode may start the initial request twice; hold that selection, not an attempt number.
+    if (new URL(route.request().url()).searchParams.get("mode") === "previous-period") await gate;
     await route.continue();
   });
   await page.goto("/visualizations");

@@ -65,12 +65,6 @@
       "implementation": "src/server/workspace-client.ts",
       "reason": "0.76.1 ignores profile when host is also passed. Local OAuth uses the existing named CLI token provider for each operation.",
       "removeWhen": "Upstream supports named CLI U2M credentials, host verification and token refresh together."
-    },
-    {
-      "id": "http-policy",
-      "implementation": "src/server/http-policy.ts",
-      "reason": "AppKit extend() runs after JSON parsing and its raw-body hook cannot match dynamic IDs. A small server subclass installs express.raw before the upstream parser through serverApplication; the rest of the server stays upstream. Generic analytics and automatic UI recorder routes remain disabled.",
-      "removeWhen": "Upstream provides a public pre-parser middleware hook and route-exposure options with the same byte limits and UTF-8 semantics."
     }
   ]
 }

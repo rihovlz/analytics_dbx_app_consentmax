@@ -1,3 +1,4 @@
+import type { Request } from "express";
 import { genieSessionSchema } from "../contract";
 import { resolveGenieRuntimeConfiguration } from "./config";
 import { resolveGenieRequestIdentity } from "./obo-auth";

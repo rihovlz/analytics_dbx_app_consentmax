@@ -1,3 +1,4 @@
+import { requestHandler } from "./fixtures/http";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildComparison, calculateChange, ComparisonLimitError } from "../src/features/period-comparison/model";
@@ -144,16 +145,16 @@ test("comparison API preserves safe errors, request IDs, cache policy and reject
     ["start=2024-03-30&start=2024-03-29&end=2024-03-31&mode=previous-period", 400],
     ["start=2025-01-01&end=2025-12-31&mode=previous-year", 422],
   ] as const) {
-    const response = await GET(new Request(`http://localhost/api/period-comparison/demo?${query}`, { headers: { "x-request-id": "comparison-test" } }));
+    const response = await requestHandler(GET, new Request(`http://localhost/api/period-comparison/demo?${query}`, { headers: { "x-request-id": "comparison-test" } }));
     assert.equal(response.status, status);
     const body = await response.json();
     assert.equal(body.error.code, "INVALID_REQUEST");
     assert.equal(body.error.requestId, "comparison-test");
     assert.ok(!JSON.stringify(body).includes("stack"));
   }
-  const response = await GET(new Request("http://localhost/api/period-comparison/demo?start=2026-09-01&end=2026-09-14&mode=previous-period"));
+  const response = await requestHandler(GET, new Request("http://localhost/api/period-comparison/demo?start=2026-09-01&end=2026-09-14&mode=previous-period"));
   assert.equal(response.status, 200);
-  assert.equal(response.headers.get("cache-control"), "no-store");
+  assert.equal(response.headers.get("cache-control"), "private, no-store");
   assert.equal((await response.json()).status, "demo");
 });
 

@@ -9,8 +9,8 @@ export function comparisonTemplates(feature, source, { pascal, upper }) {
   const group = `${date}${breakdown ? `, \`${comparison.breakdownColumn}\`` : ""}`;
   const queryPart = (period) => `SELECT '${period}' AS period, CAST(${date} AS STRING) AS day, ${dimension} AS segment,
   CAST(${sum} AS DOUBLE) AS value_sum, CAST(COUNT(*) AS DOUBLE) AS row_count, CAST(${count} AS DOUBLE) AS value_count
-FROM IDENTIFIER(?)
-WHERE ${date} >= CAST(? AS DATE) AND ${date} < CAST(? AS DATE)
+FROM IDENTIFIER(:source)
+WHERE ${date} >= CAST(:${period}Start AS DATE) AND ${date} < CAST(:${period}End AS DATE)
 GROUP BY ${group}`;
   const query = `${queryPart("current")}\nUNION ALL\n${queryPart("reference")}\nORDER BY period, day, segment\nLIMIT 1001`;
   const options = JSON.stringify({ label: metric.label, unit: metric.unit, aggregation: metric.aggregation, breakdown });
@@ -36,8 +36,8 @@ export async function load${pascal}(executor: SqlExecutor, source: string, selec
   const rows = await executor.query({
     name: ${JSON.stringify(`${slug}-comparison`)}, statement: ${upper}_QUERY,
     ${breakdown ? '// Preserve JSON-looking STRING segment labels (AppKit compatibility exception).\n    transport: "driver",' : '// Numeric aggregates use the AppKit analytics adapter.'}
-    parameters: [identifier, periods.current.start, shiftDate(periods.current.end, 1),
-      identifier, periods.reference.start, shiftDate(periods.reference.end, 1)],
+    parameters: { source: identifier, currentStart: periods.current.start, currentEnd: shiftDate(periods.current.end, 1),
+      referenceStart: periods.reference.start, referenceEnd: shiftDate(periods.reference.end, 1) },
     rowSchema: comparisonRowSchema, requestId, maxRows: MAX_COMPARISON_ROWS + 1,
   });
   ensureComparisonBounds(rows);
@@ -68,9 +68,7 @@ export async function get${pascal}(selection: PeriodSelection, requestId?: strin
 import { parseComparisonRequest } from "@/features/period-comparison/server/request";
 import { withApiRoute } from "@/lib/http/with-api-route";
 
-export const GET = withApiRoute(async (request, context) => Response.json(
-  await get${pascal}(parseComparisonRequest(request), context.requestId), { headers: { "cache-control": "no-store" } },
-));
+export const GET = withApiRoute((request, context) => get${pascal}(parseComparisonRequest(request.query), context.requestId));
 `);
   files.set(`${path}/${slug}-card.tsx`, `import { useAppConfig } from "@/client/app-config";
 import { PeriodComparison, defaultSelection } from "@/features/period-comparison";
@@ -114,7 +112,8 @@ test(${JSON.stringify(`${slug} binds both DATE windows and validates aggregate r
     assert.equal(options.requestId, "comparison-test");
     assert.equal(options.maxRows, 1001);
     assert.equal(options.transport, ${breakdown ? '"driver"' : "undefined"});
-    assert.deepEqual(options.parameters, [${sourceParameter}, "2026-09-01", "2026-09-15", ${sourceParameter}, "2026-08-18", "2026-09-01"]);
+    assert.deepEqual(options.parameters, { source: ${sourceParameter}, currentStart: "2026-09-01", currentEnd: "2026-09-15",
+      referenceStart: "2026-08-18", referenceEnd: "2026-09-01" });
     assert.match(options.statement, /UNION ALL/);
     assert.match(options.statement, /LIMIT 1001$/);
     assert.ok(!options.statement.includes(${JSON.stringify(source.fullName)}));

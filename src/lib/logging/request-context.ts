@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { Request } from "express";
 
 import type { Logger } from "pino";
 
@@ -12,7 +13,7 @@ export type RequestContext = {
 };
 
 export function createRequestContext(request: Request): RequestContext {
-  const candidate = request.headers.get("x-request-id") ?? "";
+  const candidate = request.get("x-request-id") ?? "";
   const requestId = requestIdPattern.test(candidate) ? candidate : randomUUID();
   return { requestId, log: logger.child({ requestId }) };
 }

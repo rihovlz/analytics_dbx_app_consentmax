@@ -81,8 +81,10 @@ test("comparison generation is opt-in, preserves metadata and rejects injected c
   assert.deepEqual(spec.features[0].comparison, { dateColumn: "order_date", breakdownColumn: "channel" });
   assert.match(await readFile(join(root, "docs/product-brief.md"), "utf8"), /colonne DATE `order_date`/);
   const query = await readFile(join(root, "src/features/sales-comparison/server/queries.ts"), "utf8");
-  assert.equal((query.match(/IDENTIFIER\(\?\)/g) ?? []).length, 2);
-  assert.match(query, /CAST\(\? AS DATE\)/);
+  assert.equal((query.match(/IDENTIFIER\(:source\)/g) ?? []).length, 2);
+  for (const marker of ["currentStart", "currentEnd", "referenceStart", "referenceEnd"]) {
+    assert.ok(query.includes(`CAST(:${marker} AS DATE)`));
+  }
   assert.match(query, /LIMIT 1001/);
   assert.match(await readFile(join(root, "src/features/sales-comparison/sales-comparison-card.tsx"), "utf8"), /showWaterfall=\{true\}/);
 });
@@ -128,7 +130,7 @@ test("app guide and feature generator create one complete vertical slice", async
   assert.match(spec, /slug: daily-sales/);
   assert.deepEqual(parse(spec).capabilities, ["genie", "analytics"]);
   assert.match(query, /SUM\(`revenue`\)/);
-  assert.match(repository, /parameters: \[quoteQualifiedIdentifier\(source\)\]/);
+  assert.match(repository, /parameters: \{ source: quoteQualifiedIdentifier\(source\) \}/);
   assert.match(
     await readFile(join(root, "tests/daily-sales.test.ts"), "utf8"),
     /`dev-dtm-media-pm`\.`analytics`\.`sales_daily`/,

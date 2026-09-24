@@ -33,7 +33,9 @@ Les tests synthétiques prouvent l’intégration, pas l’exactitude des répon
 3. Utiliser le service et le plugin privé existants. AppKit fournit `sendMessage` ; le client de compatibilité garantit
    l’identité par requête, l’envoi unique et les lectures annulables. Ne pas monter les routes Genie génériques.
 4. Consulter `databricks-app-design` pour le statut, le SQL inspectable et les états vide, erreur et résultat partiel.
+   Utiliser le lecteur `connectSSE` existant avec `maxRetries: 0` et les événements AppKit au premier niveau.
    Garder `GenieChat` Valiuz, son contexte, son interruption et ses callbacks d’épinglage.
+   Ne pas réintroduire l’ancienne enveloppe SSE ni un parseur parallèle. Attendre le flux complet et ses pièces jointes.
    Un composant AppKit peut être adopté après vérification de ses props, des tokens et des garanties de l’interface.
 5. Si une comparaison bénéficie de Genie, fournir la prop facultative `genie` à `PeriodComparison`.
    Le Space doit couvrir le KPI et ses sources. La question reste modifiable et demande un envoi explicite.

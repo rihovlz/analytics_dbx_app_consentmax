@@ -20,7 +20,9 @@ src/client + src/components
 ```
 
 - Add a page in `src/client/pages/<route>/page.tsx` and register it in `src/client/routes.tsx`.
-- Register feature APIs in `src/server/routes.ts` with `expressRoute` and `withApiRoute`.
+- Register native Express handlers in `src/server/routes.ts` with `withApiRoute`.
+  Read `request.params`, `request.query` and validated `request.body` directly. Return JSON or await writing to the
+  Express response. Use `context.signal` for cancellation; do not recreate Web Request/Response bridges.
 - Read the installed AppKit docs and `docs/appkit-maintenance.md` before changing runtime adapters.
 - Add the shared Valiuz shell and neutral UI in `src/components`; keep business UI inside its feature.
 - Add business orchestration in `src/features/<feature>/server/service.ts`.
@@ -42,6 +44,8 @@ Avoid speculative abstractions. Extract a generic helper only when two real feat
   in an ignored `.env.local`. Runtime auth uses credentials injected by Databricks Apps.
 - Never commit or log tokens, client secrets, `.env` files, query results with sensitive rows, or customer identifiers.
 - Do not interpolate user input into SQL. Use driver parameters and validate result rows with Zod.
+- Use named SQL markers (`:source`, `:startDate`) and a matching parameter record. No positional `?` compatibility
+  belongs in the 2.0 runtime; port old repositories once during migration.
 - Keep each query named, bounded by a timeout and row limit, and isolated in a repository.
 - Verify Unity Catalog privileges are minimal: `USE CATALOG`, `USE SCHEMA`, plus object-level access.
 - The data project is the Unity Catalog catalog and must be declared in `config/data-projects.json`. The initial Valiuz

@@ -8,6 +8,7 @@ import { streamGenieMessage } from "../src/features/genie/server/service";
 import { GET as session } from "../src/server/routes/genie/[alias]/session/route";
 import { privateGenie } from "../src/server/genie-plugin";
 import { startTestGenie } from "./fixtures/genie-appkit";
+import { requestHandler } from "./fixtures/http";
 
 
 async function collect<T>(stream: AsyncIterable<T>): Promise<T[]> {
@@ -45,13 +46,13 @@ test("AppKit preserves exact cells and 500-row truncation, including attachments
     assert.deepEqual(methods, ["POST", "GET"]);
     const result = events.find((event) => event.type === "query_result");
     assert.ok(result?.type === "query_result");
-    assert.equal(result.data.rows.length, 500);
-    assert.equal(result.data.statementId, "statement-1");
+    assert.equal(result.data.result.data_array.length, 500);
+    assert.equal(result.statementId, "statement-1");
     assert.ok(!("state" in result.data));
-    assert.equal(result.data.truncated, true);
-    assert.deepEqual(result.data.rows.slice(0, 3), [["null"], [null], ["{\"key\":true}"]]);
+    assert.equal(result.truncated, true);
+    assert.deepEqual(result.data.result.data_array.slice(0, 3), [["null"], [null], ["{\"key\":true}"]]);
     assert.doesNotMatch(JSON.stringify(events), /synthetic-token|signed\.example/);
-    assert.equal(events.at(-1)?.type, "message_result");
+    assert.equal(events.at(-1)?.type, "query_result");
   }
 });
 
@@ -81,8 +82,11 @@ for (const phase of ["submit", "result"] as const) {
     assert.equal(cancelled, true);
     assert.equal(methods.filter((method) => method === "POST").length, 1);
     assert.equal(events.at(-1)?.type, "error");
-    assert.ok(!events.some((event) => event.type === "message_result"));
-    assert.doesNotMatch(JSON.stringify(events), /Private question|private error|synthetic-token/);
+    assert.equal(events.some((event) => event.type === "message_result"), phase === "result");
+    assert.doesNotMatch(JSON.stringify(events), /private error|synthetic-token/);
+    assert.doesNotMatch(JSON.stringify(events.filter((event) => event.type === "error")), /Private question/);
+    const answer = events.find((event) => event.type === "message_result");
+    if (phase === "result") assert.equal(answer?.message.content, "Private question");
   });
 }
 
@@ -101,7 +105,7 @@ test("the total deadline bounds the submission itself and the retryable SDK erro
   assert.equal(events.at(-1)?.type, "error");
   const failure = events.at(-1);
   assert.ok(failure?.type === "error");
-  assert.equal(failure.data.code, "GENIE_TIMEOUT");
+  assert.equal(failure.code, "GENIE_TIMEOUT");
 });
 
 test("the plugin exposes no routes and resource metadata agrees with the declared Genie bindings", async () => {
@@ -121,13 +125,13 @@ test("session identity stays private and a deployed request without OBO fails be
   const original = { ...process.env };
   t.after(() => { process.env = original; });
   Object.assign(process.env, { APP_MODE: "databricks", DATABRICKS_APP_NAME: "offline", DATABRICKS_HOST: "https://example.invalid" });
-  const response = await session(new Request("https://example.invalid/api/genie/sales/session"), { params: Promise.resolve({ alias: "sales" }) });
+  const response = await requestHandler(session, new Request("https://example.invalid/api/genie/sales/session"), "/api/genie/:alias/session");
   assert.equal(response.status, 401);
   assert.equal(response.headers.get("cache-control"), "private, no-store");
   assert.equal((await response.json()).error.code, "GENIE_AUTH_REQUIRED");
-  const authenticated = await session(new Request("https://example.invalid/api/genie/sales/session", {
+  const authenticated = await requestHandler(session, new Request("https://example.invalid/api/genie/sales/session", {
     headers: { "x-forwarded-user": "synthetic-user", "x-forwarded-access-token": "synthetic-token" },
-  }), { params: Promise.resolve({ alias: "sales" }) });
+  }), "/api/genie/:alias/session");
   const payload = await authenticated.json();
   assert.equal(payload.mode, "obo");
   assert.doesNotMatch(JSON.stringify(payload), /synthetic-token/);

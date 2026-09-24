@@ -60,13 +60,21 @@ export function createDemoGenieMessageResult(
   return {
     conversationId,
     messageId,
-    answer:
-      "Les cinq produits affichés reculent sur la période. Produit Alpha mérite l’attention en premier, avec la baisse la plus forte.",
-    suggestedQuestions: [
-      "Quelle région explique le plus cette baisse ?",
-      "Compare ces produits à la période précédente.",
-      "Quels produits progressent le plus ?",
+    status: "COMPLETED",
+    content: "Question de démonstration",
+    attachments: [
+      { text: { content: "Les cinq produits affichés reculent sur la période. Produit Alpha mérite l’attention en premier, avec la baisse la plus forte." } },
+      { suggestedQuestions: [
+        "Quelle région explique le plus cette baisse ?",
+        "Compare ces produits à la période précédente.",
+        "Quels produits progressent le plus ?",
+      ] },
+      { attachmentId: DEMO_GENIE_QUERY_RESULT.attachmentId, query: {
+        title: DEMO_GENIE_QUERY_RESULT.title ?? undefined,
+        description: DEMO_GENIE_QUERY_RESULT.description ?? undefined,
+        query: DEMO_GENIE_QUERY_RESULT.sql ?? undefined,
+        statementId: DEMO_GENIE_QUERY_RESULT.statementId ?? undefined,
+      } },
     ],
-    queryAttachmentIds: [DEMO_GENIE_QUERY_RESULT.attachmentId],
   };
 }

@@ -20,6 +20,7 @@ changes:
       - src/shared
       - src/lib/http
       - src/lib/errors
+      - src/lib/logging
       - src/components/app-shell
       - scripts/build-server.mjs
       - playwright.config.ts
@@ -34,13 +35,18 @@ changes:
   - id: capability-adapters
     mode: guided
     title: Préserver les contrats de données et les capacités optionnelles
-    description: Les repositories restent inchangés et les intégrations passent par des adaptateurs bornés.
+    description: Les calculs métier sont conservés ; les repositories passent aux paramètres nommés et les routes à Express natif.
     paths:
       - src/lib/databricks
       - src/features/genie
       - src/server/genie-plugin.ts
       - src/features/user-state/server/runtime.ts
       - src/features/user-state/server/request.ts
+      - src/features/user-state/server/route.ts
+      - src/features/user-state/server/queries.ts
+      - src/features/user-state/server/repository.ts
+      - src/features/readiness/server/queries.ts
+      - src/features/readiness/server/repository.ts
       - scripts/new-feature.mjs
       - scripts/data-access.mjs
       - config/appkit-resources.generated.json
@@ -48,8 +54,12 @@ changes:
       - e2e
     instructions:
       - Conserver les requêtes métier, sources, alias Genie et tables personnelles.
+      - Porter uniquement les marqueurs SQL et leurs bindings vers des paramètres nommés ; aucune traduction positionnelle ne reste au runtime.
+      - Enregistrer les handlers withApiRoute directement dans Express ; utiliser request.params, request.query, request.body validé et context.signal.
+      - Supprimer expressRoute et les retours Web Response ; attendre les écritures SSE dans la réponse Express.
       - Utiliser transport driver pour préserver les cellules STRING ressemblant à du JSON.
       - Porter le service vers Genie.sendMessage avec le plugin privé, le client de compatibilité par requête et la route de session ; suivre docs/genie.md.
+      - Porter les clients SSE personnalisés vers les champs et l’ordre AppKit ; connectSSE doit interdire les reprises de POST.
       - Générer les métadonnées avec npm run data:access:render et examiner les droits.
       - Tester les parcours, les limites, les identités et la soumission sans rejeu.
   - id: upstream-maintenance
@@ -95,7 +105,7 @@ changes:
       - Conserver les notes de reprise existantes ; leur présence ne prouve ni test réussi ni autorisation.
       - Fusionner les workflows et conserver leur revue humaine.
       - Valider les capabilities 2.0.0 avant de modifier .valiuz-template.yml.
-      - Ajouter appkit-native-runtime, upstream-compatibility, guided-appkit-capabilities et period-comparison puis déclarer 1.5.0-to-2.0.0 dans appliedUpgrades.
+      - Ajouter appkit-native-runtime, upstream-compatibility, guided-appkit-capabilities, period-comparison et appkit-genie-integration puis déclarer 1.5.0-to-2.0.0 dans appliedUpgrades.
       - Obtenir une autorisation explicite pour le déploiement de développement et sa recette distante.
   - id: optional-period-comparison
     mode: guided
