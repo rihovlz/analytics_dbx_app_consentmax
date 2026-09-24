@@ -264,6 +264,46 @@ Le build signale toujours le chunk Genie chargé à la demande : environ 818 ko,
 Le registre ne contient plus l’exception du parseur HTTP. Les quatre exceptions restantes ont leurs critères de retrait.
 La décision reste **major 2.0.0 non publiée**. Les sondes des capabilities existantes sont renforcées, sans nouvelle capability.
 
+## Partage facultatif des comparaisons — 24 septembre 2026
+
+« Partager cette analyse » ouvre un Dialog AppKit adapté aux thèmes Valiuz et au clavier.
+Il propose un lien de reprise et une synthèse déterministe des valeurs consultées, avec source, périodes, filtre et réserves.
+La date de consultation ne mesure pas la fraîcheur des données. Un lien recalcule les données avec les accès habituels de l’app.
+Sa définition versionnée ne contient ni résultat, SQL, conversation Genie, ni identifiant d’analyse personnelle.
+Les paramètres précédents de l’URL sont supprimés. Un lien invalide ne charge pas silencieusement les dates par défaut.
+
+Le partage reste désactivé sur une comparaison sans prop `sharing`. `--share-analysis` l’active dans le générateur.
+Un segment demande en plus une revue de dimension et `--share-segment` ; un filtre non autorisé n’est jamais retiré silencieusement.
+Les résultats absents, erreurs, chargements et modifications non appliquées ne peuvent pas être partagés.
+Le refus du presse-papiers propose une copie manuelle. Aucune écriture dans l’état personnel ni aucun envoi externe n’est ajouté.
+
+Vérifications exécutées :
+
+- `npm run check` : 205 tests, lint, typecheck, contrats, release et build réussis.
+- `npm run template:journey` : installation propre, KPI simple et comparaison avec partage ; 210 tests et build réussis.
+- `npm run template:migration` : fixtures 1.4 et 1.5, trois tests métier par fixture, lint, types et builds réussis.
+  La fusion Tailwind conserve les chemins et couleurs métier ; le CSS compilé contient aussi le fond modal AppKit.
+- `npm run bundle:compatibility` : CLI 1.12.1, bundles app/data dev/prod contre le serveur local.
+- `npm run test:e2e -- --workers=1` puis `E2E_PRODUCTION=1 npm run test:e2e -- --workers=1` : 20 parcours réussis dans chaque mode.
+- `npm run template:release:check -- --base origin/main` et validateur `skill-creator` : réussis.
+- `git diff --check` et `git diff --cached --check` : aucun défaut d’espacement.
+
+Les tests purs couvrent les versions et champs inconnus, liens trop longs, dates incohérentes, filtres non autorisés,
+désactivation du partage, références nulles ou négatives, données manquantes et réserves de période partielle.
+Les tests de génération vérifient les options invalides sans écriture, la spec, le brief et l’absence d’activation implicite.
+Le générateur produit aussi des identifiants TypeScript valides pour les slugs qui commencent par un chiffre.
+Les quatre nouveaux parcours navigateur vérifient la vraie copie, la réouverture avec recalcul, les états indisponibles,
+les réponses tardives, les liens invalides et le secours de copie. Ils contrôlent l’absence d’écriture dans l’état personnel
+et les stockages local/session du navigateur. Les captures du panneau bureau clair et mobile sombre ont été inspectées.
+
+Un premier contrôle complet exécuté avec d’autres validations a expiré au lancement de la fixture AppKit analytics.
+Le test isolé puis le contrôle complet exécuté séparément passent, sans changement des assertions ou du délai du test.
+Le build conserve l’avertissement du chunk Genie chargé à la demande, environ 818 ko, soit 241 ko gzip.
+
+La capability `comparison-sharing` est la sixième addition depuis la base 1.5.0.
+La décision reste **major 2.0.0 non publiée** ; les applications existantes conservent le partage désactivé.
+Les guides de migration, sondes, générateur et skill de création sont synchronisés. Aucun déploiement distant n’a été effectué.
+
 ## Revue documentaire et réserve distante
 
 Skills appliqués : `review-analytics-app-docs` et `prepare-template-release`.

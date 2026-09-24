@@ -7,6 +7,8 @@ import { LoadingState } from "@/components/states/loading-state";
 import { comparisonResultSchema, type ComparisonResult } from "./contract";
 import { ComparisonResults } from "./comparison-results";
 import { ComparisonGenie, type ComparisonGenieOptions } from "./comparison-genie";
+import { ComparisonSharing } from "./comparison-sharing";
+import { assertComparisonSelection, readSharedComparison, type ComparisonSharingOptions } from "./sharing";
 import { defaultSelection, resolvePeriods, selectionParameters, selectionSchema, type PeriodSelection } from "./periods";
 
 export type PeriodComparisonProps = {
@@ -16,14 +18,15 @@ export type PeriodComparisonProps = {
   initialSelection?: PeriodSelection;
   showWaterfall?: boolean;
   genie?: ComparisonGenieOptions;
+  sharing?: ComparisonSharingOptions;
 };
-type State = { status: "loading" } | { status: "ready"; result: ComparisonResult }
+type State = { status: "loading" | "blocked" } | { status: "ready"; result: ComparisonResult; applied: PeriodSelection; consultedAt: string }
   | { status: "error"; message: string; requestId?: string };
 const errorSchema = z.object({ error: z.object({ message: z.string(), requestId: z.string().optional() }) });
 const inputClass = "mt-2 min-h-11 w-full min-w-0 rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink";
 
 export function PeriodComparison({ endpoint, title = "Comparer deux périodes", description,
-  initialSelection, showWaterfall = false, genie }: PeriodComparisonProps) {
+  initialSelection, showWaterfall = false, genie, sharing }: PeriodComparisonProps) {
   const id = useId();
   const initial = useRef(initialSelection ?? defaultSelection());
   const [selection, setSelection] = useState<PeriodSelection>(initial.current);
@@ -31,7 +34,11 @@ export function PeriodComparison({ endpoint, title = "Comparer deux périodes", 
   const [segments, setSegments] = useState<ComparisonResult["availableSegments"]>([]);
   const [validation, setValidation] = useState<string>();
   const [dirty, setDirty] = useState(false);
+  const [invalidLink, setInvalidLink] = useState(false);
+  const [sharedLink, setSharedLink] = useState(false);
   const pending = useRef<AbortController | null>(null);
+  const sharingKey = sharing?.key;
+  const allowSegment = sharing?.allowSegment;
 
   const load = useCallback(async (next: PeriodSelection) => {
     pending.current?.abort();
@@ -50,17 +57,49 @@ export function PeriodComparison({ endpoint, title = "Comparer deux périodes", 
         return;
       }
       const result = comparisonResultSchema.parse(payload);
+      assertComparisonSelection(result, next);
       setSegments(result.availableSegments);
-      setState({ status: "ready", result });
+      setState({ status: "ready", result, applied: { ...next }, consultedAt: new Date().toISOString() });
     } catch {
       if (!controller.signal.aborted) setState({ status: "error", message: "La comparaison n’a pas pu être chargée. Vérifiez votre connexion puis réessayez." });
     }
   }, [endpoint]);
 
   useEffect(() => {
-    void load(initial.current);
-    return () => pending.current?.abort();
-  }, [load]);
+    let lastHash: string | undefined;
+    function restore(first = false) {
+      if (!first && lastHash === window.location.hash) return;
+      lastHash = window.location.hash;
+      const shared = readSharedComparison(window.location.hash, sharingKey ? { key: sharingKey, allowSegment } : undefined);
+      if (shared.status === "invalid") {
+        pending.current?.abort();
+        setInvalidLink(true);
+        setSharedLink(false);
+        setValidation(undefined);
+        setDirty(false);
+        setState({ status: "blocked" });
+        return;
+      }
+      if (shared.status === "ready" || first) {
+        const next = shared.status === "ready" ? shared.selection : initial.current;
+        setInvalidLink(false);
+        setSharedLink(shared.status === "ready");
+        setValidation(undefined);
+        setSelection(next);
+        void load(next);
+      }
+    }
+    restore(true);
+    const onNavigation = () => restore();
+    window.addEventListener("hashchange", onNavigation);
+    // History API navigation may restore a fragment without a native hashchange event.
+    window.addEventListener("popstate", onNavigation);
+    return () => {
+      pending.current?.abort();
+      window.removeEventListener("hashchange", onNavigation);
+      window.removeEventListener("popstate", onNavigation);
+    };
+  }, [load, sharingKey, allowSegment]);
 
   function update(change: Partial<PeriodSelection>) {
     setSelection((previous) => ({ ...previous, ...change }));
@@ -74,12 +113,20 @@ export function PeriodComparison({ endpoint, title = "Comparer deux périodes", 
     if (!parsed.success) { setValidation(parsed.error.issues[0]?.message ?? "Vérifiez les dates."); return; }
     try { resolvePeriods(parsed.data); } catch { setValidation("Ces dates sortent de la plage prise en charge."); return; }
     setValidation(undefined);
+    setInvalidLink(false);
+    setSharedLink(false);
     void load(parsed.data);
   }
 
   return <section id="period-comparison" aria-labelledby={`${id}-title`} className="min-w-0 space-y-5">
     <div><h2 id={`${id}-title`} className="text-2xl font-bold tracking-[-0.03em]">{title}</h2>
       {description ? <p className="mt-2 text-sm leading-6 text-muted">{description}</p> : null}</div>
+    {invalidLink ? <p role="alert" className="rounded-xl border border-negative-border bg-negative-soft p-4 text-sm text-negative-ink">
+      Lien de comparaison invalide. Choisissez les périodes et lancez une comparaison, ou demandez un nouveau lien.
+    </p> : null}
+    {sharedLink ? <p className="rounded-xl border border-line bg-surface p-4 text-sm text-muted" role="status">
+      Analyse ouverte depuis un lien partagé. Les données sont recalculées avec les accès applicables ; les chiffres peuvent avoir évolué.
+    </p> : null}
     <form onSubmit={submit} className="rounded-2xl border border-line bg-surface p-5 shadow-panel" aria-label="Choix des périodes">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <label className="min-w-0 text-sm font-semibold">Début de la période analysée
@@ -115,6 +162,8 @@ export function PeriodComparison({ endpoint, title = "Comparer deux périodes", 
       {state.status === "error" ? <ErrorState title="Comparaison indisponible" message={state.message} requestId={state.requestId} onRetry={() => submit()} /> : null}
       {state.status === "ready" ? <>
         <ComparisonResults result={state.result} showWaterfall={showWaterfall} />
+        {sharing ? <ComparisonSharing key={JSON.stringify([state.applied, state.consultedAt])}
+          result={state.result} selection={state.applied} consultedAt={state.consultedAt} options={sharing} disabled={dirty} /> : null}
         {genie && state.result.change.absolute !== null ? <ComparisonGenie
           key={JSON.stringify([state.result.periods, state.result.filterLabel, state.result.current.value, state.result.reference.value])}
           result={state.result} options={genie} disabled={dirty} /> : null}

@@ -88,3 +88,60 @@ Une sélection non appliquée désactive le bouton. La question est préremplie,
 Le Space doit couvrir les mêmes sources et définitions. Les observations du navigateur restent à vérifier.
 Les cartes épinglées restent en mémoire ; elles ne rejoignent pas les tables d’état personnel.
 Voir [le contrat et la recette Genie](genie.md). La démo `/visualizations` active ce lien uniquement en mode démo.
+
+## Partager une comparaison
+
+Cette option ajoute « Partager cette analyse » à une comparaison. Elle reste désactivée par défaut.
+La démo `/visualizations` l'active sur ses données synthétiques.
+Le panneau propose deux actions : copier le lien, ou copier une synthèse avec ce lien.
+Si le navigateur refuse le presse-papiers, un champ sélectionnable permet la copie manuelle.
+L'app n'envoie aucun message et ne crée aucun stockage de résultats.
+
+Pour une nouvelle feature, ajouter `--share-analysis` avec `--date-column` :
+
+```bash
+npm run app -- feature evolution-commandes --source commandes \
+  --aggregation sum --column amount --label "Montant des commandes" --unit EUR \
+  --date-column order_date --share-analysis --non-interactive
+```
+
+`--share-segment` exige aussi `--share-analysis` et `--breakdown-column`.
+Cette option déclare que la dimension peut être partagée. Examiner ses valeurs avant de l'activer.
+Les identifiants personnels et les segments sensibles n'ont pas leur place dans un lien.
+Le partage d'une sélection filtrée reste désactivé tant que cette autorisation manque.
+L'app ne retire pas silencieusement le filtre pour fabriquer un autre résultat.
+
+Pour une comparaison existante, fournir une clé stable, propre à la vue :
+
+```tsx
+<PeriodComparison
+  endpoint="/api/evolution-commandes"
+  sharing={{ key: "evolution-commandes", allowSegment: false }}
+/>
+```
+
+`allowSegment` vaut `false` par défaut. Passer `true` seulement après revue de la dimension.
+La clé accepte 1 à 64 caractères : lettres minuscules, chiffres et tirets, avec une lettre ou un chiffre au début.
+Conserver la clé tant que la vue garde la même définition métier.
+Les filtres supplémentaires d'une app demandent un contrat de partage explicite avant activation.
+Les paramètres URL préexistants ne sont pas repris par cette option.
+
+Le lien conserve la route courante et remplace sa query et son fragment.
+Son fragment `#comparison=` contient uniquement une définition JSON encodée, stricte et versionnée.
+Cette définition comprend la clé, le mode, les dates résolues des deux périodes et le segment autorisé éventuel.
+Les dates restent fixes, même pour « période précédente » ou « année précédente ».
+Un lien invalide, incompatible avec la vue ou incohérent affiche une explication, sans charger silencieusement une comparaison par défaut.
+Le lecteur peut reprendre le formulaire pour choisir une nouvelle comparaison.
+
+L'ouverture recalcule les données avec les accès habituels de l'app. Le lien ne donne aucun droit supplémentaire.
+Les chiffres peuvent donc changer entre deux consultations. Aucun résultat, SQL, identifiant d'analyse personnelle ou contenu Genie n'entre dans le lien.
+
+La synthèse décrit le résultat réellement affiché : KPI, unité, source ou démo, périodes, filtre, valeurs, écarts et réserves.
+Elle ajoute la date de consultation et le lien de reprise. Cette date ne prouve pas la fraîcheur des données.
+La synthèse copie les chiffres consultés ; le lien permet un nouveau calcul.
+Une sélection modifiée mais non appliquée désactive le partage jusqu'à son actualisation.
+Le partage reste aussi désactivé lorsque les deux périodes n'ont aucune valeur disponible.
+
+Avant livraison, vérifier la reprise du lien, les dates fixes, les réserves et la copie manuelle.
+Vérifier aussi les liens invalides et le refus d'un segment non autorisé.
+Les tests locaux utilisent des données synthétiques ; ils ne prouvent ni les droits réels ni la qualité de la source.

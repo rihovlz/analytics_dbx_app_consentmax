@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
+import { parse } from "yaml";
 
 import { copyTrackedFiles, findRepositoryRoot } from "./repository-fixture";
 
@@ -173,9 +174,17 @@ async function initializeApp(fixtureRoot: string, environment: NodeJS.ProcessEnv
     environment,
   );
   await inspectCreationStage(fixtureRoot, environment, "verification");
+  const specBeforeSharing = await readFile(join(fixtureRoot, "config/app-spec.yml"), "utf8");
+  for (const flags of [["--share-analysis"], ["--date-column", "order_date", "--share-analysis", "--share-segment"]]) {
+    await assert.rejects(execFileAsync(process.execPath,
+      ["scripts/app.mjs", "feature", "invalid-sharing", "--non-interactive", "--source", fixtureSourceName, ...flags],
+      { cwd: fixtureRoot, env: environment, encoding: "utf8" }),
+    (error: unknown) => error instanceof Error && /--share-(?:analysis|segment) requires/.test(error.message));
+    assert.equal(await readFile(join(fixtureRoot, "config/app-spec.yml"), "utf8"), specBeforeSharing);
+  }
   await runCommand(process.execPath, ["scripts/app.mjs", "feature", "journey-comparison", "--non-interactive",
     "--source", fixtureSourceName, "--title", "Comparaison des commandes", "--question", "Quels canaux contribuent à la variation ?",
-    "--aggregation", "sum", "--column", "amount", "--unit", "EUR", "--date-column", "order_date", "--breakdown-column", "channel"], fixtureRoot, environment);
+    "--aggregation", "sum", "--column", "amount", "--unit", "EUR", "--date-column", "order_date", "--breakdown-column", "channel", "--share-analysis", "--share-segment"], fixtureRoot, environment);
   await runCommand(process.execPath, ["scripts/init-user-state.mjs", "--schema", "ci_user_state"], fixtureRoot, environment);
 }
 
@@ -234,7 +243,12 @@ async function inspectGeneratedApp(fixtureRoot: string, environment: NodeJS.Proc
 
   const packageJson = asRecord(JSON.parse(await readFile(join(fixtureRoot, "package.json"), "utf8")), "package.json");
   assert.equal(packageJson.name, fixtureAppName);
-  assert.match(await readFile(join(fixtureRoot, "config/app-spec.yml"), "utf8"), /slug: journey-kpi/);
+  const spec = asRecord(parse(await readFile(join(fixtureRoot, "config/app-spec.yml"), "utf8")), "app specification");
+  const features = asArray(spec.features, "features").map((item) => asRecord(item, "feature"));
+  assert.equal(features.find((feature) => feature.slug === "journey-kpi")?.comparison, undefined);
+  assert.deepEqual(features.find((feature) => feature.slug === "journey-comparison")?.comparison, {
+    dateColumn: "order_date", breakdownColumn: "channel", sharing: { allowSegment: true },
+  });
   const capabilityPlan = JSON.parse((await execFileAsync(process.execPath, ["scripts/app.mjs", "capabilities", "--json"], {
     cwd: fixtureRoot, env: environment, encoding: "utf8",
   })).stdout);
@@ -251,6 +265,10 @@ async function inspectGeneratedApp(fixtureRoot: string, environment: NodeJS.Proc
     /SUM\(`amount`\)/,
   );
   assert.match(await readFile(join(fixtureRoot, "src/features/journey-kpi/server/queries.ts"), "utf8"), /IDENTIFIER\(:source\)/);
+  const sharingCard = await readFile(join(fixtureRoot, "src/features/journey-comparison/journey-comparison-card.tsx"), "utf8");
+  assert.match(sharingCard, /sharing=\{\{ key: "journey-comparison", allowSegment: true \}\}/);
+  assert.doesNotMatch(await readFile(join(fixtureRoot, "src/features/journey-kpi/journey-kpi-card.tsx"), "utf8"), /sharing=/);
+  assert.match(await readFile(join(fixtureRoot, "docs/product-brief.md"), "utf8"), /Partage de la comparaison : liens activés pour les périodes et le segment de `channel`/);
   const generatedRoutes = await readFile(join(fixtureRoot, "src/server/routes.ts"), "utf8");
   assert.ok(generatedRoutes.includes('app.get("/api/journey-kpi", getJourneyKpi)'));
   assert.ok(generatedRoutes.includes('app.get("/api/journey-comparison", getJourneyComparison)'));

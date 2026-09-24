@@ -134,6 +134,15 @@ dans le repository généré. Deux fenêtres bornées alimentent les valeurs, s�
 La route `/api/period-comparison/demo` appelle un service synthétique, sans accès Databricks.
 Voir [le contrat de comparaison](period-comparison.md), ses limites et ses critères de complétude.
 
+Le partage facultatif reste dans `src/features/period-comparison`.
+`sharing.ts` valide la définition versionnée, construit le lien et prépare la synthèse du résultat affiché.
+`comparison-sharing.tsx` fournit le panneau et les actions de copie.
+Le fragment du lien contient seulement les périodes résolues et le filtre autorisé pour une vue connue.
+L'ouverture valide la définition avant d'appeler l'API habituelle. Elle conserve les accès de cette API et recalcule les données courantes.
+Un lien invalide ne déclenche pas de résultat par défaut. Aucun résultat n'est stocké par le partage.
+La synthèse copiée reste un texte daté, avec les réserves du résultat et un lien de reprise.
+Les contrats d'état personnel et Genie restent distincts de cette définition.
+
 Ces scripts sont des outils de développement. Ils ne sont ni importés par le runtime AppKit ni exécutés au démarrage
 de l'app. `app:doctor` contrôle leur cohérence et propose une prochaine action sans corriger ou déployer automatiquement.
 

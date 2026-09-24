@@ -77,7 +77,8 @@ import { DEMO_SELECTION } from "@/features/period-comparison/demo";
 export function ${pascal}Card() {
   const config = useAppConfig();
   return <PeriodComparison endpoint=${JSON.stringify(`/api/${slug}`)} title={${JSON.stringify(title)}} description={${JSON.stringify(question)}}
-    initialSelection={config.mode === "demo" ? DEMO_SELECTION : defaultSelection()} showWaterfall={${breakdown && metric.aggregation !== "avg"}} />;
+    initialSelection={config.mode === "demo" ? DEMO_SELECTION : defaultSelection()} showWaterfall={${breakdown && metric.aggregation !== "avg"}}${comparison.sharing ? `
+    sharing={{ key: ${JSON.stringify(slug)}, allowSegment: ${comparison.sharing.allowSegment} }}` : ""} />;
 }
 `);
   files.set(`src/client/pages/${slug}/page.tsx`, `import { ${pascal}Card } from "@/features/${slug}/${slug}-card";

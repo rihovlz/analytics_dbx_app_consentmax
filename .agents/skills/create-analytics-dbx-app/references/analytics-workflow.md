@@ -49,6 +49,9 @@ Le générateur ne fournit pas automatiquement les autres filtres métier, joint
 Construire et tester ces comportements s'ils font partie du besoin.
 Ne jamais afficher une fraîcheur mesurée depuis une simple fréquence déclarée.
 
+Si le besoin inclut la diffusion d'une comparaison, suivre [sharing.md](sharing.md).
+Le partage reste facultatif. Il copie une synthèse contextualisée et un lien de reprise, sans stockage de résultats.
+
 Un faux `SqlExecutor` qui retourne 42 prouve le transport et le contrat de lignes, pas la formule exécutée par Databricks.
 Pour un calcul local, tester un jeu synthétique dont le résultat a été établi séparément. Pour le SQL, relire le grain,
 les jointures et les paramètres ; une preuve d'exécution du calcul demande une requête bornée sur la cible convenue.

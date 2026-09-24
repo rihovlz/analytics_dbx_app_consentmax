@@ -71,6 +71,7 @@ export function VisualizationsDemo({ europeFeatures }: { europeFeatures: Feature
       </section>
 
       <PeriodComparison endpoint="/api/period-comparison/demo" initialSelection={DEMO_SELECTION} showWaterfall
+        sharing={{ key: "demo-orders", allowSegment: true }}
         genie={config.mode === "demo" ? { alias: "fraim-sales", context: { page: { title: "Comparaison de périodes", route: "/visualizations" } } } : undefined}
         description="Une option pour les analyses qui gagnent à être comparées dans le temps. Explorez ici des commandes synthétiques, puis la contribution de chaque canal à leur évolution." />
 

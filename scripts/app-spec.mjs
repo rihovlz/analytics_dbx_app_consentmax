@@ -55,13 +55,26 @@ function validateMetric(value, slug) {
 function validateComparison(value, slug) {
   assertObject(value, `Feature '${slug}' comparison`);
   for (const key of Object.keys(value)) {
-    if (!["dateColumn", "breakdownColumn"].includes(key)) throw new Error(`Unknown comparison option '${key}'.`);
-  }
-  for (const [key, column] of Object.entries(value)) {
-    if (typeof column !== "string" || !identifierPattern.test(column)) throw new Error(`Feature '${slug}' comparison ${key} must be a simple column identifier.`);
+    if (!["dateColumn", "breakdownColumn", "sharing"].includes(key)) throw new Error(`Unknown comparison option '${key}'.`);
   }
   if (!value.dateColumn) throw new Error(`Feature '${slug}' comparison requires a DATE column.`);
-  return { dateColumn: value.dateColumn, ...(value.breakdownColumn ? { breakdownColumn: value.breakdownColumn } : {}) };
+  for (const key of ["dateColumn", "breakdownColumn"]) {
+    const column = value[key];
+    if (column === undefined && key === "breakdownColumn") continue;
+    if (typeof column !== "string" || !identifierPattern.test(column)) throw new Error(`Feature '${slug}' comparison ${key} must be a simple column identifier.`);
+  }
+  if (value.sharing !== undefined) {
+    if (slug.length > 64) throw new Error(`Feature '${slug}' comparison sharing requires a slug of at most 64 characters.`);
+    assertObject(value.sharing, `Feature '${slug}' comparison sharing`);
+    if (Object.keys(value.sharing).some((key) => key !== "allowSegment") || typeof value.sharing.allowSegment !== "boolean") {
+      throw new Error(`Feature '${slug}' comparison sharing requires only an allowSegment boolean.`);
+    }
+    if (value.sharing.allowSegment && !value.breakdownColumn) {
+      throw new Error(`Feature '${slug}' comparison sharing allowSegment requires a breakdownColumn.`);
+    }
+  }
+  return { dateColumn: value.dateColumn, ...(value.breakdownColumn ? { breakdownColumn: value.breakdownColumn } : {}),
+    ...(value.sharing !== undefined ? { sharing: { allowSegment: value.sharing.allowSegment } } : {}) };
 }
 
 function validateFeature(value, index) {
@@ -147,7 +160,7 @@ export function renderProductBrief(spec) {
   const featureSections = spec.features.length
     ? spec.features
         .map(
-          (feature) => `### ${feature.title}\n\n- Question : ${feature.question}\n- Source : \`${feature.source}\`\n- KPI : ${feature.metric.label} (${feature.metric.aggregation}${feature.metric.column === "*" ? "" : ` de \`${feature.metric.column}\``}, ${feature.metric.unit})${feature.comparison ? `\n- Comparaison : colonne DATE \`${feature.comparison.dateColumn}\`${feature.comparison.breakdownColumn ? ` ; contributions par \`${feature.comparison.breakdownColumn}\`` : ""}. Calendrier et complétude à valider.` : ""}\n- Critère d’acceptation : ${feature.acceptance}`,
+          (feature) => `### ${feature.title}\n\n- Question : ${feature.question}\n- Source : \`${feature.source}\`\n- KPI : ${feature.metric.label} (${feature.metric.aggregation}${feature.metric.column === "*" ? "" : ` de \`${feature.metric.column}\``}, ${feature.metric.unit})${feature.comparison ? `\n- Comparaison : colonne DATE \`${feature.comparison.dateColumn}\`${feature.comparison.breakdownColumn ? ` ; contributions par \`${feature.comparison.breakdownColumn}\`` : ""}. Calendrier et complétude à valider.` : ""}${feature.comparison?.sharing ? `\n- Partage de la comparaison : liens activés pour les périodes${feature.comparison.sharing.allowSegment ? ` et le segment de \`${feature.comparison.breakdownColumn}\` (dimension explicitement autorisée dans les liens ; revue à documenter)` : " ; partage des sélections filtrées désactivé"}. Les liens ne modifient pas les droits d’accès.` : ""}\n- Critère d’acceptation : ${feature.acceptance}`,
         )
         .join("\n\n")
     : "Aucun KPI généré. La première tranche suit les capacités et le critère de succès ci-dessus.";

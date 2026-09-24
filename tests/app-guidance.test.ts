@@ -5,10 +5,12 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
 import { parse } from "yaml";
+import ts from "typescript";
 
 const fixtureFiles = [
   "config/data-projects.json",
   "scripts/app-guide.mjs",
+  "scripts/app.mjs",
   "scripts/app-spec.mjs",
   "scripts/app-capabilities.mjs",
   "config/appkit-capabilities.json",
@@ -86,7 +88,110 @@ test("comparison generation is opt-in, preserves metadata and rejects injected c
     assert.ok(query.includes(`CAST(:${marker} AS DATE)`));
   }
   assert.match(query, /LIMIT 1001/);
-  assert.match(await readFile(join(root, "src/features/sales-comparison/sales-comparison-card.tsx"), "utf8"), /showWaterfall=\{true\}/);
+  const card = await readFile(join(root, "src/features/sales-comparison/sales-comparison-card.tsx"), "utf8");
+  assert.match(card, /showWaterfall=\{true\}/);
+  assert.doesNotMatch(card, /sharing=/);
+});
+
+test("comparison sharing requires an explicit choice and keeps that choice through the guide", async () => {
+  for (const allowSegment of [false, true]) {
+    const root = await prepareFixture();
+    const slug = allowSegment ? "shared-segment" : "shared-periods";
+    execFileSync(process.execPath, ["scripts/new-feature.mjs", slug, "--non-interactive", "--source", "sales-source",
+      "--date-column", "order_date", "--share-analysis", ...(allowSegment ? ["--breakdown-column", "channel", "--share-segment"] : [])], { cwd: root });
+    execFileSync(process.execPath, ["scripts/app-guide.mjs", "--non-interactive"], { cwd: root });
+    execFileSync(process.execPath, ["scripts/app-guide.mjs", "--check"], { cwd: root });
+    const spec = parse(await readFile(join(root, "config/app-spec.yml"), "utf8"));
+    assert.deepEqual(spec.features[0].comparison, { dateColumn: "order_date",
+      ...(allowSegment ? { breakdownColumn: "channel" } : {}), sharing: { allowSegment } });
+    const card = await readFile(join(root, `src/features/${slug}/${slug}-card.tsx`), "utf8");
+    assert.ok(card.includes(`sharing={{ key: "${slug}", allowSegment: ${allowSegment} }}`));
+    const brief = await readFile(join(root, "docs/product-brief.md"), "utf8");
+    assert.match(brief, /Les liens ne modifient pas les droits d’accès/);
+    assert.ok(brief.includes(allowSegment ? "segment de `channel`" : "partage des sélections filtrées désactivé"));
+    // The option belongs to this feature; it must not enable sharing in later simple KPIs.
+    execFileSync(process.execPath, ["scripts/new-feature.mjs", "plain-kpi", "--non-interactive", "--source", "sales-source"], { cwd: root });
+    const updated = parse(await readFile(join(root, "config/app-spec.yml"), "utf8"));
+    assert.equal(updated.features[1].comparison, undefined);
+    assert.doesNotMatch(await readFile(join(root, "src/features/plain-kpi/plain-kpi-card.tsx"), "utf8"), /sharing=/);
+  }
+});
+
+test("invalid sharing flags fail before creating files or changing existing configuration", async () => {
+  const root = await prepareFixture();
+  const paths = ["config/app-spec.yml", "docs/product-brief.md", "src/components/app-shell/app-nav.tsx", "src/client/routes.tsx", "src/server/routes.ts"];
+  const before = await Promise.all(paths.map((path) => readFile(join(root, path), "utf8")));
+  const invalid = [
+    ["--share-analysis"],
+    ["--share-segment"],
+    ["--date-column", "order_date", "--share-segment"],
+    ["--date-column", "order_date", "--breakdown-column", "channel", "--share-segment"],
+    ["--date-column", "order_date", "--share-analysis", "--share-segment"],
+    ["--date-column", "order_date", "--share-analysis", "false"],
+  ];
+  for (const flags of invalid) {
+    const result = spawnSync(process.execPath, ["scripts/new-feature.mjs", "invalid-sharing", "--non-interactive", "--source", "sales-source", ...flags], { cwd: root, encoding: "utf8" });
+    assert.notEqual(result.status, 0, flags.join(" "));
+    assert.match(result.stderr, /requires|Unknown option/);
+    assert.deepEqual(await Promise.all(paths.map((path) => readFile(join(root, path), "utf8"))), before);
+    await assert.rejects(readFile(join(root, "src/features/invalid-sharing/invalid-sharing-card.tsx")), { code: "ENOENT" });
+  }
+});
+
+test("the specification rejects ambiguous or unsupported sharing metadata", async () => {
+  const root = await prepareFixture();
+  execFileSync(process.execPath, ["scripts/new-feature.mjs", "shared-periods", "--non-interactive", "--source", "sales-source", "--date-column", "order_date", "--share-analysis"], { cwd: root });
+  const valid = parse(await readFile(join(root, "config/app-spec.yml"), "utf8"));
+  const brief = await readFile(join(root, "docs/product-brief.md"), "utf8");
+  for (const sharing of [null, [], {}, { allowSegment: "true" }, { allowSegment: false, arbitrary: true }, { allowSegment: true }]) {
+    const invalid = structuredClone(valid);
+    invalid.features[0].comparison.sharing = sharing;
+    const serialized = JSON.stringify(invalid);
+    await writeFile(join(root, "config/app-spec.yml"), serialized);
+    const result = spawnSync(process.execPath, ["scripts/app-guide.mjs", "--non-interactive"], { cwd: root, encoding: "utf8" });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /sharing/);
+    assert.equal(await readFile(join(root, "config/app-spec.yml"), "utf8"), serialized);
+    assert.equal(await readFile(join(root, "docs/product-brief.md"), "utf8"), brief);
+  }
+});
+
+test("sharing keys accept existing digit-prefixed slugs and bound only opted-in feature names", async () => {
+  const root = await prepareFixture();
+  const longSlug = "s".repeat(65);
+  const args = ["scripts/new-feature.mjs", longSlug, "--non-interactive", "--source", "sales-source", "--date-column", "order_date"];
+  const rejected = spawnSync(process.execPath, [...args, "--share-analysis"], { cwd: root, encoding: "utf8" });
+  assert.notEqual(rejected.status, 0);
+  assert.match(rejected.stderr, /at most 64/);
+  assert.deepEqual(parse(await readFile(join(root, "config/app-spec.yml"), "utf8")).features, []);
+  execFileSync(process.execPath, args, { cwd: root });
+  const longSpec = parse(await readFile(join(root, "config/app-spec.yml"), "utf8"));
+  longSpec.features[0].comparison.sharing = { allowSegment: false };
+  await writeFile(join(root, "config/app-spec.yml"), JSON.stringify(longSpec));
+  const invalidSpec = spawnSync(process.execPath, ["scripts/app-guide.mjs", "--check"], { cwd: root, encoding: "utf8" });
+  assert.notEqual(invalidSpec.status, 0);
+  assert.match(invalidSpec.stderr, /at most 64/);
+  delete longSpec.features[0].comparison.sharing;
+  await writeFile(join(root, "config/app-spec.yml"), JSON.stringify(longSpec));
+  execFileSync(process.execPath, ["scripts/new-feature.mjs", "2026-sales", "--non-interactive", "--source", "sales-source", "--date-column", "order_date", "--share-analysis"], { cwd: root });
+  const card = await readFile(join(root, "src/features/2026-sales/2026-sales-card.tsx"), "utf8");
+  assert.match(card, /key: "2026-sales"/);
+  for (const file of ["src/features/2026-sales/2026-sales-card.tsx", "src/features/2026-sales/server/queries.ts", "src/client/routes.tsx", "src/server/routes.ts"]) {
+    const result = ts.transpileModule(await readFile(join(root, file), "utf8"), {
+      fileName: file, compilerOptions: { jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 }, reportDiagnostics: true,
+    });
+    assert.deepEqual(result.diagnostics?.filter((diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error), [], file);
+  }
+});
+
+test("CLI feature help exposes the sharing dependencies and review requirement without writes", async () => {
+  const root = await prepareFixture();
+  const before = await readFile(join(root, "config/app-spec.yml"), "utf8");
+  const help = execFileSync(process.execPath, ["scripts/app.mjs", "feature", "--help"], { cwd: root, encoding: "utf8" });
+  assert.match(help, /--share-analysis/);
+  assert.match(help, /--share-segment/);
+  assert.match(help, /dimension revue/);
+  assert.equal(await readFile(join(root, "config/app-spec.yml"), "utf8"), before);
 });
 
 test("app guide and feature generator create one complete vertical slice", async () => {

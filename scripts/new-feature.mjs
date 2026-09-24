@@ -17,8 +17,8 @@ function parseOptions(argv) {
       options.slug = value;
       continue;
     }
-    if (value === "--non-interactive" || value === "--dry-run") {
-      options[value === "--dry-run" ? "dryRun" : "nonInteractive"] = true;
+    if (["--non-interactive", "--dry-run", "--share-analysis", "--share-segment"].includes(value)) {
+      options[value.slice(2).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())] = true;
       continue;
     }
     if (!["--title", "--question", "--source", "--aggregation", "--column", "--label", "--unit", "--demo-value", "--acceptance", "--date-column", "--breakdown-column"].includes(value)) {
@@ -33,7 +33,7 @@ function parseOptions(argv) {
 }
 
 function names(slug) {
-  const parts = slug.split("-");
+  const parts = (/^[0-9]/.test(slug) ? `feature-${slug}` : slug).split("-");
   const pascal = parts.map((part) => `${part[0].toUpperCase()}${part.slice(1)}`).join("");
   const camel = `${parts[0]}${parts.slice(1).map((part) => `${part[0].toUpperCase()}${part.slice(1)}`).join("")}`;
   const upper = parts.join("_").toUpperCase();
@@ -73,6 +73,11 @@ const root = process.cwd();
 const options = parseOptions(process.argv.slice(2));
 if (!options.slug || !featureSlugPattern.test(options.slug)) {
   throw new Error("Provide a feature slug using lowercase letters, numbers and hyphens.");
+}
+if (options.shareAnalysis && options.slug.length > 64) throw new Error("Shared feature slugs must contain at most 64 characters.");
+if (options.shareAnalysis && !options.dateColumn) throw new Error("--share-analysis requires --date-column.");
+if (options.shareSegment && (!options.shareAnalysis || !options.breakdownColumn)) {
+  throw new Error("--share-segment requires --share-analysis and --breakdown-column; review the segment dimension before enabling shared links.");
 }
 const spec = await loadAppSpec(root, { allowPlaceholder: true });
 if (spec.features.some((feature) => feature.slug === options.slug)) throw new Error(`Feature '${options.slug}' already exists.`);
@@ -118,7 +123,8 @@ const feature = {
     demoValue: Number(answers.demoValue),
   },
   acceptance: answers.acceptance,
-  ...(options.dateColumn ? { comparison: { dateColumn: options.dateColumn, ...(options.breakdownColumn ? { breakdownColumn: options.breakdownColumn } : {}) } } : {}),
+  ...(options.dateColumn ? { comparison: { dateColumn: options.dateColumn, ...(options.breakdownColumn ? { breakdownColumn: options.breakdownColumn } : {}),
+    ...(options.shareAnalysis ? { sharing: { allowSegment: Boolean(options.shareSegment) } } : {}) } } : {}),
 };
 const validatedSpec = validateAppSpec({ ...spec, capabilities: [...new Set([...spec.capabilities, "analytics"])], features: [...spec.features, feature] }, { allowPlaceholder: true });
 const generated = feature.comparison ? comparisonTemplates(feature, source, names(feature.slug)) : templates(feature, source);

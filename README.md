@@ -79,7 +79,7 @@ rien.
 
 ## Version du template
 
-`template/manifest.yml` donne la version courante et les capabilities du template. La version courante est `2.0.0`.
+`template/manifest.yml` donne la version courante et les capabilities du template. La version courante est `2.0.0`, encore non publiée.
 La version `1.0.0` représente la baseline initiale. Les versions suivantes ajoutent les mises à niveau suivies,
 l’historisation bornée, les visualisations, l’assistant Genie OBO et les analyses personnelles.
 
@@ -174,6 +174,11 @@ année précédente ou dates personnalisées, filtre commun, valeurs, écarts et
 `--breakdown-column <dimension>` pour les segments et un waterfall sur `count` ou `sum`.
 Les moyennes restent pondérées et n'obtiennent pas de waterfall automatique. Les périodes partielles et les références
 nulles sont explicites. La démo utilise `/api/period-comparison/demo` ; aucun résultat analytique n'est persisté.
+
+Le partage facultatif ajoute un lien de reprise et une synthèse à copier avec les périodes, filtres, chiffres et réserves.
+`--share-analysis` l'active sur une nouvelle feature de comparaison. `--share-segment` autorise une dimension revue comme non sensible.
+Le lien fixe les dates et recalcule les données à l'ouverture, sans accorder de droit. La synthèse conserve les chiffres consultés.
+Aucun résultat n'est stocké par cette option et aucun message n'est envoyé. Voir [le contrat de partage](docs/period-comparison.md#partager-une-comparaison).
 
 Voir [le design system analytics](docs/design-system.md) pour les API de composition, les tokens et les règles
 d’accessibilité.

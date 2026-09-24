@@ -137,6 +137,9 @@ Exécuter `npm run app:guide -- --non-interactive` pour ajouter ce choix et rég
 Examiner `npm run app:capabilities` et `npm run app:skills`. Aucun plugin n'est activé par ces commandes.
 Fusionner aussi les modules de [comparaison facultative](period-comparison.md), leurs exports et le générateur indiqué
 dans le guide YAML. Les features migrées restent identiques ; ajouter une comparaison est une décision métier distincte.
+Fusionner les modules de partage et la référence locale `sharing.md` indiqués dans le guide YAML.
+Garder la prop `sharing` absente pour conserver le comportement d'une vue existante.
+Son activation demande une clé stable et une revue des filtres partageables. Elle ne crée aucun stockage ni droit supplémentaire.
 
 1. Exécuter lint, typecheck, tests unitaires et build.
 2. Exécuter `npm run test:e2e` et vérifier les thèmes, le clavier et le mobile.
@@ -145,7 +148,7 @@ dans le guide YAML. Les features migrées restent identiques ; ajouter une compa
 3. Exécuter `npm run bundle:compatibility`.
 4. Exécuter `npm run template:check -- --to 2.0.0`.
 5. Après succès, déclarer la version 2.0.0 dans `.valiuz-template.yml`.
-6. Ajouter les capabilities `appkit-native-runtime`, `upstream-compatibility`, `guided-appkit-capabilities`, `period-comparison` et `appkit-genie-integration`.
+6. Ajouter les capabilities `appkit-native-runtime`, `upstream-compatibility`, `guided-appkit-capabilities`, `period-comparison`, `appkit-genie-integration` et `comparison-sharing`.
 7. Ajouter `1.5.0-to-2.0.0` dans `appliedUpgrades`.
    Pour une origine 1.4, ajouter aussi `personal-user-state` et `1.4.0-to-1.5.0` après validation de leurs contrats.
 8. Exécuter `npm run app:doctor` et `npm run check`.

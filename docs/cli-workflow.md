@@ -81,6 +81,10 @@ Pour Genie, des fichiers ou une autre intégration, commencer par `guide` et `ca
 Les étapes `data` et `feature` ne sont nécessaires que pour une tranche KPI. Le générateur reste limité à `count`, `sum` et `avg`.
 Si la comparaison temporelle aide à décider, ajouter `--date-column <colonne_DATE>` à `app feature`.
 `--breakdown-column <dimension>` ajoute un filtre commun et un waterfall pour les mesures additives.
+`--share-analysis` ajoute le partage facultatif et exige `--date-column`.
+`--share-segment` exige aussi `--breakdown-column` et déclare la dimension partageable après revue de ses valeurs.
+Le lien restaure des dates fixes et recalcule les données ; la synthèse copie les chiffres consultés avec leurs réserves.
+Sans activation explicite, aucune action de partage n'est ajoutée.
 Sans ces options, le KPI simple reste inchangé. Voir [les règles et exemples](period-comparison.md).
 Le mode `direct` reste le choix par défaut, quel que soit le sujet pris en charge par la personne.
 Les préparations locales n'exécutent aucun SQL distant. Leur déploiement et leur exécution suivent le runbook de préparation.

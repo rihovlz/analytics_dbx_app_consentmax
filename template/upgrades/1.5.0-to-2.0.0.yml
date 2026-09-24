@@ -105,7 +105,7 @@ changes:
       - Conserver les notes de reprise existantes ; leur présence ne prouve ni test réussi ni autorisation.
       - Fusionner les workflows et conserver leur revue humaine.
       - Valider les capabilities 2.0.0 avant de modifier .valiuz-template.yml.
-      - Ajouter appkit-native-runtime, upstream-compatibility, guided-appkit-capabilities, period-comparison et appkit-genie-integration puis déclarer 1.5.0-to-2.0.0 dans appliedUpgrades.
+      - Ajouter appkit-native-runtime, upstream-compatibility, guided-appkit-capabilities, period-comparison, appkit-genie-integration et comparison-sharing puis déclarer 1.5.0-to-2.0.0 dans appliedUpgrades.
       - Obtenir une autorisation explicite pour le déploiement de développement et sa recette distante.
   - id: optional-period-comparison
     mode: guided
@@ -128,6 +128,31 @@ changes:
       - Confirmer DATE, fuseau, grain, couverture et additivité ; ne pas attribuer de causalité aux contributions.
       - Ajouter la prop genie seulement pour un Space compatible ; la question joint les périodes, filtres et réserves, sans envoi automatique.
       - Garder les résultats et sélections hors des tables d’état personnel tant qu’aucun contrat de définition n’est ajouté.
+  - id: optional-comparison-sharing
+    mode: guided
+    title: Rendre disponible le partage facultatif des comparaisons
+    description: Le lien restaure une définition et recalcule les données ; la synthèse conserve les chiffres consultés et leurs réserves.
+    paths:
+      - src/features/period-comparison
+      - tailwind.config.ts
+      - scripts/new-feature.mjs
+      - scripts/feature-comparison-template.mjs
+      - scripts/app-spec.mjs
+      - scripts/app.mjs
+      - tests/comparison-sharing.test.ts
+      - e2e/comparison-sharing.spec.ts
+      - docs/period-comparison.md
+      - .agents/skills/create-analytics-dbx-app/references/sharing.md
+    instructions:
+      - Fusionner les contrats et composants de partage ; conserver la prop sharing absente sur les vues qui n'en ont pas besoin.
+      - Ajouter ./node_modules/@databricks/appkit-ui/dist/react/ui/dialog.js au tableau content de tailwind.config.ts pour générer les classes du fond modal.
+      - Conserver les entrées content, le thème et les plugins personnalisés ; ne pas remplacer la configuration Tailwind de l'app.
+      - Pour une nouvelle comparaison, --share-analysis exige --date-column ; le générateur consigne ce choix dans la spec et le brief.
+      - Pour une vue existante, ajouter sharing avec une clé stable après revue de sa définition et de ses filtres.
+      - Autoriser les segments seulement après revue de leurs valeurs ; --share-segment exige --share-analysis et --breakdown-column.
+      - Conserver le refus des liens invalides, des champs inconnus et des segments non autorisés ; ne jamais retirer silencieusement un filtre.
+      - Tester la reprise sur dates fixes, les accès habituels, les réserves de la synthèse et la copie manuelle.
+      - Ne pas stocker de résultat ni partager de conversation Genie ou d'identifiant d'analyse personnelle dans le lien.
 validation:
   - npm run template:status
   - npm run template:check -- --to 2.0.0

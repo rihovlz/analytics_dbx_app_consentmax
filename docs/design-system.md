@@ -37,6 +37,11 @@ visualisation utilisent les tokens `--chart-*`, dont les valeurs diffèrent des 
 tracé avec les noms `chart-brand`, `chart-positive`, `chart-negative`, `chart-purple`, `chart-slate` et
 `chart-neutral`. Utiliser ces noms dans les composants. Ne pas coder une couleur de thème directement dans une classe.
 
+Le panneau de partage utilise le `Dialog` AppKit avec les classes de surface et de texte Valiuz.
+Ses classes explicites adaptent le composant aux thèmes de l'app.
+Le tableau `content` de `tailwind.config.ts` inclut aussi `./node_modules/@databricks/appkit-ui/dist/react/ui/dialog.js` pour générer les classes du fond modal.
+Lors d'une migration, ajouter cette entrée sans remplacer les autres chemins, le thème ou les plugins personnalisés.
+
 Le token `--focus-ring` définit le contour global des boutons, liens et champs. La portée `brand-header-surface`
 redéfinit aussi ce token pour conserver son contraste sur le fond clair.
 

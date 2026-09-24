@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { cp, mkdir, mkdtemp, readFile, rename, rm, symlink, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, readdir, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { parse, stringify } from "yaml";
@@ -56,6 +56,17 @@ async function migrateFixture(baseline: { version: string; revision: string }) {
     const customCss = "\n/* Business brand customization */\n.business-panel { border-radius: 19px; }\n";
     await writeFile(join(fixture, "src/app/globals.css"), (await readFile(join(fixture, "src/app/globals.css"), "utf8")) + customCss);
     const oldCss = await readFile(join(fixture, "src/app/globals.css"), "utf8");
+    const tailwindPath = join(fixture, "tailwind.config.ts");
+    const originalTailwind = await readFile(tailwindPath, "utf8");
+    const originalContent = 'content: ["./src/**/*.{ts,tsx}"]';
+    const customContent = 'content: ["./src/**/*.{ts,tsx}", "./business-widgets/**/*.{ts,tsx}"]';
+    assert.ok(originalTailwind.includes(originalContent));
+    const oldTailwind = originalTailwind.replace(originalContent, customContent)
+      .replace("      colors: {", '      colors: {\n        "business-highlight": "#193b59",');
+    assert.ok(oldTailwind.includes('"business-highlight": "#193b59"'));
+    await writeFile(tailwindPath, oldTailwind);
+    await mkdir(join(fixture, "business-widgets"));
+    await writeFile(join(fixture, "business-widgets/panel.ts"), 'export const panelClass = "bg-business-highlight";\n');
     let oldNav = await readFile(join(fixture, "src/components/app-shell/app-nav.tsx"), "utf8");
     if (baseline.version === "1.4.0") {
       // Apply the optional 1.5 contracts before the runtime port. No personal table is declared or created.
@@ -84,6 +95,10 @@ async function migrateFixture(baseline: { version: string; revision: string }) {
     }
     await copyCurrent("src/components/app-shell/app-header.tsx");
     await copyCurrent("src/components/app-shell/app-shell.tsx");
+    // Merge this reviewed content entry only; the consuming app owns its Tailwind theme and other paths.
+    const dialogContent = "./node_modules/@databricks/appkit-ui/dist/react/ui/dialog.js";
+    const dialogContentEntry = `, "${dialogContent}"`;
+    await writeFile(tailwindPath, oldTailwind.replace(customContent, `${customContent.slice(0, -1)}${dialogContentEntry}]`));
     // Remove remaining Next.js poison imports from older feature modules.
     for (const file of files.filter((file) => file.startsWith("src/features/") && file.endsWith(".ts"))) {
       const path = join(fixture, file);
@@ -153,7 +168,7 @@ test("migrated business endpoint serves its preserved demo through Express", asy
     run(process.execPath, ["scripts/render-data-access.mjs"]);
     run(process.execPath, ["scripts/template-status.mjs", "--check", "--to", "2.0.0"]);
     oldState.template.version = "2.0.0";
-    oldState.capabilities.push("appkit-native-runtime", "upstream-compatibility", "guided-appkit-capabilities", "period-comparison", "appkit-genie-integration");
+    oldState.capabilities.push("appkit-native-runtime", "upstream-compatibility", "guided-appkit-capabilities", "period-comparison", "appkit-genie-integration", "comparison-sharing");
     oldState.appliedUpgrades.push("1.5.0-to-2.0.0");
     await writeFile(join(fixture, ".valiuz-template.yml"), stringify(oldState));
     const after = await Promise.all(preservedPaths.map((file) => readFile(join(fixture, file), "utf8")));
@@ -173,8 +188,17 @@ test("migrated business endpoint serves its preserved demo through Express", asy
       assert.doesNotMatch(await readFile(join(fixture, "resources/data-access.generated.yml"), "utf8"), /permission: MODIFY/);
     } else assert.deepEqual(access.personalState, JSON.parse(before[preservedPaths.indexOf("config/data-access.json")]).personalState);
     assert.ok((await readFile(join(fixture, "src/client/globals.css"), "utf8")).endsWith(customCss));
+    const migratedTailwind = await readFile(tailwindPath, "utf8");
+    assert.equal(migratedTailwind.split(dialogContent).length - 1, 1, "The Dialog content entry must be added exactly once");
+    assert.equal(migratedTailwind.replace(dialogContentEntry, ""), oldTailwind,
+      "Only the Dialog content entry may change; all custom Tailwind paths, theme and plugins must survive");
     assert.match(await readFile(join(fixture, "src/components/app-shell/app-nav.tsx"), "utf8"), /sales-kpi/);
     for (const script of ["typecheck", "lint", "build"]) process.stdout.write(run("npm", ["run", script]));
+    const assetsPath = join(fixture, "dist/client/assets");
+    const cssAssets = (await readdir(assetsPath)).filter((file) => file.endsWith(".css"));
+    const builtCss = (await Promise.all(cssAssets.map((file) => readFile(join(assetsPath, file), "utf8")))).join("\n");
+    assert.ok(builtCss.includes(".bg-business-highlight"), "The build must preserve the custom theme and its separate content directory");
+    assert.ok(builtCss.includes(".bg-black\\/50"), "The build must include the AppKit Dialog overlay background class");
     process.stdout.write(run(process.execPath, ["--import", "tsx", "--test", "tests/sales-kpi.test.ts"]));
     process.stdout.write(`Initialized ${baseline.version} business fixture migrated to 2.0 with contracts and customizations preserved.\n`);
   } finally { await rm(fixture, { recursive: true, force: true }); }

@@ -45,6 +45,9 @@ Elle ajoute l'entrée `npm run app`, un prompt pour tout le parcours et un bilan
 La migration du runtime impose une version majeure par rapport à la base 1.5.0.
 La comparaison facultative et le waterfall rejoignent cette **2.0.0 non publiée** sous la capability `period-comparison`.
 Cette addition compatible ne demande pas une 2.1 avant publication de la 2.0. Les features existantes restent inchangées.
+La capability `comparison-sharing` rejoint aussi cette version non publiée.
+Elle ajoute un lien de reprise et une synthèse à copier, avec activation explicite par comparaison.
+Elle ne change ni le stockage ni les droits. Les liens recalculent les données sur des dates fixes.
 Fusionner les contrats et composants indiqués dans le guide ; les activer selon [le besoin analytique](period-comparison.md).
 Les anciennes specs restent lisibles. Fusionner les scripts de cadrage et régénérer le brief pour adopter le nouveau champ `capabilities`.
 Ajouter la commande `app:orchestrate` et sa référence au skill de création. Aucun changement de schéma ni nouveau service n'est nécessaire.
@@ -298,6 +301,13 @@ Le rollback conserve les tables et redéploie la révision précédente.
 La 2.0.0 non publiée inclut aussi `appkit-genie-integration` : plugin Genie programmatique, compatibilité OBO et
 annulation, identité visible et exploration facultative des comparaisons. Les contrats et limites sont décrits dans
 [Genie](genie.md). Cette addition reste dans la migration major 1.5 → 2.0 ; les tables personnelles sont préservées.
+
+La capability `comparison-sharing` ajoute le partage facultatif à la même migration 1.5 → 2.0.
+Fusionner ses modules, ses options de génération et la référence de skill indiqués dans le guide YAML.
+Une app existante conserve le partage désactivé tant qu'elle ne fournit pas la prop `sharing`.
+Avant activation, examiner les filtres partageables et tester la reprise du lien sur la bonne vue.
+Après validation, ajouter `comparison-sharing` aux capabilities de `.valiuz-template.yml` avec les autres contrats 2.0.
+Voir [le contrat de partage](period-comparison.md#partager-une-comparaison) pour la distinction entre copie datée et recalcul.
 
 La 2.0.0 fixe aussi un seul contrat d’écriture d’app : handlers Express natifs, paramètres SQL nommés et événements
 Genie alignés sur AppKit. Les anciens handlers, paramètres positionnels et événements enveloppés ne sont pas acceptés
