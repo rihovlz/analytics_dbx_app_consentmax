@@ -1,0 +1,38 @@
+schemaVersion: 1
+id: 2.0.1-to-2.1.0
+from: 2.0.1
+to: 2.1.0
+summary: Ajoute la livraison de fichiers de tout type vers le workspace Databricks, inactive tant que l'application ne l'active pas.
+changes:
+  - id: databricks-files-workflows
+    mode: guided
+    title: Ajouter les trois workflows de livraison de fichiers
+    description: Les workflows délèguent à deploy-databricks-files-any et sont livrés inertes en workflow_dispatch seul.
+    paths:
+      - .github/workflows/databricks-files-build.yaml
+      - .github/workflows/databricks-files-release.yaml
+      - .github/workflows/databricks-files-staging.yaml
+      - files/.gitkeep
+      - template/manifest.yml
+      - template/upgrades/2.0.1-to-2.1.0.yml
+    instructions:
+      - Copier les trois workflows et le dossier files/ sans modifier les valeurs path_prefix et environment_list.
+      - "Décommenter le bloc on: de build et release, puis retirer la ligne on: workflow_dispatch, uniquement après avoir provisionné les environments."
+      - Conserver staging en déclenchement manuel.
+      - Déposer dans files/ les fichiers à publier ; aucune extension n'est filtrée, seuls les éléments cachés, node_modules et .DS_Store sont exclus.
+      - "Ne pas stocker d'autre contenu sous le chemin cible : le job de nettoyage purge /valiuz-repos/<repo>/<version> avant chaque envoi."
+  - id: databricks-files-environments
+    mode: manual
+    title: Provisionner les environments et leurs secrets Databricks
+    description: Les environments sont appliqués par 6po-vlz[bot] depuis settings.yml, les secrets restent posés à la main.
+    paths:
+      - .github/settings.yml
+    instructions:
+      - Déclarer les environments agora et citadelle ainsi que le runner group Databricks d'identifiant 43 dans .github/settings.yml.
+      - Fusionner sur la branche par défaut pour que 6po-vlz[bot] crée les environments.
+      - Générer un jeton d'accès personnel Databricks sur chaque workspace, puis poser DATABRICKS_HOST et DATABRICKS_TOKEN avec gh secret set --env.
+      - "Consigner l'émetteur et l'échéance de chaque jeton ; aucun IaC ne les couvre."
+validation:
+  - npm run template:status
+  - npm run template:check -- --to 2.1.0
+  - npm run template:release:check -- --base origin/main

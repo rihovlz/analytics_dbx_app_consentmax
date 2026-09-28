@@ -111,7 +111,7 @@ test("migration inventories 1.4 and 1.5 apps and orders target guides without mu
     assert.equal(plan.app.from, version);
     assert.equal(plan.app.versionEvidence, "declared-not-verified");
     assert.equal(plan.verification.status, "not-run");
-    assert.deepEqual(plan.upgrades.map((step: { id: string }) => step.id), version === "1.4.0" ? ["1.4.0-to-1.5.0", "1.5.0-to-2.0.0", "2.0.0-to-2.0.1"] : ["1.5.0-to-2.0.0", "2.0.0-to-2.0.1"]);
+    assert.deepEqual(plan.upgrades.map((step: { id: string }) => step.id), version === "1.4.0" ? ["1.4.0-to-1.5.0", "1.5.0-to-2.0.0", "2.0.0-to-2.0.1", "2.0.1-to-2.1.0"] : ["1.5.0-to-2.0.0", "2.0.0-to-2.0.1", "2.0.1-to-2.1.0"]);
     assert.deepEqual(plan.inventory.pages, ["src/app/orders/[id]/page.tsx"]);
     assert.deepEqual(plan.inventory.apiHandlers, ["src/app/api/orders/route.ts"]);
     assert.deepEqual(plan.inventory.pagesRouter, ["pages/legacy.tsx"]);

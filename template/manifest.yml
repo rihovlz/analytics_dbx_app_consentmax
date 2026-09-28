@@ -2,7 +2,7 @@ schemaVersion: 1
 template:
   id: valiuz/analytics_dbx_app_template
   repository: https://github.com/valiuz/analytics_dbx_app_template
-  currentVersion: 2.0.1
+  currentVersion: 2.1.0
 requirements:
   node: ">=22.16 <23"
   databricksCli: ">=0.295.0"
@@ -65,6 +65,12 @@ versions:
     summary: Résultats SQL JSON vides reconnus sans masquer les réponses incomplètes ni rejouer la requête.
     extends: 2.0.0
     capabilities: []
+  "2.1.0":
+    sourceCommit: 87f82f6fd297029c7b73768ed801e5a7bb7de6cb
+    summary: Livraison de fichiers de tout type vers le workspace Databricks via un workflow réutilisable.
+    extends: 2.0.1
+    capabilities:
+      - databricks-workspace-file-delivery
 capabilities:
   guided-app-workflow:
     since: 1.0.0
@@ -439,6 +445,24 @@ capabilities:
         text: --share-analysis
       - type: file
         path: .agents/skills/create-analytics-dbx-app/references/sharing.md
+  databricks-workspace-file-delivery:
+    since: 2.1.0
+    description: Envoie les fichiers de tout type vers le workspace Databricks depuis trois workflows d'environnement.
+    probes:
+      - type: file
+        path: .github/workflows/databricks-files-build.yaml
+      - type: file
+        path: .github/workflows/databricks-files-release.yaml
+      - type: file
+        path: .github/workflows/databricks-files-staging.yaml
+      - type: file
+        path: files/.gitkeep
+      - type: fileContains
+        path: .github/workflows/databricks-files-release.yaml
+        text: deploy-databricks-files-any.yaml@main
+      - type: fileContains
+        path: .github/workflows/databricks-files-release.yaml
+        text: 'version: "prd"'
 upgrades:
   - from: 1.0.0
     to: 1.1.0
@@ -461,3 +485,6 @@ upgrades:
   - from: 2.0.0
     to: 2.0.1
     path: template/upgrades/2.0.0-to-2.0.1.yml
+  - from: 2.0.1
+    to: 2.1.0
+    path: template/upgrades/2.0.1-to-2.1.0.yml

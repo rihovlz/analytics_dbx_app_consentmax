@@ -79,7 +79,7 @@ rien.
 
 ## Version du template
 
-`template/manifest.yml` donne la version courante et les capabilities du template. La version courante est `2.0.1`.
+`template/manifest.yml` donne la version courante et les capabilities du template. La version courante est `2.1.0`.
 Ce patch corrige les résultats SQL JSON vides confirmés par Databricks, notamment pour `/api/readiness`.
 La version `1.0.0` représente la baseline initiale. Les versions suivantes ajoutent les mises à niveau suivies,
 l’historisation bornée, les visualisations, l’assistant Genie OBO et les analyses personnelles.
