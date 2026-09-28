@@ -1,0 +1,28 @@
+name: Databricks files release
+
+# Ce workflow est livré inerte dans le template.
+# Dans une application enfant, décommenter le bloc ci-dessous et supprimer la
+# ligne "on: workflow_dispatch" pour activer le déclenchement automatique.
+#
+# Prérequis dans l'application enfant :
+#  1. Environments agora et citadelle déclarés dans .github/settings.yml
+#  2. Secrets DATABRICKS_HOST et DATABRICKS_TOKEN posés sur chaque environment
+#
+# on:
+#   push:
+#     branches:
+#       - main
+#   workflow_dispatch:
+on: workflow_dispatch
+
+jobs:
+  deploy-files:
+    name: Deploy files
+    uses: valiuz/github_common_databricks/.github/workflows/deploy-databricks-files-any.yaml@main
+    with:
+      path_prefix: "valiuz-repos"
+      environment_list: "['agora','citadelle']"
+      repo_name: ${{ github.event.repository.name }}
+      version: "prd"
+      files_directory: "files"
+    secrets: inherit
