@@ -1,22 +1,22 @@
 name: Databricks files sync
 
-# Publie une copie consultable du dépôt dans le workspace Databricks.
+# Publishes a browsable copy of the repository into the Databricks workspace.
 #
-# Déclenchement manuel uniquement. Une synchronisation purge puis republie
-# l'intégralité du dépôt sur chaque environnement : la lancer à chaque push
-# serait disproportionné pour une copie de consultation.
+# Manual trigger only. Each run purges then republishes the whole repository on
+# every environment, one HTTP call per file: running it on each push would be
+# disproportionate for a read-only copy.
 #
-# Prérequis dans l'application enfant :
-#  1. Environments agora et citadelle déclarés dans .github/settings.yml
-#  2. Secrets DATABRICKS_HOST et DATABRICKS_TOKEN posés sur chaque environment
+# Prerequisites in the child application:
+#  1. agora and citadelle environments declared in .github/settings.yml
+#  2. DATABRICKS_HOST and DATABRICKS_TOKEN secrets set on each environment
 #
-# La copie atterrit dans /valiuz-repos/<nom-du-repo>/<version>. Ce chemin est
-# purgé avant chaque synchronisation : ne rien y stocker d'autre.
+# The copy lands in /valiuz-repos/<repository-name>/<version>. That path is
+# purged before every sync: do not store anything else under it.
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Sous-dossier de destination dans le workspace"
+        description: "Destination subfolder in the workspace"
         required: false
         default: "dev"
         type: choice
