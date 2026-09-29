@@ -67,7 +67,7 @@ versions:
     capabilities: []
   "2.1.0":
     sourceCommit: 87f82f6fd297029c7b73768ed801e5a7bb7de6cb
-    summary: Livraison de fichiers de tout type vers le workspace Databricks via un workflow réutilisable.
+    summary: Publication à la demande d'une copie consultable du dépôt dans le workspace Databricks.
     extends: 2.0.1
     capabilities:
       - databricks-workspace-file-delivery
@@ -447,22 +447,19 @@ capabilities:
         path: .agents/skills/create-analytics-dbx-app/references/sharing.md
   databricks-workspace-file-delivery:
     since: 2.1.0
-    description: Envoie les fichiers de tout type vers le workspace Databricks depuis trois workflows d'environnement.
+    description: Publie à la demande une copie consultable du dépôt dans le workspace Databricks, sans filtre d'extension.
     probes:
       - type: file
-        path: .github/workflows/databricks-files-build.yaml
-      - type: file
-        path: .github/workflows/databricks-files-release.yaml
-      - type: file
-        path: .github/workflows/databricks-files-staging.yaml
-      - type: file
-        path: files/.gitkeep
+        path: .github/workflows/databricks-files-sync.yaml
       - type: fileContains
-        path: .github/workflows/databricks-files-release.yaml
+        path: .github/workflows/databricks-files-sync.yaml
         text: deploy-databricks-files-any.yaml@main
       - type: fileContains
-        path: .github/workflows/databricks-files-release.yaml
-        text: 'version: "prd"'
+        path: .github/workflows/databricks-files-sync.yaml
+        text: 'files_directory: "."'
+      - type: fileContains
+        path: .github/workflows/databricks-files-sync.yaml
+        text: 'exclude_paths:'
 upgrades:
   - from: 1.0.0
     to: 1.1.0

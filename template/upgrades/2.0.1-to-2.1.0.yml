@@ -2,25 +2,22 @@ schemaVersion: 1
 id: 2.0.1-to-2.1.0
 from: 2.0.1
 to: 2.1.0
-summary: Ajoute la livraison de fichiers de tout type vers le workspace Databricks, inactive tant que l'application ne l'active pas.
+summary: Ajoute la publication à la demande d'une copie consultable du dépôt dans le workspace Databricks.
 changes:
-  - id: databricks-files-workflows
+  - id: databricks-files-sync-workflow
     mode: guided
-    title: Ajouter les trois workflows de livraison de fichiers
-    description: Les workflows délèguent à deploy-databricks-files-any et sont livrés inertes en workflow_dispatch seul.
+    title: Ajouter le workflow de synchronisation du dépôt
+    description: Le workflow délègue à deploy-databricks-files-any et publie tout le dépôt, hors artefacts, sur déclenchement manuel.
     paths:
-      - .github/workflows/databricks-files-build.yaml
-      - .github/workflows/databricks-files-release.yaml
-      - .github/workflows/databricks-files-staging.yaml
-      - files/.gitkeep
+      - .github/workflows/databricks-files-sync.yaml
       - template/manifest.yml
       - template/upgrades/2.0.1-to-2.1.0.yml
     instructions:
-      - Copier les trois workflows et le dossier files/ sans modifier les valeurs path_prefix et environment_list.
-      - "Décommenter le bloc on: de build et release, puis retirer la ligne on: workflow_dispatch, uniquement après avoir provisionné les environments."
-      - Conserver staging en déclenchement manuel.
-      - Déposer dans files/ les fichiers à publier ; aucune extension n'est filtrée, seuls les éléments cachés, node_modules et .DS_Store sont exclus.
+      - Copier le workflow sans modifier les valeurs path_prefix et environment_list.
+      - "Conserver le déclenchement manuel : une synchronisation purge puis republie l'intégralité du dépôt sur chaque environnement."
+      - "Adapter exclude_paths aux artefacts de l'application ; les éléments cachés et .DS_Store sont toujours exclus."
       - "Ne pas stocker d'autre contenu sous le chemin cible : le job de nettoyage purge /valiuz-repos/<repo>/<version> avant chaque envoi."
+      - "Vérifier qu'aucun fichier du dépôt ne dépasse 10 Mo : workspace/import les rejette."
   - id: databricks-files-environments
     mode: manual
     title: Provisionner les environments et leurs secrets Databricks

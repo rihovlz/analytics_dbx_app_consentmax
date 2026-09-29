@@ -70,7 +70,7 @@ test("verifies the source capabilities and exposes the latest upgrade by default
   assert.deepEqual(
     upgrade.changes.map((change: { id: string }) => change.id),
     [
-      "databricks-files-workflows",
+      "databricks-files-sync-workflow",
       "databricks-files-environments",
     ],
   );

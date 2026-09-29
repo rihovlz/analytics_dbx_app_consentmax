@@ -23,7 +23,7 @@ ni credential, ni configuration du workspace, ni donnée métier.
 | `1.5.0` | `26a1d0a64a9fed4d0a9cad1c7031a9d2c07eb95f` | Analyses et préférences personnelles optionnelles sur tables Delta de développement |
 | `2.0.0` | `8b779bcb363a7c57bdea12342964601d0acdfef4` | Runtime AppKit, routes React, adaptateurs bornés, parcours de capacités et skills amont |
 | `2.0.1` | `ba98c16999674181c76a65a5efd5a4e7bdf7cd7e` | Résultats SQL JSON vides confirmés, sans nouvelle capability |
-| `2.1.0` | `87f82f6fd297029c7b73768ed801e5a7bb7de6cb` | Livraison de fichiers de tout type vers le workspace Databricks |
+| `2.1.0` | `87f82f6fd297029c7b73768ed801e5a7bb7de6cb` | Copie consultable du dépôt dans le workspace Databricks, à la demande |
 
 Le point historique est le SHA complet de la branche de base examinée pour préparer la version. Il sert à borner le
 diff, pas à reproduire seul le checkout final. Le manifeste et ses sondes définissent le contrat réel de la version.
@@ -342,23 +342,29 @@ ne demande ni écriture SQL ni changement de droits.
 
 ## Passage de 2.0.1 à 2.1.0
 
-Cette version mineure ajoute `databricks-workspace-file-delivery`. Les trois workflows sont livrés inertes : ils ne se
-déclenchent qu'à la demande tant que l'application ne décommente pas ses triggers. Aucun déploiement existant n'est
-modifié pendant la mise à niveau du code.
+Cette version mineure ajoute `databricks-workspace-file-delivery`, qui publie une copie consultable du dépôt dans le
+workspace Databricks. Le déclenchement est manuel : aucun déploiement existant n'est modifié pendant la mise à niveau
+du code.
 
 ```bash
 npm run template:diff -- --from 2.0.1 --to 2.1.0
 ```
 
-Copier les trois workflows et le dossier `files/`. Conserver les valeurs `path_prefix` et `environment_list`, qui
-correspondent à la convention de déploiement Valiuz. Le déploiement cible
-`/valiuz-repos/<nom-du-repo>/<version>` et purge ce chemin avant chaque envoi : ne rien y stocker d'autre.
+Copier `.github/workflows/databricks-files-sync.yaml`. Conserver les valeurs `path_prefix` et `environment_list`, qui
+correspondent à la convention de déploiement Valiuz. La copie atterrit dans
+`/valiuz-repos/<nom-du-repo>/<version>` et ce chemin est purgé avant chaque synchronisation : ne rien y stocker d'autre.
 
 Provisionner ensuite les environments `agora` et `citadelle` via `.github/settings.yml`, puis poser
-`DATABRICKS_HOST` et `DATABRICKS_TOKEN` sur chacun. Les workflows échouent tant que ces secrets sont absents.
+`DATABRICKS_HOST` et `DATABRICKS_TOKEN` sur chacun. Le workflow échoue tant que ces secrets sont absents.
 
-Aucune extension n'est filtrée, mais `workspace/import` plafonne autour de 10 Mo par fichier et convertit en notebook
-tout fichier portant l'en-tête `# Databricks notebook source`.
+Le workflow publie tout le dépôt sauf les répertoires listés dans `exclude_paths` et les éléments cachés. Aucune
+extension n'est filtrée, mais deux limites s'appliquent : `workspace/import` plafonne autour de 10 Mo par fichier, et
+`format=AUTO` convertit en notebook tout fichier portant l'en-tête `# Databricks notebook source`, ce qui lui fait
+perdre son extension.
+
+Le déclenchement reste manuel parce qu'une synchronisation purge puis republie l'intégralité du dépôt sur chaque
+environnement, à raison d'un appel HTTP par fichier. La lancer à chaque push serait disproportionné pour une copie de
+consultation.
 
 ```bash
 npm run template:check -- --to 2.1.0
