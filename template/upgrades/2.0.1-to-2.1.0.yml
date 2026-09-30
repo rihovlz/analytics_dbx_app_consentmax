@@ -1,0 +1,35 @@
+schemaVersion: 1
+id: 2.0.1-to-2.1.0
+from: 2.0.1
+to: 2.1.0
+summary: Ajoute la publication à la demande d'une copie consultable du dépôt dans le workspace Databricks.
+changes:
+  - id: databricks-files-sync-workflow
+    mode: guided
+    title: Ajouter le workflow de synchronisation du dépôt
+    description: Le workflow délègue à deploy-databricks-files-any et publie tout le dépôt, hors artefacts, sur déclenchement manuel.
+    paths:
+      - .github/workflows/databricks-files-sync.yaml
+      - template/manifest.yml
+      - template/upgrades/2.0.1-to-2.1.0.yml
+    instructions:
+      - Copier le workflow sans modifier les valeurs path_prefix et environment_list.
+      - "Conserver le déclenchement manuel : une synchronisation purge puis republie l'intégralité du dépôt sur chaque environnement."
+      - "Adapter exclude_paths aux artefacts de l'application ; les éléments cachés et .DS_Store sont toujours exclus."
+      - "Ne pas stocker d'autre contenu sous le chemin cible : le job de nettoyage purge /valiuz-repos/<repo>/<version> avant chaque envoi."
+      - "Vérifier qu'aucun fichier du dépôt ne dépasse 10 Mo : workspace/import les rejette."
+  - id: databricks-files-environments
+    mode: manual
+    title: Provisionner les environments et leurs secrets Databricks
+    description: Les environments sont appliqués par 6po-vlz[bot] depuis settings.yml, les secrets restent posés à la main.
+    paths:
+      - .github/settings.yml
+    instructions:
+      - Déclarer les environments agora et citadelle ainsi que le runner group Databricks d'identifiant 43 dans .github/settings.yml.
+      - Fusionner sur la branche par défaut pour que 6po-vlz[bot] crée les environments.
+      - Générer un jeton d'accès personnel Databricks sur chaque workspace, puis poser DATABRICKS_HOST et DATABRICKS_TOKEN avec gh secret set --env.
+      - "Consigner l'émetteur et l'échéance de chaque jeton ; aucun IaC ne les couvre."
+validation:
+  - npm run template:status
+  - npm run template:check -- --to 2.1.0
+  - npm run template:release:check -- --base origin/main

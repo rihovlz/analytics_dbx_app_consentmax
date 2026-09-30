@@ -1,0 +1,39 @@
+name: Databricks files sync
+
+# Publishes a browsable copy of the repository into the Databricks workspace.
+#
+# Manual trigger only. Each run purges then republishes the whole repository on
+# every environment, one HTTP call per file: running it on each push would be
+# disproportionate for a read-only copy.
+#
+# Prerequisites in the child application:
+#  1. agora and citadelle environments declared in .github/settings.yml
+#  2. DATABRICKS_HOST and DATABRICKS_TOKEN secrets set on each environment
+#
+# The copy lands in /valiuz-repos/<repository-name>/<version>. That path is
+# purged before every sync: do not store anything else under it.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Destination subfolder in the workspace"
+        required: false
+        default: "dev"
+        type: choice
+        options:
+          - dev
+          - stg
+          - prd
+
+jobs:
+  sync-files:
+    name: Sync repository files
+    uses: valiuz/github_common_databricks/.github/workflows/deploy-databricks-files-any.yaml@main
+    with:
+      path_prefix: "valiuz-repos"
+      environment_list: "['agora','citadelle']"
+      repo_name: ${{ github.event.repository.name }}
+      version: ${{ inputs.version }}
+      files_directory: "."
+      exclude_paths: "node_modules dist build coverage .next"
+    secrets: inherit

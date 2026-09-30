@@ -2,7 +2,7 @@ schemaVersion: 1
 template:
   id: valiuz/analytics_dbx_app_template
   repository: https://github.com/valiuz/analytics_dbx_app_template
-  currentVersion: 2.0.1
+  currentVersion: 2.1.0
 requirements:
   node: ">=22.16 <23"
   databricksCli: ">=0.295.0"
@@ -65,6 +65,12 @@ versions:
     summary: Résultats SQL JSON vides reconnus sans masquer les réponses incomplètes ni rejouer la requête.
     extends: 2.0.0
     capabilities: []
+  "2.1.0":
+    sourceCommit: 87f82f6fd297029c7b73768ed801e5a7bb7de6cb
+    summary: Publication à la demande d'une copie consultable du dépôt dans le workspace Databricks.
+    extends: 2.0.1
+    capabilities:
+      - databricks-workspace-file-delivery
 capabilities:
   guided-app-workflow:
     since: 1.0.0
@@ -439,6 +445,21 @@ capabilities:
         text: --share-analysis
       - type: file
         path: .agents/skills/create-analytics-dbx-app/references/sharing.md
+  databricks-workspace-file-delivery:
+    since: 2.1.0
+    description: Publie à la demande une copie consultable du dépôt dans le workspace Databricks, sans filtre d'extension.
+    probes:
+      - type: file
+        path: .github/workflows/databricks-files-sync.yaml
+      - type: fileContains
+        path: .github/workflows/databricks-files-sync.yaml
+        text: deploy-databricks-files-any.yaml@main
+      - type: fileContains
+        path: .github/workflows/databricks-files-sync.yaml
+        text: 'files_directory: "."'
+      - type: fileContains
+        path: .github/workflows/databricks-files-sync.yaml
+        text: 'exclude_paths:'
 upgrades:
   - from: 1.0.0
     to: 1.1.0
@@ -461,3 +482,6 @@ upgrades:
   - from: 2.0.0
     to: 2.0.1
     path: template/upgrades/2.0.0-to-2.0.1.yml
+  - from: 2.0.1
+    to: 2.1.0
+    path: template/upgrades/2.0.1-to-2.1.0.yml
