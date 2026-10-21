@@ -24,6 +24,6 @@ resources:
             permission: CAN_RUN
         - name: "data-last-consent-event"
           uc_securable:
-            securable_full_name: "dev-consent.analytics.last_consent_event"
+            securable_full_name: "prd-consent.analytics.last_consent_event"
             securable_type: TABLE
             permission: SELECT

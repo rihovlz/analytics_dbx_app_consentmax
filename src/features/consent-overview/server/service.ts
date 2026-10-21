@@ -11,7 +11,7 @@ import { getServerConfig, type ServerConfig } from "@/lib/config/server-config";
 import { getSqlExecutor } from "@/lib/databricks/sql";
 import type { SqlExecutor } from "@/lib/databricks/types";
 
-const SOURCE = "dev-consent.analytics.last_consent_event";
+const SOURCE = "prd-consent.analytics.last_consent_event";
 
 type Dependencies = { config?: ServerConfig; executor?: SqlExecutor };
 

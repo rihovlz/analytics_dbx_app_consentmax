@@ -1,10 +1,10 @@
 {
-  "project": "dev-consent",
+  "project": "prd-consent",
   "sources": [
     {
       "name": "last-consent-event",
-      "fullName": "dev-consent.analytics.last_consent_event",
-      "purpose": "Alimenter last-consent-event"
+      "fullName": "prd-consent.analytics.last_consent_event",
+      "purpose": "Dernier état de consentement par contact — source principale dashboard ConsentMax"
     }
   ]
 }

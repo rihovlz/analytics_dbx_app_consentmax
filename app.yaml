@@ -18,7 +18,7 @@ env:
   - name: DATABRICKS_GENIE_SPACE_ID_FRAIM_SALES
     valueFrom: fraim-sales
   - name: DATABRICKS_CATALOG
-    value: "dev-consent"
+    value: "prd-consent"
   - name: DATABRICKS_SCHEMA
     value: "analytics"
   - name: LOG_LEVEL

@@ -6,10 +6,10 @@
     "appkitEnvironmentVariable": "DATABRICKS_WAREHOUSE_ID",
     "permission": "CAN_USE"
   },
-  "project": "dev-consent",
+  "project": "prd-consent",
   "sources": [
     {
-      "fullName": "dev-consent.analytics.last_consent_event",
+      "fullName": "prd-consent.analytics.last_consent_event",
       "permission": "SELECT"
     }
   ],

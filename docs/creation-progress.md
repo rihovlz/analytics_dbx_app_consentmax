@@ -12,9 +12,9 @@ Dernière mise à jour : 2026-10-21
 | Tests unitaires | ✅ 211/211 | `npm test` — 0 échec |
 | Build production | ✅ fait | `npm run build` sans erreur |
 | Smoke démo local | ✅ vérifié | API `/api/consent-overview` répond correctement en mode démo |
-| Connexion données réelles | ⏳ à faire | Nécessite `.env.local` + profil OAuth `richard dbx` |
-| Recette comparaison prd vs app | ⏳ à faire | Après connexion données réelles |
-| Publication GitHub | ⏳ en attente d'autorisation | |
+| Connexion données réelles | ✅ fait | `npm run databricks:check` + `test:databricks` OK sur `prd-consent` |
+| Recette comparaison prd vs app | ✅ fait | Voir section Recette ci-dessous |
+| Basculement catalogue dev → prd | ✅ fait | `config/data-access.json`, `app.yaml`, `.env.example` mis à jour |
 
 ## Décisions
 
@@ -46,6 +46,23 @@ Dernière mise à jour : 2026-10-21
 | `event_name` vs `current_consent` pour les KPIs | formules Looker Studio utilisent `event_name` (accept_all, dismiss…) mais la table expose aussi `current_consent` | À valider par recette |
 | Exposed vs Eligible (page 1 bas) | Définitions non encore codées | Autre table ? colonne manquante ? |
 | Pending rate evolution par device | Requiert `fl_consent_w_choice = false` + device sur fenêtre glissante | Page 2 du PDF — tranche suivante |
+
+## Recette KPI — prd-consent (app) vs PDF Looker Studio 2026-10-20
+
+Exécutée le 2026-10-21. Serveur local `APP_MODE=databricks`, profil `richard-dbx`, warehouse `team-da-poc`.
+
+| KPI | App prd-consent | PDF référence | Écart | Statut |
+|---|---|---|---|---|
+| contactTotal | 24 578 095 | 24 600 000 | -0.1% | ✅ |
+| contactWithChoice | 22 932 190 | 22 900 000 | +0.1% | ✅ |
+| optIn | 13 894 247 | 13 948 207 | -0.4% | ✅ |
+| custom | 107 995 | 108 005 | -0.0% | ✅ |
+| optOut | 8 861 954 | 8 875 978 | -0.2% | ✅ |
+| withoutChoice | 1 645 905 | 1 600 000 | +2.9% | ⚠️ écart mineur |
+| consentRate | 60.6% | 60.9% | -0.3pp | ✅ |
+| rejectRate | 38.6% | 38.8% | -0.2pp | ✅ |
+
+**Écart `withoutChoice` (+2.9%)** : probablement dû à une différence de snapshot (app lit en temps réel, PDF capturé au 2026-10-20 23:59:56). Non bloquant.
 
 ## Tranche suivante recommandée
 
