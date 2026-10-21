@@ -6,6 +6,7 @@ const links = [
   { href: "/", label: "Accueil" },
   { href: "/visualizations", label: "Visualisations" },
   { href: "/genie", label: "Genie" },
+  { href: "/consent-overview", label: "Vue d'ensemble ConsentMax" },
   // feature:new inserts links above this line.
 ];
 

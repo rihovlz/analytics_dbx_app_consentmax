@@ -22,3 +22,8 @@ resources:
             name: "Genie - FRAIM - Sales Performance"
             space_id: "01f1706a44af166db267134b70dc27c8"
             permission: CAN_RUN
+        - name: "data-last-consent-event"
+          uc_securable:
+            securable_full_name: "dev-consent.analytics.last_consent_event"
+            securable_type: TABLE
+            permission: SELECT

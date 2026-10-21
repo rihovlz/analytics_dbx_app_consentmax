@@ -6,8 +6,13 @@
     "appkitEnvironmentVariable": "DATABRICKS_WAREHOUSE_ID",
     "permission": "CAN_USE"
   },
-  "project": "__DATABRICKS_CATALOG__",
-  "sources": [],
+  "project": "dev-consent",
+  "sources": [
+    {
+      "fullName": "dev-consent.analytics.last_consent_event",
+      "permission": "SELECT"
+    }
+  ],
   "personalState": [],
   "genie": [
     {

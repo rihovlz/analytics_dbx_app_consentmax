@@ -15,7 +15,12 @@ Ces choix cadrent le besoin ; ils n’activent ni plugin, ni ressource, ni droit
 
 ## KPI, sources et fonctionnalités
 
-Aucun KPI généré. La première tranche suit les capacités et le critère de succès ci-dessus.
+### Vue d'ensemble ConsentMax
+
+- Question : Quel est l'état global du consentement ?
+- Source : `last-consent-event`
+- KPI : Opt-in (count, contacts)
+- Critère d’acceptation : COUNT(*) WHERE current_consent = accept_all
 
 ## Accès, confidentialité et exploitation
 

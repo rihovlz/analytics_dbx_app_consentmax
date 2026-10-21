@@ -1,4 +1,10 @@
 {
-  "project": "__DATABRICKS_CATALOG__",
-  "sources": []
+  "project": "dev-consent",
+  "sources": [
+    {
+      "name": "last-consent-event",
+      "fullName": "dev-consent.analytics.last_consent_event",
+      "purpose": "Alimenter last-consent-event"
+    }
+  ]
 }
