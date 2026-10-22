@@ -318,16 +318,18 @@ function OptInByPeriod({
           <span className="inline-block h-2.5 w-4 rounded-sm bg-green-400" />Reexposed
         </span>
       </p>
-      <div className="flex h-52 items-end gap-0.5 overflow-x-auto pb-1" role="img" aria-label={`Opt-in — ${GRAN_LABELS[granularity]}`}>
+      {/* height: 208px = h-52. Les barres utilisent des hauteurs px calculées. */}
+      <div className="relative flex h-52 items-end gap-0.5 overflow-x-auto pb-1" role="img" aria-label={`Opt-in — ${GRAN_LABELS[granularity]}`}>
         {data.map((row) => {
           const total = row.firstConsent + row.reexposed;
-          const pct = total / maxVal;
-          const firstPct = total > 0 ? row.firstConsent / total : 0;
+          const barH = Math.round((total / maxVal) * 192); // 192px = h-52 (208) - pb (16)
+          const firstH = total > 0 ? Math.round((row.firstConsent / total) * barH) : 0;
+          const reexH = barH - firstH;
           return (
-            <div key={row.period} className="group relative flex min-w-[10px] flex-1 flex-col items-center justify-end">
-              <div className="w-full" style={{ height: `${(pct * 100).toFixed(1)}%` }}>
-                <div className="w-full bg-green-400" style={{ height: `${((1 - firstPct) * 100).toFixed(1)}%` }} />
-                <div className="w-full bg-green-700" style={{ height: `${(firstPct * 100).toFixed(1)}%` }} />
+            <div key={row.period} className="group relative flex min-w-[10px] flex-1 flex-col items-center justify-end" style={{ height: "192px" }}>
+              <div className="flex w-full flex-col justify-end" style={{ height: `${barH}px` }}>
+                <div className="w-full bg-green-400" style={{ height: `${reexH}px` }} />
+                <div className="w-full bg-green-700" style={{ height: `${firstH}px` }} />
               </div>
               {data.length <= 15 && (
                 <span className="mt-1 block truncate text-center text-[9px] text-muted" style={{ maxWidth: "100%" }}>
