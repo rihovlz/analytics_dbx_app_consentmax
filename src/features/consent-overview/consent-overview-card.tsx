@@ -330,7 +330,7 @@ function KpiHeader({ kpi, deviceData }: {
                   {/* % last 30 days — affiché uniquement si disponible */}
                   {l30 !== null && l30 !== undefined && (
                     <span className="text-xs text-white/60" title="last 30 days">
-                      {fmtPct(l30)} <span className="opacity-70">30d</span>
+                      {fmtPct(l30)} <span className="opacity-70">(last 30d)</span>
                     </span>
                   )}
                 </div>
