@@ -181,8 +181,8 @@ function FilterBar({ filters, availableMembers, availableDeviceTypes, onChange }
 
 // ── KPI header — 1 bloc fusionné + Consent by device ─────────────────────────
 
-function KpiHeader({ kpi, status, deviceData }: {
-  kpi: ConsentOverviewResult["kpi"]; status: string;
+function KpiHeader({ kpi, deviceData }: {
+  kpi: ConsentOverviewResult["kpi"];
   deviceData: ConsentOverviewResult["byDevice"];
 }) {
   const [deviceMode, setDeviceMode] = useState<"pct" | "abs">("pct");
@@ -311,29 +311,50 @@ const GRAN_LABELS: Record<Granularity, string> = {
   day: "Last 30 days", week: "Last 12 weeks", month: "Last 12 months",
 };
 
+type BarTooltip = { x: number; y: number; label: string; firstConsent: number; reexposed: number; total: number; pctFirst: string; pctReex: string };
+
 function OptInByPeriod({ data, granularity, onGranularity }: {
   data: ConsentOverviewResult["byPeriod"]; granularity: Granularity;
   onGranularity: (g: Granularity) => void;
 }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const CHART_H = 180;
-  const LABEL_H = 32;
-  // Largeur de barre : assez large pour afficher les labels sans chevauchement
-  const BAR_W   = granularity === "month" ? 40 : granularity === "week" ? 36 : 28;
+  const scrollRef  = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  const [tooltip, setTooltip] = useState<BarTooltip | null>(null);
+
+  // Dimensions SVG
+  const BAR_W   = granularity === "month" ? 44 : granularity === "week" ? 40 : 32;
+  const CHART_H = 180;   // hauteur zone barres (px SVG)
+  const LABEL_H = 28;    // hauteur axe X (px SVG)
+  const SVG_H   = CHART_H + LABEL_H;
+  const SVG_W   = Math.max(data.length * BAR_W, 100);
   const maxVal  = Math.max(...data.map((r) => r.firstConsent + r.reexposed), 1);
 
+  // Fréquence des labels
+  const showEvery = granularity === "day" ? Math.max(1, Math.ceil(data.length / 10)) : 1;
+
+  // Scroll tout à droite après chargement
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollLeft = el.scrollWidth;
   }, [data]);
 
-  // Pour "month" et "week" : on affiche chaque label. Pour "day" : 1 sur N selon densité.
-  const showEvery = granularity === "day"
-    ? Math.max(1, Math.ceil(data.length / 10))
-    : 1;
+  function handleBarHover(e: React.MouseEvent, row: ConsentOverviewResult["byPeriod"][number], label: string) {
+    const section = sectionRef.current;
+    if (!section) return;
+    const rect = section.getBoundingClientRect();
+    const total    = row.firstConsent + row.reexposed;
+    const pctFirst = total > 0 ? fmtPct(row.firstConsent / total) : "—";
+    const pctReex  = total > 0 ? fmtPct(row.reexposed    / total) : "—";
+    // Position relative au bloc section
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    setTooltip({ x, y, label, firstConsent: row.firstConsent, reexposed: row.reexposed, total, pctFirst, pctReex });
+  }
 
   return (
-    <section aria-label="Opt-in by period" className="rounded-2xl border border-line bg-surface p-5 shadow-panel">
+    <section ref={sectionRef} aria-label="Opt-in by period"
+      className="relative rounded-2xl border border-line bg-surface p-5 shadow-panel"
+      onMouseLeave={() => setTooltip(null)}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">Opt-in by period</h3>
         <div className="flex gap-1 rounded-lg border border-line p-1">
@@ -349,61 +370,63 @@ function OptInByPeriod({ data, granularity, onGranularity }: {
         <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-4 rounded-sm bg-green-700" />1st consent</span>
         <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-4 rounded-sm bg-green-400" />Reexposed</span>
       </p>
+
+      {/* Conteneur scrollable — tout dans un SVG pour axe X propre */}
       <div ref={scrollRef} className="overflow-x-auto">
-        <div className="flex items-end"
-          style={{ width: `${Math.max(data.length * BAR_W, 100)}px`, height: `${CHART_H + LABEL_H}px` }}
-          role="img" aria-label={`Opt-in — ${GRAN_LABELS[granularity]}`}>
+        <svg width={SVG_W} height={SVG_H} role="img" aria-label={`Opt-in — ${GRAN_LABELS[granularity]}`}>
           {data.map((row, i) => {
-            const total   = row.firstConsent + row.reexposed;
-            const barH    = Math.round((total / maxVal) * CHART_H);
-            const firstH  = total > 0 ? Math.round((row.firstConsent / total) * barH) : 0;
-            const reexH   = barH - firstH;
-            const pctFirst = total > 0 ? fmtPct(row.firstConsent / total) : "—";
-            const pctReex  = total > 0 ? fmtPct(row.reexposed    / total) : "—";
+            const total  = row.firstConsent + row.reexposed;
+            const barH   = Math.round((total / maxVal) * CHART_H);
+            const firstH = total > 0 ? Math.round((row.firstConsent / total) * barH) : 0;
+            const reexH  = barH - firstH;
+            const cx     = i * BAR_W + BAR_W / 2;
+            const label  = fmtPeriodLabel(row.period, granularity);
             const showLabel = i % showEvery === 0 || i === data.length - 1;
-            const label    = fmtPeriodLabel(row.period, granularity);
+            const barX   = i * BAR_W + 2;
+            const barW   = BAR_W - 4;
 
             return (
-              <div key={row.period} className="group relative flex flex-col items-center justify-end"
-                style={{ width: `${BAR_W}px`, height: `${CHART_H + LABEL_H}px`, flexShrink: 0 }}>
-                {/* Barres */}
-                <div className="flex w-full flex-col justify-end px-px" style={{ height: `${CHART_H}px` }}>
-                  <div className="w-full rounded-t-sm bg-green-400" style={{ height: `${reexH}px` }} />
-                  <div className="w-full bg-green-700"              style={{ height: `${firstH}px` }} />
-                </div>
+              <g key={row.period}
+                onMouseEnter={(e) => handleBarHover(e, row, label)}
+                onMouseMove={(e)  => handleBarHover(e, row, label)}
+                style={{ cursor: "default" }}>
+                {/* Segment reexposed (vert clair, en haut) */}
+                <rect x={barX} y={CHART_H - barH} width={barW} height={reexH} fill="#4ade80" rx={2} ry={2} />
+                {/* Segment 1st consent (vert foncé, en bas) */}
+                <rect x={barX} y={CHART_H - firstH} width={barW} height={firstH} fill="#15803d" />
                 {/* Étiquette axe X */}
-                <div className="flex items-center justify-center overflow-hidden"
-                  style={{ height: `${LABEL_H}px`, width: `${BAR_W}px` }}>
-                  {showLabel && (
-                    <span className="select-none whitespace-nowrap text-[9px] leading-tight text-muted">
-                      {label}
-                    </span>
-                  )}
-                </div>
-                {/* Infobulle */}
-                <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1 hidden w-48 -translate-x-1/2 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl group-hover:block">
-                  <p className="mb-1 font-semibold">{label}</p>
-                  <div className="flex items-center gap-1.5">
-                    <span className="inline-block h-2 w-3 shrink-0 rounded-sm bg-green-700" />
-                    <span className="flex-1">1st consent</span>
-                    <span className="tabular-nums">{fmtN(row.firstConsent)}</span>
-                    <span className="text-white/60">({pctFirst})</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="inline-block h-2 w-3 shrink-0 rounded-sm bg-green-400" />
-                    <span className="flex-1">Reexposed</span>
-                    <span className="tabular-nums">{fmtN(row.reexposed)}</span>
-                    <span className="text-white/60">({pctReex})</span>
-                  </div>
-                  <div className="mt-1 flex justify-between border-t border-white/20 pt-1 font-semibold">
-                    <span>Total</span><span className="tabular-nums">{fmtN(total)}</span>
-                  </div>
-                </div>
-              </div>
+                {showLabel && (
+                  <text x={cx} y={CHART_H + LABEL_H - 6} textAnchor="middle" fontSize={11}
+                    fill="currentColor" fillOpacity={0.55}>{label}</text>
+                )}
+              </g>
             );
           })}
-        </div>
+        </svg>
       </div>
+
+      {/* Infobulle positionnée dans le référentiel du bloc section */}
+      {tooltip && (
+        <div className="pointer-events-none absolute z-30 w-52 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl"
+          style={{ left: tooltip.x + 12, top: tooltip.y - 80, transform: "translateY(-50%)" }}>
+          <p className="mb-1 font-semibold">{tooltip.label}</p>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-block h-2 w-3 shrink-0 rounded-sm bg-green-700" />
+            <span className="flex-1">1st consent</span>
+            <span className="tabular-nums">{fmtN(tooltip.firstConsent)}</span>
+            <span className="text-white/60">({tooltip.pctFirst})</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-block h-2 w-3 shrink-0 rounded-sm" style={{ background: "#4ade80" }} />
+            <span className="flex-1">Reexposed</span>
+            <span className="tabular-nums">{fmtN(tooltip.reexposed)}</span>
+            <span className="text-white/60">({tooltip.pctReex})</span>
+          </div>
+          <div className="mt-1 flex justify-between border-t border-white/20 pt-1 font-semibold">
+            <span>Total</span><span className="tabular-nums">{fmtN(tooltip.total)}</span>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -445,16 +468,16 @@ function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvoluti
   }
 
   return (
-    <section aria-label="Opt-in Rate Evolution" className="rounded-2xl border border-line bg-surface p-5 shadow-panel">
-      <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Opt-in rate evolution</h3>
-      <div className="relative">
-        <svg viewBox={`0 0 ${W} ${H}`} className="h-52 w-full" preserveAspectRatio="xMidYMid meet"
+    <section aria-label="Opt-in Rate Evolution" className="flex flex-col rounded-2xl border border-line bg-surface p-5 shadow-panel">
+      <h3 className="mb-3 shrink-0 text-sm font-semibold uppercase tracking-wide text-muted">Opt-in rate evolution</h3>
+      <div className="relative min-h-0 flex-1">
+        <svg viewBox={`0 0 ${W} ${H}`} className="h-full min-h-[180px] w-full" preserveAspectRatio="none"
           role="img" aria-label="Opt-in rate evolution"
           onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)}>
           {yTicks.map((v) => (
             <g key={v}>
               <line x1={PAD.left} y1={toY(v)} x2={W - PAD.right} y2={toY(v)} stroke="currentColor" strokeOpacity={0.1} strokeWidth={1} />
-              <text x={PAD.left - 6} y={toY(v) + 4} textAnchor="end" fontSize={11} fill="currentColor" fillOpacity={0.5}>{fmtPct(v, 0)}</text>
+              <text x={PAD.left - 6} y={toY(v) + 4} textAnchor="end" fontSize={13} fill="currentColor" fillOpacity={0.6}>{fmtPct(v, 0)}</text>
             </g>
           ))}
           {xIndices.map((i) => {
@@ -462,7 +485,7 @@ function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvoluti
             const x      = toX(i);
             const anchor = i === data.length - 1 ? "end" : i === 0 ? "start" : "middle";
             return (
-              <text key={i} x={x} y={H - 6} textAnchor={anchor} fontSize={10} fill="currentColor" fillOpacity={0.5}>
+              <text key={i} x={x} y={H - 6} textAnchor={anchor} fontSize={12} fill="currentColor" fillOpacity={0.6}>
                 {fmtDate(row.day)}
               </text>
             );
@@ -581,18 +604,31 @@ function ConsentByPageType({ data }: { data: ConsentOverviewResult["byPageType"]
 // ── Main card ─────────────────────────────────────────────────────────────────
 
 type State =
-  | { status: "loading" }
+  | { status: "initial" }
   | { status: "success"; result: ConsentOverviewResult }
   | { status: "error"; message: string; requestId?: string };
 
 const DEFAULT_FILTERS: FilterParams = { granularity: "month" };
 
+function Spinner() {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center rounded-2xl bg-surface/60 backdrop-blur-sm">
+      <svg className="h-10 w-10 animate-spin text-accent" viewBox="0 0 24 24" fill="none" aria-label="Loading">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+      </svg>
+    </div>
+  );
+}
+
 export function ConsentOverviewCard() {
-  const [filters, setFilters] = useState<FilterParams>(DEFAULT_FILTERS);
-  const [state, setState] = useState<State>({ status: "loading" });
+  const [filters, setFilters]       = useState<FilterParams>(DEFAULT_FILTERS);
+  const [state, setState]           = useState<State>({ status: "initial" });
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const load = useCallback((f: FilterParams) => {
-    setState({ status: "loading" });
+    // Si on a déjà des données : garder l'affichage et montrer un spinner overlay
+    setIsRefreshing(true);
     const params = new URLSearchParams();
     if (f.member)      params.set("member",      f.member);
     if (f.deviceType)  params.set("deviceType",  f.deviceType);
@@ -606,11 +642,12 @@ export function ConsentOverviewCard() {
         if (!res.ok) {
           const err = payload as { error?: { message?: string; requestId?: string } };
           setState({ status: "error", message: err.error?.message ?? "Data unavailable.", requestId: err.error?.requestId });
-          return;
+        } else {
+          setState({ status: "success", result: consentOverviewSchema.parse(payload) });
         }
-        setState({ status: "success", result: consentOverviewSchema.parse(payload) });
       })
-      .catch(() => setState({ status: "error", message: "Invalid server response." }));
+      .catch(() => setState({ status: "error", message: "Invalid server response." }))
+      .finally(() => setIsRefreshing(false));
   }, []);
 
   useEffect(() => { load(filters); }, [load, filters]);
@@ -618,11 +655,13 @@ export function ConsentOverviewCard() {
   const handleFilterChange = (partial: Partial<FilterParams>) => setFilters((f) => ({ ...f, ...partial }));
   const handleGranularity  = (g: Granularity) => setFilters((f) => ({ ...f, granularity: g }));
 
-  const result              = state.status === "success" ? state.result : null;
-  const availableMembers    = result?.filters.availableMembers    ?? [];
-  const availableDevices    = result?.filters.availableDeviceTypes ?? [];
-  const granularity         = result?.filters.granularity ?? (filters.granularity ?? "month");
-  const lastEventAt         = result?.kpi.lastEventAt ?? null;
+  const result           = state.status === "success" ? state.result : null;
+  const availableMembers = result?.filters.availableMembers    ?? [];
+  const availableDevices = result?.filters.availableDeviceTypes ?? [];
+  const granularity      = result?.filters.granularity ?? (filters.granularity ?? "month");
+  const lastEventAt      = result?.kpi.lastEventAt ?? null;
+
+  const isInitialLoad = state.status === "initial" && isRefreshing;
 
   return (
     <div className="min-h-screen space-y-5 p-6">
@@ -647,16 +686,20 @@ export function ConsentOverviewCard() {
         />
       </div>
 
-      {state.status === "loading" && <LoadingState label="Loading dashboard…" />}
-      {state.status === "error"   && <ErrorState title="Data unavailable" message={state.message} requestId={state.requestId} />}
+      {/* Chargement initial (aucune donnée encore) */}
+      {isInitialLoad && <LoadingState label="Loading dashboard…" />}
+      {state.status === "error" && <ErrorState title="Data unavailable" message={state.message} requestId={state.requestId} />}
 
       {result && (
-        <div className="space-y-5">
-          {/* Row 1 : KPI fusionné + Consent by device */}
-          <KpiHeader kpi={result.kpi} status={result.status} deviceData={result.byDevice} />
+        /* Wrapper relatif pour le spinner overlay */
+        <div className="relative space-y-5">
+          {isRefreshing && <Spinner />}
 
-          {/* Row 2 : Opt-in by period + Opt-in rate evolution côte à côte */}
-          <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+          {/* Row 1 : KPI fusionné + Consent by device */}
+          <KpiHeader kpi={result.kpi} deviceData={result.byDevice} />
+
+          {/* Row 2 : Opt-in by period + Opt-in rate evolution côte à côte, hauteur fixée */}
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-2" style={{ minHeight: "320px" }}>
             <OptInByPeriod data={result.byPeriod} granularity={granularity} onGranularity={handleGranularity} />
             <OptInRateEvolution data={result.rateEvolution} />
           </div>
