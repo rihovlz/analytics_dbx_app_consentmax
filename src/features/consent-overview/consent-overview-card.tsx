@@ -323,14 +323,14 @@ function OptInByPeriod({ data, granularity, onGranularity }: {
 
   // Dimensions SVG
   const BAR_W   = granularity === "month" ? 44 : granularity === "week" ? 40 : 32;
-  const CHART_H = 180;   // hauteur zone barres (px SVG)
-  const LABEL_H = 28;    // hauteur axe X (px SVG)
+  const CHART_H = 180;   // hauteur zone barres
+  const LABEL_H = 50;    // hauteur axe X — espace pour labels -45°
   const SVG_H   = CHART_H + LABEL_H;
   const SVG_W   = Math.max(data.length * BAR_W, 100);
   const maxVal  = Math.max(...data.map((r) => r.firstConsent + r.reexposed), 1);
 
-  // Fréquence des labels
-  const showEvery = granularity === "day" ? Math.max(1, Math.ceil(data.length / 10)) : 1;
+  // Toujours afficher chaque label (rotation -45° gère le chevauchement)
+  const showEvery = 1;
 
   // Scroll tout à droite après chargement
   useEffect(() => {
@@ -394,10 +394,17 @@ function OptInByPeriod({ data, granularity, onGranularity }: {
                 <rect x={barX} y={CHART_H - barH} width={barW} height={reexH} fill="#4ade80" rx={2} ry={2} />
                 {/* Segment 1st consent (vert foncé, en bas) */}
                 <rect x={barX} y={CHART_H - firstH} width={barW} height={firstH} fill="#15803d" />
-                {/* Étiquette axe X */}
+                {/* Étiquette axe X — rotation -45° ancrée sous le centre de la barre */}
                 {showLabel && (
-                  <text x={cx} y={CHART_H + LABEL_H - 6} textAnchor="middle" fontSize={11}
-                    fill="currentColor" fillOpacity={0.55}>{label}</text>
+                  <text
+                    x={cx} y={CHART_H + 10}
+                    textAnchor="end"
+                    fontSize={10}
+                    fill="currentColor"
+                    fillOpacity={0.6}
+                    transform={`rotate(-45, ${cx}, ${CHART_H + 10})`}>
+                    {label}
+                  </text>
                 )}
               </g>
             );
@@ -468,10 +475,11 @@ function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvoluti
   }
 
   return (
-    <section aria-label="Opt-in Rate Evolution" className="flex flex-col rounded-2xl border border-line bg-surface p-5 shadow-panel">
-      <h3 className="mb-3 shrink-0 text-sm font-semibold uppercase tracking-wide text-muted">Opt-in rate evolution</h3>
-      <div className="relative min-h-0 flex-1">
-        <svg viewBox={`0 0 ${W} ${H}`} className="h-full min-h-[180px] w-full" preserveAspectRatio="none"
+    <section aria-label="Opt-in Rate Evolution" className="rounded-2xl border border-line bg-surface p-5 shadow-panel">
+      <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Opt-in rate evolution</h3>
+      <div className="relative" style={{ height: "260px" }}>
+        <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%"
+          preserveAspectRatio="xMidYMid meet"
           role="img" aria-label="Opt-in rate evolution"
           onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)}>
           {yTicks.map((v) => (
