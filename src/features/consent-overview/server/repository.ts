@@ -81,12 +81,7 @@ const kpiRowSchema = z.object({
   last_event_at:        z.string().nullable(),
 });
 
-const kpiRatesRowSchema = z.object({
-  opt_in:  coerceNum,
-  custom:  coerceNum,
-  opt_out: coerceNum,
-  total:   coerceNum,
-});
+// Même schéma que kpiRowSchema — on réutilise kpiRowSchema pour last30d
 
 const byPeriodRowSchema = z.object({
   period:        coerceDate,
@@ -159,15 +154,16 @@ export async function loadKpiHeader(
       name: "consent-overview-kpi-last30d",
       statement: kpiHeaderQuery(fo),
       parameters: { ...baseParams(source, filters, w30) },
-      rowSchema:  kpiRatesRowSchema,
+      rowSchema:  kpiRowSchema,
       requestId,
       maxRows:    1,
     });
     const row30 = r30[0];
-    if (row30 && row30.total > 0) {
-      last30dConsentRate = row30.opt_in  / row30.total;
-      last30dRejectRate  = row30.opt_out / row30.total;
-      last30dCustomRate  = row30.custom  / row30.total;
+    const wc30  = row30?.contact_with_choice ?? 0;
+    if (row30 && wc30 > 0) {
+      last30dConsentRate = row30.opt_in  / wc30;
+      last30dRejectRate  = row30.opt_out / wc30;
+      last30dCustomRate  = row30.custom  / wc30;
     }
   }
 
