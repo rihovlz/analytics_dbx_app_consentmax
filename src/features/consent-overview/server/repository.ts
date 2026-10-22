@@ -53,46 +53,49 @@ function baseParams(source: string, filters: FilterParams) {
 
 // ── Schémas intermédiaires SQL ────────────────────────────────────────────────
 
+// AppKit peut retourner BigInt pour les SUM()/COUNT() et Date pour les colonnes DATE.
+const coerceNum = z.preprocess((v) => (typeof v === "bigint" ? Number(v) : v), z.coerce.number());
+const coerceDate = z.preprocess(
+  (v) => (v instanceof Date ? v.toISOString().slice(0, 10) : String(v)),
+  z.string(),
+);
+
 const kpiRowSchema = z.object({
-  contact_total: z.coerce.number(),
-  contact_with_choice: z.coerce.number(),
-  opt_in: z.coerce.number(),
-  custom: z.coerce.number(),
-  opt_out: z.coerce.number(),
-  without_choice: z.coerce.number(),
+  contact_total: coerceNum,
+  contact_with_choice: coerceNum,
+  opt_in: coerceNum,
+  custom: coerceNum,
+  opt_out: coerceNum,
+  without_choice: coerceNum,
   last_event_at: z.string().nullable(),
 });
 
 const byPeriodRowSchema = z.object({
-  // AppKit peut convertir DATE → Date JS si granularity=day
-  period: z.preprocess(
-    (v) => (v instanceof Date ? v.toISOString().slice(0, 10) : String(v)),
-    z.string(),
-  ),
-  first_consent: z.coerce.number(),
-  reexposed: z.coerce.number(),
+  period: coerceDate,
+  first_consent: coerceNum,
+  reexposed: coerceNum,
 });
 
 const byMemberRowSchema = z.object({
   member: z.string(),
-  opt_in: z.coerce.number(),
-  opt_out: z.coerce.number(),
-  custom: z.coerce.number(),
-  total: z.coerce.number(),
+  opt_in: coerceNum,
+  opt_out: coerceNum,
+  custom: coerceNum,
+  total: coerceNum,
 });
 
 const byDeviceRowSchema = z.object({
   device_type: z.string(),
-  opt_in: z.coerce.number(),
-  opt_out: z.coerce.number(),
-  total: z.coerce.number(),
+  opt_in: coerceNum,
+  opt_out: coerceNum,
+  total: coerceNum,
 });
 
 const byPageTypeRowSchema = z.object({
   page_type: z.string(),
-  opt_in: z.coerce.number(),
-  opt_out: z.coerce.number(),
-  total: z.coerce.number(),
+  opt_in: coerceNum,
+  opt_out: coerceNum,
+  total: coerceNum,
 });
 
 const rateEvolutionRowSchema = z.object({
