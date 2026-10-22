@@ -191,58 +191,36 @@ function KpiHeader({ kpi, status, deviceData }: {
 
   return (
     <section aria-label="Main KPIs" className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      {/* Bloc fusionné : Contact exposed (gauche) + Contact with choice (droite) */}
-      <div className="grid grid-cols-2 gap-4 rounded-2xl border border-line bg-surface p-5 shadow-panel">
+      {/* Bloc fusionné — layout vertical */}
+      <div className="flex flex-col justify-between gap-4 rounded-2xl border border-line bg-surface p-5 shadow-panel">
 
-        {/* Colonne gauche — répartie sur toute la hauteur */}
-        <div className="flex flex-col justify-between gap-3">
-          {/* Haut : titre + valeur principale */}
-          <div>
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted">Contact exposed</span>
-            <p className="mt-2 text-4xl font-bold tabular-nums leading-none">{fmtN(kpi.contactTotal)}</p>
-          </div>
-
-          {/* Milieu : barre visuelle exposed vs without choice */}
-          <div className="flex flex-col gap-1.5">
-            <div className="h-2 w-full overflow-hidden rounded-full bg-line">
-              <div className="h-full rounded-full bg-accent"
-                style={{ width: `${((kpi.contactWithChoice / kpi.contactTotal) * 100).toFixed(1)}%` }} />
-            </div>
-            <div className="flex justify-between text-[10px] text-muted">
-              <span>With choice <span className="font-semibold text-on-surface">{fmtPct(kpi.contactWithChoice / kpi.contactTotal, 0)}</span></span>
-              <span>No choice <span className="font-semibold text-on-surface">{fmtPct(kpi.withoutChoice / kpi.contactTotal, 0)}</span></span>
-            </div>
-          </div>
-
-          {/* Bas : without choice + live indicator */}
-          <div className="flex flex-col gap-2">
-            <div className="rounded-xl border border-line px-4 py-3 text-center">
-              <span className="block text-2xl font-bold tabular-nums">{fmtN(kpi.withoutChoice)}</span>
-              <span className="text-xs text-muted">without choice</span>
-            </div>
-            {status !== "demo" && <p className="text-xs text-muted">✓ live</p>}
+        {/* Contact exposed */}
+        <div>
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted">Contact exposed</span>
+          <div className="mt-2 flex items-baseline gap-4">
+            <span className="text-4xl font-bold tabular-nums leading-none">{fmtN(kpi.contactTotal)}</span>
+            <span className="text-lg font-semibold tabular-nums text-muted">
+              {fmtN(kpi.withoutChoice)}
+              <span className="ml-1 text-xs font-normal">no choice</span>
+            </span>
           </div>
         </div>
 
-        {/* Colonne droite — répartie sur toute la hauteur */}
-        <div className="flex flex-col justify-between gap-3">
-          {/* Haut : titre + total */}
-          <div>
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted">Contact with choice</span>
-            <div className="mt-2 rounded-xl bg-accent px-4 py-3 text-center">
-              <span className="text-2xl font-bold text-white tabular-nums">{fmtN(kpi.contactWithChoice)}</span>
-            </div>
-          </div>
+        {/* Contact with choice */}
+        <div className="flex flex-1 flex-col gap-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted">Contact with choice</span>
+          <span className="text-4xl font-bold tabular-nums leading-none">{fmtN(kpi.contactWithChoice)}</span>
 
-          {/* Bas : split opt-in / custom / opt-out avec flex-1 pour remplir */}
-          <div className="flex flex-1 flex-col gap-2">
+          {/* Split opt-in / custom / opt-out — flex-1 pour remplir la hauteur restante */}
+          <div className="flex flex-1 flex-col gap-2 pt-1">
             {[
               { label: "Opt-in",  val: kpi.optIn,  pct: kpi.consentRate, color: "bg-green-600/90" },
               { label: "Custom",  val: kpi.custom,  pct: kpi.customRate,  color: "bg-amber-500/90" },
               { label: "Opt-out", val: kpi.optOut,  pct: kpi.rejectRate,  color: "bg-red-600/90"   },
             ].map(({ label, val, pct, color }) => (
-              <div key={label} className={`flex flex-1 items-center justify-between rounded-xl ${color} px-4 py-0`}
-                style={{ minHeight: "3rem" }}>
+              <div key={label}
+                className={`flex flex-1 items-center justify-between rounded-xl ${color} px-4`}
+                style={{ minHeight: "2.8rem" }}>
                 <span className="text-sm font-semibold text-white">{label}</span>
                 <div className="flex items-baseline gap-2">
                   <span className="text-base font-bold text-white tabular-nums">{fmtN(val)}</span>
