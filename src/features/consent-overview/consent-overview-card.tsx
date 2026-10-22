@@ -273,11 +273,23 @@ function KpiHeader({ kpi, deviceData }: {
                   <div className="shrink-0 bg-red-500 transition-all"
                     style={{ width: `${(optOutW * 100).toFixed(2)}%` }} />
                 </div>
-                <div className="mt-0.5 flex justify-between text-[10px] text-muted">
-                  <span className="text-green-500 font-medium">
+                {/* Labels sous les barres :
+                    - opt-in : aligné à gauche (début de la barre verte)
+                    - opt-out en mode % : aligné à droite du conteneur (barre va jusqu'au bout)
+                    - opt-out en mode # : positionné à l'extrémité droite de la barre rouge */}
+                <div className="relative mt-0.5 h-4 w-full text-[10px]">
+                  {/* Label opt-in — toujours à gauche */}
+                  <span className="absolute left-0 text-green-500 font-medium">
                     {deviceMode === "pct" ? fmtPct(row.consentRate, 0) : fmtN(row.optIn)}
                   </span>
-                  <span className="text-red-400">
+                  {/* Label opt-out — ancré à l'extrémité droite de la barre rouge */}
+                  <span className="absolute text-red-400"
+                    style={{
+                      right: deviceMode === "pct"
+                        ? "0%"
+                        : `${(1 - (optInW + optOutW)) * 100}%`,
+                      transform: "translateX(50%)",
+                    }}>
                     {deviceMode === "pct" ? fmtPct(1 - row.consentRate, 0) : fmtN(row.optOut)}
                   </span>
                 </div>

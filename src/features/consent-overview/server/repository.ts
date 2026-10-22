@@ -256,7 +256,7 @@ export async function loadOptInRateEvolution(
     parameters: { ...baseParams(source, filters), startTs, endTs },
     rowSchema: rateEvolutionRowSchema,
     requestId,
-    maxRows: 500,
+    maxRows: 800,
   });
   return optInRateEvolutionSchema.parse(
     rows
