@@ -30,16 +30,13 @@ import type { SqlExecutor } from "@/lib/databricks/types";
 
 function periodWindow(
   filters: FilterParams,
-  granularity: FilterParams["granularity"],
 ): { startTs: string; endTs: string } {
-  const now = new Date();
-  const endTs = (filters.endDate ? new Date(`${filters.endDate}T23:59:59Z`) : now).toISOString();
-  if (filters.startDate) return { startTs: new Date(`${filters.startDate}T00:00:00Z`).toISOString(), endTs };
-  const start = new Date(now);
-  if (granularity === "day") start.setDate(start.getDate() - 30);
-  else if (granularity === "week") start.setDate(start.getDate() - 84); // 12 semaines
-  else start.setMonth(start.getMonth() - 12); // 12 mois max → ~365 jours pour l'évolution
-  return { startTs: start.toISOString(), endTs };
+  const now   = new Date();
+  const endTs = (filters.endDate   ? new Date(`${filters.endDate}T23:59:59Z`)   : now).toISOString();
+  const startTs = filters.startDate
+    ? new Date(`${filters.startDate}T00:00:00Z`).toISOString()
+    : new Date("2024-10-01T00:00:00Z").toISOString(); // début historique table
+  return { startTs, endTs };
 }
 
 function baseParams(source: string, filters: FilterParams) {
@@ -152,7 +149,7 @@ export async function loadOptInByPeriod(
   requestId?: string,
 ): Promise<OptInByPeriodRow[]> {
   const gran = filters.granularity ?? "month";
-  const { startTs, endTs } = periodWindow(filters, gran);
+  const { startTs, endTs } = periodWindow(filters);
   const rows = await executor.query({
     name: "consent-overview-by-period",
     statement: OPT_IN_BY_PERIOD_QUERY,
@@ -252,7 +249,7 @@ export async function loadOptInRateEvolution(
   filters: FilterParams,
   requestId?: string,
 ): Promise<OptInRateEvolutionRow[]> {
-  const { startTs, endTs } = periodWindow(filters, "day");
+  const { startTs, endTs } = periodWindow(filters);
   const rows = await executor.query({
     name: "consent-overview-rate-evolution",
     statement: OPT_IN_RATE_EVOLUTION_QUERY,

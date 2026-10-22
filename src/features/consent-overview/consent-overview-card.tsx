@@ -467,10 +467,13 @@ function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvoluti
   const yMin  = Math.max(0, minR - pad), yMax = Math.min(1, maxR + pad);
   const yRange = yMax - yMin || 0.01;
 
-  // SVG en pixels réels — largeur = 6px par point, hauteur fixe
-  const PX_PER_PT = 6;                          // pixels par point de données
+  // SVG en pixels réels — largeur calculée pour remplir le bloc (min 4px/pt)
+  // L'axe Y fait Y_AXIS_W px — la courbe occupe le reste
   const H = 220;
   const PAD = { top: 16, right: 20, bottom: 36, left: 52 };
+  // On vise une largeur totale courbe ≥ conteneur visible.
+  // On utilise 4px/pt comme minimum ; le SVG s'adapte via width="100%"
+  const PX_PER_PT = Math.max(4, Math.round(800 / Math.max(data.length, 1)));
   const toY = (v: number) => PAD.top + (1 - (v - yMin) / yRange) * (H - PAD.top - PAD.bottom);
   const yTicks   = Array.from({ length: 5 }, (_, i) => yMin + (i / 4) * yRange);
 
@@ -518,9 +521,9 @@ function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvoluti
           ))}
         </svg>
 
-        {/* Zone scrollable — courbe + axe X + grille */}
+        {/* Zone scrollable — courbe + axe X + grille. Si CURVE_W < espace dispo : s'étire */}
         <div ref={scrollRef} className="relative min-w-0 flex-1 overflow-x-auto">
-          <svg width={CURVE_W} height={H}
+          <svg width={Math.max(CURVE_W, 100)} height={H} style={{ minWidth: `${CURVE_W}px`, width: "100%" }}
             role="img" aria-label="Opt-in rate evolution"
             onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)}>
 
@@ -586,7 +589,9 @@ function ConsentByMember({ data }: { data: ConsentOverviewResult["byMember"] }) 
       <div className="mb-1 flex items-center gap-3 pt-2">
         <span className="w-8 shrink-0" />
         <span className="flex-1" /> {/* zone barre — pas de label "Opt-in" */}
-        <span className="w-16 shrink-0 text-right text-[10px] font-semibold text-muted">% opt-in</span>
+        <span className="w-16 shrink-0 text-right text-[10px] font-semibold text-muted">
+          {mode === "pct" ? "% opt-in" : "# opt-in"}
+        </span>
       </div>
 
       <div className="space-y-1.5">
@@ -677,12 +682,10 @@ function Spinner() {
   return (
     /* fixed = centré dans le viewport, indépendant du scroll de la page */
     <div className="pointer-events-none fixed inset-0 z-[100] flex items-center justify-center">
-      <div className="flex items-center justify-center rounded-2xl bg-surface/80 p-5 shadow-xl backdrop-blur-sm">
-        <svg className="h-12 w-12 animate-spin text-accent" viewBox="0 0 24 24" fill="none" aria-label="Loading">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-        </svg>
-      </div>
+      <svg className="h-12 w-12 animate-spin text-accent" viewBox="0 0 24 24" fill="none" aria-label="Loading">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+      </svg>
     </div>
   );
 }
