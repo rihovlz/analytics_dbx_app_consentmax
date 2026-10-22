@@ -318,13 +318,15 @@ function OptInByPeriod({
           <span className="inline-block h-2.5 w-4 rounded-sm bg-green-400" />Reexposed
         </span>
       </p>
-      {/* height: 208px = h-52. Les barres utilisent des hauteurs px calculées. */}
+      {/* Barres en px (les % dans un flex child ne réfèrent pas au parent). */}
       <div className="relative flex h-52 items-end gap-0.5 overflow-x-auto pb-1" role="img" aria-label={`Opt-in — ${GRAN_LABELS[granularity]}`}>
         {data.map((row) => {
           const total = row.firstConsent + row.reexposed;
-          const barH = Math.round((total / maxVal) * 192); // 192px = h-52 (208) - pb (16)
+          const barH = Math.round((total / maxVal) * 192);
           const firstH = total > 0 ? Math.round((row.firstConsent / total) * barH) : 0;
           const reexH = barH - firstH;
+          const pctFirst = total > 0 ? fmtPct(row.firstConsent / total) : "—";
+          const pctReex  = total > 0 ? fmtPct(row.reexposed / total)    : "—";
           return (
             <div key={row.period} className="group relative flex min-w-[10px] flex-1 flex-col items-center justify-end" style={{ height: "192px" }}>
               <div className="flex w-full flex-col justify-end" style={{ height: `${barH}px` }}>
@@ -336,11 +338,25 @@ function OptInByPeriod({
                   {row.period.slice(-5)}
                 </span>
               )}
-              <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden w-40 -translate-x-1/2 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl group-hover:block">
-                <p className="font-semibold">{row.period}</p>
-                <p>1st consent: {fmtN(row.firstConsent)}</p>
-                <p>Reexposed: {fmtN(row.reexposed)}</p>
-                <p className="mt-1 border-t border-white/20 pt-1 font-semibold">Total: {fmtN(total)}</p>
+              {/* Infobulle */}
+              <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden w-48 -translate-x-1/2 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl group-hover:block">
+                <p className="mb-1 font-semibold">{row.period}</p>
+                <div className="flex items-center gap-1.5">
+                  <span className="inline-block h-2 w-3 rounded-sm bg-green-700" />
+                  <span className="flex-1">1st consent</span>
+                  <span className="tabular-nums">{fmtN(row.firstConsent)}</span>
+                  <span className="text-white/60">({pctFirst})</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="inline-block h-2 w-3 rounded-sm bg-green-400" />
+                  <span className="flex-1">Reexposed</span>
+                  <span className="tabular-nums">{fmtN(row.reexposed)}</span>
+                  <span className="text-white/60">({pctReex})</span>
+                </div>
+                <div className="mt-1 border-t border-white/20 pt-1 flex justify-between font-semibold">
+                  <span>Total</span>
+                  <span className="tabular-nums">{fmtN(total)}</span>
+                </div>
               </div>
             </div>
           );
@@ -356,23 +372,74 @@ function OptInByPeriod({
   );
 }
 
-// ── Consent rate by member ────────────────────────────────────────────────────
+// ── Mode toggle (% / absolute) ────────────────────────────────────────────────
+
+type DisplayMode = "pct" | "abs";
+
+function ModeToggle({ mode, onChange }: { mode: DisplayMode; onChange: (m: DisplayMode) => void }) {
+  return (
+    <div className="flex gap-1 rounded-lg border border-line p-0.5">
+      {(["pct", "abs"] as DisplayMode[]).map((m) => (
+        <button
+          key={m}
+          type="button"
+          onClick={() => onChange(m)}
+          className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+            mode === m ? "bg-accent text-white" : "text-muted hover:text-on-surface"
+          }`}
+        >
+          {m === "pct" ? "%" : "#"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ── Consent by member ─────────────────────────────────────────────────────────
 
 function ConsentByMember({ data }: { data: ConsentOverviewResult["byMember"] }) {
+  const [mode, setMode] = useState<DisplayMode>("pct");
+  const maxTotal = Math.max(...data.map((r) => r.total), 1);
+
   return (
-    <section aria-label="Consent rate by member" className="rounded-2xl border border-line bg-surface p-5 shadow-panel">
-      <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">Consent rate by member</h3>
+    <section aria-label="Consent by member" className="rounded-2xl border border-line bg-surface p-5 shadow-panel">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">Consent by member</h3>
+        <ModeToggle mode={mode} onChange={setMode} />
+      </div>
       <div className="space-y-2">
-        {data.map((row) => (
-          <div key={row.member} className="flex items-center gap-3">
-            <span className="w-8 shrink-0 text-xs font-semibold">{row.member}</span>
-            <div className="flex h-5 flex-1 overflow-hidden rounded">
-              <div className="bg-green-600" style={{ width: `${(row.consentRate * 100).toFixed(1)}%` }} />
-              <div className="bg-red-500" style={{ width: `${((1 - row.consentRate) * 100).toFixed(1)}%` }} />
+        {data.map((row) => {
+          // En mode %, barres empilées 100% (opt-in vs opt-out).
+          // En mode abs, barres proportionnelles au total de l'enseigne.
+          const optInW  = mode === "pct" ? row.consentRate        : row.optIn / maxTotal;
+          const optOutW = mode === "pct" ? 1 - row.consentRate    : row.optOut / maxTotal;
+          const customW = mode === "pct" ? 0                       : row.custom / maxTotal;
+          const label   = mode === "pct" ? fmtPct(row.consentRate) : fmtN(row.optIn);
+          return (
+            <div key={row.member} className="group relative flex items-center gap-3">
+              <span className="w-8 shrink-0 text-xs font-semibold">{row.member}</span>
+              <div className="flex h-5 flex-1 overflow-hidden rounded">
+                <div className="bg-green-600 transition-all"  style={{ width: `${(optInW  * 100).toFixed(1)}%` }} />
+                {customW > 0 && <div className="bg-amber-500 transition-all" style={{ width: `${(customW * 100).toFixed(1)}%` }} />}
+                <div className="bg-red-500 transition-all"   style={{ width: `${(optOutW * 100).toFixed(1)}%` }} />
+              </div>
+              <span className="w-16 shrink-0 text-right text-xs tabular-nums font-medium">{label}</span>
+              {/* Infobulle */}
+              <div className="pointer-events-none absolute left-10 top-full z-10 mt-1 hidden w-52 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl group-hover:block">
+                <p className="mb-1 font-semibold">{row.member}</p>
+                <div className="flex justify-between"><span>Opt-in</span><span>{fmtN(row.optIn)} · {fmtPct(row.consentRate)}</span></div>
+                <div className="flex justify-between"><span>Opt-out</span><span>{fmtN(row.optOut)} · {fmtPct(row.optOut / (row.total || 1))}</span></div>
+                {row.custom > 0 && <div className="flex justify-between"><span>Custom</span><span>{fmtN(row.custom)}</span></div>}
+                <div className="mt-1 flex justify-between border-t border-white/20 pt-1 font-semibold"><span>Total</span><span>{fmtN(row.total)}</span></div>
+              </div>
             </div>
-            <span className="w-14 shrink-0 text-right text-xs tabular-nums font-medium">{fmtPct(row.consentRate)}</span>
-          </div>
-        ))}
+          );
+        })}
+      </div>
+      <div className="mt-3 flex items-center gap-4 text-xs text-muted">
+        <span className="flex items-center gap-1"><span className="inline-block h-2 w-3 rounded-sm bg-green-600"/>Opt-in</span>
+        <span className="flex items-center gap-1"><span className="inline-block h-2 w-3 rounded-sm bg-red-500"/>Opt-out</span>
+        <span className="flex items-center gap-1"><span className="inline-block h-2 w-3 rounded-sm bg-amber-500"/>Custom</span>
       </div>
     </section>
   );
@@ -381,37 +448,54 @@ function ConsentByMember({ data }: { data: ConsentOverviewResult["byMember"] }) 
 // ── Opt-in by device ──────────────────────────────────────────────────────────
 
 function ConsentByDevice({ data }: { data: ConsentOverviewResult["byDevice"] }) {
+  const [mode, setMode] = useState<DisplayMode>("pct");
+  const maxOptIn = Math.max(...data.map((r) => r.optIn), 1);
+
   return (
     <section aria-label="Opt-in by device" className="rounded-2xl border border-line bg-surface p-5 shadow-panel">
-      <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">Opt-in by device</h3>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">Opt-in by device</h3>
+        <ModeToggle mode={mode} onChange={setMode} />
+      </div>
       <div className="space-y-4">
-        {data.map((row) => (
-          <div key={row.deviceType}>
-            <div className="mb-1.5 flex items-baseline justify-between gap-2">
-              <span className="text-sm font-semibold">{row.deviceType}</span>
-              <span className="shrink-0 text-right text-xs text-muted">
-                <span className="font-bold text-on-surface">{fmtPct(row.shareOfTotal)}</span>
-                {" · "}
-                <span className="font-bold text-green-500">{fmtN(row.optIn)}</span>
-                {" opt-in"}
-              </span>
-            </div>
-            <div className="flex h-6 overflow-hidden rounded-lg">
-              <div
-                className="flex items-center justify-center bg-green-600 text-[10px] font-bold text-white"
-                style={{ width: `${(row.consentRate * 100).toFixed(1)}%` }}
-              >
-                {row.consentRate > 0.12 ? fmtPct(row.consentRate, 0) : ""}
+        {data.map((row) => {
+          const optInW  = mode === "pct" ? row.consentRate     : row.optIn  / maxOptIn;
+          const optOutW = mode === "pct" ? 1 - row.consentRate : row.optOut / maxOptIn;
+          return (
+            <div key={row.deviceType} className="group relative">
+              <div className="mb-1.5 flex items-baseline justify-between gap-2">
+                <span className="text-sm font-semibold">{row.deviceType}</span>
+                <span className="shrink-0 text-right text-xs text-muted">
+                  <span className="font-bold text-on-surface">{fmtPct(row.shareOfTotal)}</span>
+                  {" · "}
+                  <span className="font-bold text-green-500">{fmtN(row.optIn)}</span>
+                  {" opt-in"}
+                </span>
               </div>
-              <div
-                className="flex items-center justify-center bg-red-500 text-[10px] font-bold text-white"
-                style={{ width: `${((1 - row.consentRate) * 100).toFixed(1)}%` }}
-              >
-                {1 - row.consentRate > 0.12 ? fmtPct(1 - row.consentRate, 0) : ""}
+              <div className="flex h-6 overflow-hidden rounded-lg">
+                <div
+                  className="flex items-center justify-center bg-green-600 text-[10px] font-bold text-white transition-all"
+                  style={{ width: `${(optInW * 100).toFixed(1)}%` }}
+                >
+                  {optInW > 0.12 ? (mode === "pct" ? fmtPct(row.consentRate, 0) : fmtN(row.optIn)) : ""}
+                </div>
+                <div
+                  className="flex items-center justify-center bg-red-500 text-[10px] font-bold text-white transition-all"
+                  style={{ width: `${(optOutW * 100).toFixed(1)}%` }}
+                >
+                  {optOutW > 0.12 ? (mode === "pct" ? fmtPct(1 - row.consentRate, 0) : fmtN(row.optOut)) : ""}
+                </div>
+              </div>
+              {/* Infobulle */}
+              <div className="pointer-events-none absolute left-0 top-full z-10 mt-1 hidden w-52 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl group-hover:block">
+                <p className="mb-1 font-semibold">{row.deviceType}</p>
+                <div className="flex justify-between"><span>Opt-in</span><span>{fmtN(row.optIn)} · {fmtPct(row.consentRate)}</span></div>
+                <div className="flex justify-between"><span>Opt-out</span><span>{fmtN(row.optOut)} · {fmtPct(1 - row.consentRate)}</span></div>
+                <div className="flex justify-between"><span>Share of total</span><span>{fmtPct(row.shareOfTotal)}</span></div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
@@ -420,20 +504,38 @@ function ConsentByDevice({ data }: { data: ConsentOverviewResult["byDevice"] }) 
 // ── Consent by page type ──────────────────────────────────────────────────────
 
 function ConsentByPageType({ data }: { data: ConsentOverviewResult["byPageType"] }) {
+  const [mode, setMode] = useState<DisplayMode>("pct");
+  const maxOptIn = Math.max(...data.map((r) => r.optIn), 1);
+
   return (
     <section aria-label="Opt-in rate by page type" className="rounded-2xl border border-line bg-surface p-5 shadow-panel">
-      <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">Opt-in rate by page type</h3>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">Opt-in rate by page type</h3>
+        <ModeToggle mode={mode} onChange={setMode} />
+      </div>
       <div className="space-y-2">
-        {data.map((row) => (
-          <div key={row.pageType} className="flex items-center gap-3">
-            <span className="w-40 shrink-0 truncate text-sm" title={row.pageType}>{row.pageType}</span>
-            <div className="flex h-5 flex-1 overflow-hidden rounded">
-              <div className="bg-green-600" style={{ width: `${(row.consentRate * 100).toFixed(1)}%` }} />
-              <div className="bg-red-500" style={{ width: `${((1 - row.consentRate) * 100).toFixed(1)}%` }} />
+        {data.map((row) => {
+          const optInW  = mode === "pct" ? row.consentRate     : row.optIn  / maxOptIn;
+          const optOutW = mode === "pct" ? 1 - row.consentRate : row.optOut / maxOptIn;
+          const label   = mode === "pct" ? fmtPct(row.consentRate) : fmtN(row.optIn);
+          return (
+            <div key={row.pageType} className="group relative flex items-center gap-3">
+              <span className="w-40 shrink-0 truncate text-sm" title={row.pageType}>{row.pageType}</span>
+              <div className="flex h-5 flex-1 overflow-hidden rounded">
+                <div className="bg-green-600 transition-all" style={{ width: `${(optInW  * 100).toFixed(1)}%` }} />
+                <div className="bg-red-500 transition-all"   style={{ width: `${(optOutW * 100).toFixed(1)}%` }} />
+              </div>
+              <span className="w-16 shrink-0 text-right text-xs tabular-nums font-medium">{label}</span>
+              {/* Infobulle */}
+              <div className="pointer-events-none absolute left-40 top-full z-10 mt-1 hidden w-52 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl group-hover:block">
+                <p className="mb-1 font-semibold">{row.pageType}</p>
+                <div className="flex justify-between"><span>Opt-in</span><span>{fmtN(row.optIn)} · {fmtPct(row.consentRate)}</span></div>
+                <div className="flex justify-between"><span>Opt-out</span><span>{fmtN(row.optOut)} · {fmtPct(row.optOut / (row.total || 1))}</span></div>
+                <div className="mt-1 flex justify-between border-t border-white/20 pt-1 font-semibold"><span>Total</span><span>{fmtN(row.total)}</span></div>
+              </div>
             </div>
-            <span className="w-14 shrink-0 text-right text-xs tabular-nums font-medium">{fmtPct(row.consentRate)}</span>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
