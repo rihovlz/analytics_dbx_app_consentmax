@@ -186,7 +186,8 @@ function KpiHeader({ kpi, status, deviceData }: {
   deviceData: ConsentOverviewResult["byDevice"];
 }) {
   const [deviceMode, setDeviceMode] = useState<"pct" | "abs">("pct");
-  const maxOptIn = Math.max(...deviceData.map((r) => r.optIn), 1);
+  // Mode # : normaliser par le total max (opt-in + opt-out) pour que aucune barre ne déborde
+  const maxTotal = Math.max(...deviceData.map((r) => r.optIn + r.optOut), 1);
 
   return (
     <section aria-label="Main KPIs" className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -241,13 +242,10 @@ function KpiHeader({ kpi, status, deviceData }: {
         </div>
         <div className="space-y-3">
           {deviceData.map((row) => {
-            // Mode % : barres sur consent rate (opt-in% vs opt-out%) — toujours 100%
-            // Mode # : barres proportionnelles à maxOptIn — jamais de débordement
-            const optInW  = deviceMode === "pct" ? row.consentRate     : row.optIn  / maxOptIn;
-            const optOutW = deviceMode === "pct" ? 1 - row.consentRate : row.optOut / maxOptIn;
-            // S'assurer que la somme ne dépasse pas 100% (arrondi)
-            const totalW  = Math.min(1, optInW + optOutW);
-            const safeOptOutW = totalW > optInW ? totalW - optInW : 0;
+            // Mode % : opt-in% + opt-out% = 100% (consent rate)
+            // Mode # : chaque barre proportionnelle à maxTotal — jamais de débordement possible
+            const optInW  = deviceMode === "pct" ? row.consentRate     : row.optIn  / maxTotal;
+            const optOutW = deviceMode === "pct" ? 1 - row.consentRate : row.optOut / maxTotal;
 
             return (
               <div key={row.deviceType} className="group relative">
@@ -257,11 +255,9 @@ function KpiHeader({ kpi, status, deviceData }: {
                 </div>
                 <div className="flex h-5 w-full overflow-hidden rounded">
                   <div className="shrink-0 bg-green-600 transition-all"
-                    style={{ width: `${(optInW * 100).toFixed(2)}%` }}>
-                  </div>
+                    style={{ width: `${(optInW * 100).toFixed(2)}%` }} />
                   <div className="shrink-0 bg-red-500 transition-all"
-                    style={{ width: `${(safeOptOutW * 100).toFixed(2)}%` }}>
-                  </div>
+                    style={{ width: `${(optOutW * 100).toFixed(2)}%` }} />
                 </div>
                 <div className="mt-0.5 flex justify-between text-[10px] text-muted">
                   <span className="text-green-500 font-medium">
