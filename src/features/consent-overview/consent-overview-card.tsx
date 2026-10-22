@@ -323,14 +323,14 @@ function OptInByPeriod({ data, granularity, onGranularity }: {
 
   // Dimensions SVG
   const BAR_W   = granularity === "month" ? 44 : granularity === "week" ? 40 : 32;
-  const CHART_H = 180;   // hauteur zone barres
-  const LABEL_H = 50;    // hauteur axe X — espace pour labels -45°
+  const PAD_L   = 30;    // marge gauche pour que la première étiquette -45° ne soit pas coupée
+  const CHART_H = 180;
+  const LABEL_H = 50;    // espace pour labels à -45°
   const SVG_H   = CHART_H + LABEL_H;
-  const SVG_W   = Math.max(data.length * BAR_W, 100);
+  const SVG_W   = PAD_L + Math.max(data.length * BAR_W, 100);
   const maxVal  = Math.max(...data.map((r) => r.firstConsent + r.reexposed), 1);
 
-  // Toujours afficher chaque label (rotation -45° gère le chevauchement)
-  const showEvery = 1;
+  const showEvery = 1; // tous les labels, rotation gère le chevauchement
 
   // Scroll tout à droite après chargement
   useEffect(() => {
@@ -379,10 +379,10 @@ function OptInByPeriod({ data, granularity, onGranularity }: {
             const barH   = Math.round((total / maxVal) * CHART_H);
             const firstH = total > 0 ? Math.round((row.firstConsent / total) * barH) : 0;
             const reexH  = barH - firstH;
-            const cx     = i * BAR_W + BAR_W / 2;
+            const cx     = PAD_L + i * BAR_W + BAR_W / 2;
             const label  = fmtPeriodLabel(row.period, granularity);
             const showLabel = i % showEvery === 0 || i === data.length - 1;
-            const barX   = i * BAR_W + 2;
+            const barX   = PAD_L + i * BAR_W + 2;
             const barW   = BAR_W - 4;
 
             return (
@@ -441,70 +441,96 @@ function OptInByPeriod({ data, granularity, onGranularity }: {
 // ── Opt-in rate evolution ─────────────────────────────────────────────────────
 
 function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvolution"] }) {
-  const [tooltip, setTooltip] = useState<{ x: number; y: number; day: string; rate: number } | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [tooltip, setTooltip] = useState<{ svgX: number; svgY: number; day: string; rate: number } | null>(null);
+
+  // Scroll à droite après chargement
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollLeft = el.scrollWidth;
+  }, [data]);
+
   if (data.length === 0) return null;
 
   const rates = data.map((r) => r.consentRate);
-  const minR = Math.min(...rates), maxR = Math.max(...rates);
-  const pad  = (maxR - minR) * 0.15 || 0.02;
-  const yMin = Math.max(0, minR - pad), yMax = Math.min(1, maxR + pad);
+  const minR  = Math.min(...rates), maxR = Math.max(...rates);
+  const pad   = (maxR - minR) * 0.15 || 0.02;
+  const yMin  = Math.max(0, minR - pad), yMax = Math.min(1, maxR + pad);
   const yRange = yMax - yMin || 0.01;
 
-  const W = 1000; const H = 220;
-  const PAD = { top: 16, right: 16, bottom: 36, left: 52 };
-  const cW = W - PAD.left - PAD.right, cH = H - PAD.top - PAD.bottom;
+  // SVG en pixels réels — largeur = 6px par point, hauteur fixe
+  const PX_PER_PT = 6;                          // pixels par point de données
+  const H = 220;
+  const PAD = { top: 16, right: 20, bottom: 36, left: 52 };
+  const SVG_W = PAD.left + data.length * PX_PER_PT + PAD.right;
 
-  const toX = (i: number) => PAD.left + (i / Math.max(data.length - 1, 1)) * cW;
-  const toY = (v: number) => PAD.top  + (1 - (v - yMin) / yRange) * cH;
+  const toX = (i: number) => PAD.left + i * PX_PER_PT;
+  const toY = (v: number) => PAD.top  + (1 - (v - yMin) / yRange) * (H - PAD.top - PAD.bottom);
 
   const linePath = data.map((r, i) => `${i === 0 ? "M" : "L"}${toX(i).toFixed(1)},${toY(r.consentRate).toFixed(1)}`).join(" ");
   const yTicks   = Array.from({ length: 5 }, (_, i) => yMin + (i / 4) * yRange);
 
-  // Étiquettes X : ancre adaptée pour premier/dernier, évite tout chevauchement
-  const targetCount = Math.min(8, data.length);
-  const xIndices = [...new Set(
-    Array.from({ length: targetCount }, (_, k) => Math.round(k * (data.length - 1) / Math.max(targetCount - 1, 1)))
-  )].sort((a, b) => a - b);
+  // Étiquettes X : 1 tous les 10 points environ, ancre adaptée bords
+  const labelStep = Math.max(1, Math.round(data.length / 10));
+  const xIndices  = data
+    .map((_, i) => i)
+    .filter((i) => i % labelStep === 0 || i === data.length - 1);
 
   function handleMouseMove(e: React.MouseEvent<SVGSVGElement>) {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const svgX  = ((e.clientX - rect.left) / rect.width) * W;
-    const i     = Math.max(0, Math.min(data.length - 1, Math.round(((svgX - PAD.left) / cW) * (data.length - 1))));
+    const rect  = e.currentTarget.getBoundingClientRect();
+    // Coordonnées en pixels SVG réels (pas de viewBox)
+    const pxX   = e.clientX - rect.left;
+    const i     = Math.max(0, Math.min(data.length - 1, Math.round((pxX - PAD.left) / PX_PER_PT)));
     const row   = data[i];
-    if (row) setTooltip({ x: toX(i), y: toY(row.consentRate), day: row.day, rate: row.consentRate });
+    if (row) setTooltip({ svgX: toX(i), svgY: toY(row.consentRate), day: row.day, rate: row.consentRate });
   }
 
   return (
     <section aria-label="Opt-in Rate Evolution" className="rounded-2xl border border-line bg-surface p-5 shadow-panel">
       <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Opt-in rate evolution</h3>
-      <div className="relative" style={{ height: "260px" }}>
-        <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%"
-          preserveAspectRatio="xMidYMid meet"
+
+      {/* Conteneur scrollable, scroll à droite par défaut */}
+      <div ref={scrollRef} className="relative overflow-x-auto" style={{ height: `${H}px` }}>
+        <svg width={SVG_W} height={H}
           role="img" aria-label="Opt-in rate evolution"
           onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)}>
+
+          {/* Grille Y + labels — position fixe dans le scroll */}
           {yTicks.map((v) => (
             <g key={v}>
-              <line x1={PAD.left} y1={toY(v)} x2={W - PAD.right} y2={toY(v)} stroke="currentColor" strokeOpacity={0.1} strokeWidth={1} />
-              <text x={PAD.left - 6} y={toY(v) + 4} textAnchor="end" fontSize={13} fill="currentColor" fillOpacity={0.6}>{fmtPct(v, 0)}</text>
+              <line x1={PAD.left} y1={toY(v)} x2={SVG_W - PAD.right} y2={toY(v)}
+                stroke="currentColor" strokeOpacity={0.1} strokeWidth={1} />
+              <text x={PAD.left - 6} y={toY(v) + 4} textAnchor="end" fontSize={12}
+                fill="currentColor" fillOpacity={0.6}>{fmtPct(v, 0)}</text>
             </g>
           ))}
+
+          {/* Étiquettes X */}
           {xIndices.map((i) => {
             const row    = data[i]; if (!row) return null;
             const x      = toX(i);
             const anchor = i === data.length - 1 ? "end" : i === 0 ? "start" : "middle";
             return (
-              <text key={i} x={x} y={H - 6} textAnchor={anchor} fontSize={12} fill="currentColor" fillOpacity={0.6}>
+              <text key={i} x={x} y={H - 6} textAnchor={anchor} fontSize={11}
+                fill="currentColor" fillOpacity={0.6}>
                 {fmtDate(row.day)}
               </text>
             );
           })}
-          <path d={linePath} fill="none" stroke="#16a34a" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
-          {tooltip && <circle cx={tooltip.x} cy={tooltip.y} r={4} fill="#16a34a" stroke="white" strokeWidth={1.5} />}
-          <rect x={PAD.left} y={PAD.top} width={cW} height={cH} fill="transparent" />
+
+          {/* Courbe */}
+          <path d={linePath} fill="none" stroke="#16a34a" strokeWidth={1.5} />
+          {tooltip && <circle cx={tooltip.svgX} cy={tooltip.svgY} r={4} fill="#16a34a" stroke="white" strokeWidth={1.5} />}
+
+          {/* Zone de capture souris */}
+          <rect x={PAD.left} y={PAD.top} width={SVG_W - PAD.left - PAD.right}
+            height={H - PAD.top - PAD.bottom} fill="transparent" />
         </svg>
+
+        {/* Infobulle positionnée en px SVG */}
         {tooltip && (
           <div className="pointer-events-none absolute z-10 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl"
-            style={{ left: `${(tooltip.x / W) * 100}%`, top: `${(tooltip.y / H) * 100}%`, transform: "translate(-50%, -130%)" }}>
+            style={{ left: tooltip.svgX + 10, top: tooltip.svgY - 50 }}>
             <p className="font-semibold">{fmtDate(tooltip.day)}</p>
             <p>Consent rate: <span className="font-bold">{fmtPct(tooltip.rate)}</span></p>
           </div>
