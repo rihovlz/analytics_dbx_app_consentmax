@@ -36,7 +36,10 @@ SELECT
     WHEN :granularity = 'day'
       THEN CAST(CONVERT_TIMEZONE('UTC', 'Europe/Paris', event_timestamp) AS DATE)
     WHEN :granularity = 'week'
-      THEN DATE_FORMAT(CONVERT_TIMEZONE('UTC', 'Europe/Paris', event_timestamp), 'yyyy-ww')
+      THEN CONCAT(
+        YEAR(CONVERT_TIMEZONE('UTC', 'Europe/Paris', event_timestamp)), '-W',
+        LPAD(WEEKOFYEAR(CONVERT_TIMEZONE('UTC', 'Europe/Paris', event_timestamp)), 2, '0')
+      )
     ELSE
       DATE_FORMAT(CONVERT_TIMEZONE('UTC', 'Europe/Paris', event_timestamp), 'yyyy-MM')
   END                                                                                  AS period,
