@@ -4,14 +4,15 @@ import {
   type ConsentByDeviceRow,
   type ConsentByMemberRow,
   type ConsentByPageTypeRow,
+  type FilterParams,
   type KpiHeader,
-  type OptInByMonthRow,
+  type OptInByPeriodRow,
   type OptInRateEvolutionRow,
   consentByDeviceSchema,
   consentByMemberSchema,
   consentByPageTypeSchema,
   kpiHeaderSchema,
-  optInByMonthSchema,
+  optInByPeriodSchema,
   optInRateEvolutionSchema,
 } from "@/features/consent-overview/contract";
 import {
@@ -19,11 +20,38 @@ import {
   CONSENT_BY_MEMBER_QUERY,
   CONSENT_BY_PAGE_TYPE_QUERY,
   KPI_HEADER_QUERY,
-  OPT_IN_BY_MONTH_QUERY,
+  OPT_IN_BY_PERIOD_QUERY,
   OPT_IN_RATE_EVOLUTION_QUERY,
 } from "@/features/consent-overview/server/queries";
 import { quoteQualifiedIdentifier } from "@/lib/databricks/identifiers";
 import type { SqlExecutor } from "@/lib/databricks/types";
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function periodWindow(
+  filters: FilterParams,
+  granularity: FilterParams["granularity"],
+): { startTs: string; endTs: string } {
+  const now = new Date();
+  const endTs = (filters.endDate ? new Date(`${filters.endDate}T23:59:59Z`) : now).toISOString();
+  if (filters.startDate) return { startTs: new Date(`${filters.startDate}T00:00:00Z`).toISOString(), endTs };
+  const start = new Date(now);
+  if (granularity === "day") start.setDate(start.getDate() - 30);
+  else if (granularity === "week") start.setDate(start.getDate() - 84); // 12 semaines
+  else start.setMonth(start.getMonth() - 12); // 12 mois max → ~365 jours pour l'évolution
+  return { startTs: start.toISOString(), endTs };
+}
+
+function baseParams(source: string, filters: FilterParams) {
+  return {
+    source: quoteQualifiedIdentifier(source),
+    member: filters.member ?? null,
+    startTs: filters.startDate ? new Date(`${filters.startDate}T00:00:00Z`).toISOString() : null,
+    endTs: filters.endDate ? new Date(`${filters.endDate}T23:59:59Z`).toISOString() : null,
+  };
+}
+
+// ── Schémas intermédiaires SQL ────────────────────────────────────────────────
 
 const kpiRowSchema = z.object({
   contact_total: z.coerce.number(),
@@ -35,10 +63,14 @@ const kpiRowSchema = z.object({
   last_event_at: z.string().nullable(),
 });
 
-const byMonthRowSchema = z.object({
-  month: z.string(),
+const byPeriodRowSchema = z.object({
+  // AppKit peut convertir DATE → Date JS si granularity=day
+  period: z.preprocess(
+    (v) => (v instanceof Date ? v.toISOString().slice(0, 10) : String(v)),
+    z.string(),
+  ),
   first_consent: z.coerce.number(),
-  refresh: z.coerce.number(),
+  reexposed: z.coerce.number(),
 });
 
 const byMemberRowSchema = z.object({
@@ -64,27 +96,30 @@ const byPageTypeRowSchema = z.object({
 });
 
 const rateEvolutionRowSchema = z.object({
-  day: z.string(),
-  consent_rate: z.coerce.number().nullable(),
+  // AppKit convertit DATE → Date JS — on accepte string | Date et on normalise
+  day: z.preprocess(
+    (v) => (v instanceof Date ? v.toISOString().slice(0, 10) : String(v).slice(0, 10)),
+    z.string(),
+  ),
+  consent_rate: z.preprocess((v) => {
+    if (v === null || v === undefined || v === "") return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }, z.number().nullable()),
 });
 
-function defaultDateRange(): { startTs: string; endTs: string } {
-  const now = new Date();
-  const endTs = now.toISOString();
-  const start = new Date(now);
-  start.setMonth(start.getMonth() - 13);
-  return { startTs: start.toISOString(), endTs };
-}
+// ── Loaders ───────────────────────────────────────────────────────────────────
 
 export async function loadKpiHeader(
   executor: SqlExecutor,
   source: string,
+  filters: FilterParams,
   requestId?: string,
 ): Promise<KpiHeader> {
   const rows = await executor.query({
     name: "consent-overview-kpi",
     statement: KPI_HEADER_QUERY,
-    parameters: { source: quoteQualifiedIdentifier(source) },
+    parameters: baseParams(source, filters),
     rowSchema: kpiRowSchema,
     requestId,
     maxRows: 1,
@@ -106,34 +141,37 @@ export async function loadKpiHeader(
   });
 }
 
-export async function loadOptInByMonth(
+export async function loadOptInByPeriod(
   executor: SqlExecutor,
   source: string,
+  filters: FilterParams,
   requestId?: string,
-): Promise<OptInByMonthRow[]> {
-  const { startTs, endTs } = defaultDateRange();
+): Promise<OptInByPeriodRow[]> {
+  const gran = filters.granularity ?? "month";
+  const { startTs, endTs } = periodWindow(filters, gran);
   const rows = await executor.query({
-    name: "consent-overview-by-month",
-    statement: OPT_IN_BY_MONTH_QUERY,
-    parameters: { source: quoteQualifiedIdentifier(source), startTs, endTs },
-    rowSchema: byMonthRowSchema,
+    name: "consent-overview-by-period",
+    statement: OPT_IN_BY_PERIOD_QUERY,
+    parameters: { ...baseParams(source, filters), startTs, endTs, granularity: gran },
+    rowSchema: byPeriodRowSchema,
     requestId,
-    maxRows: 24,
+    maxRows: 400,
   });
-  return optInByMonthSchema.parse(
-    rows.map((r) => ({ month: r.month, firstConsent: r.first_consent, refresh: r.refresh })),
+  return optInByPeriodSchema.parse(
+    rows.map((r) => ({ period: r.period, firstConsent: r.first_consent, reexposed: r.reexposed })),
   );
 }
 
 export async function loadConsentByMember(
   executor: SqlExecutor,
   source: string,
+  filters: FilterParams,
   requestId?: string,
 ): Promise<ConsentByMemberRow[]> {
   const rows = await executor.query({
     name: "consent-overview-by-member",
     statement: CONSENT_BY_MEMBER_QUERY,
-    parameters: { source: quoteQualifiedIdentifier(source) },
+    parameters: baseParams(source, filters),
     rowSchema: byMemberRowSchema,
     requestId,
     maxRows: 50,
@@ -153,36 +191,42 @@ export async function loadConsentByMember(
 export async function loadConsentByDevice(
   executor: SqlExecutor,
   source: string,
+  filters: FilterParams,
   requestId?: string,
 ): Promise<ConsentByDeviceRow[]> {
   const rows = await executor.query({
     name: "consent-overview-by-device",
     statement: CONSENT_BY_DEVICE_QUERY,
-    parameters: { source: quoteQualifiedIdentifier(source) },
+    parameters: baseParams(source, filters),
     rowSchema: byDeviceRowSchema,
     requestId,
     maxRows: 20,
   });
+  const grandTotal = rows.reduce((s, r) => s + r.opt_in, 0) || 1;
   return consentByDeviceSchema.parse(
-    rows.map((r) => ({
-      deviceType: r.device_type,
-      optIn: r.opt_in,
-      optOut: r.opt_out,
-      total: r.total,
-      consentRate: r.total > 0 ? r.opt_in / r.total : 0,
-    })),
+    rows
+      .filter((r) => r.device_type !== "Unknown")
+      .map((r) => ({
+        deviceType: r.device_type,
+        optIn: r.opt_in,
+        optOut: r.opt_out,
+        total: r.total,
+        consentRate: r.total > 0 ? r.opt_in / r.total : 0,
+        shareOfTotal: r.opt_in / grandTotal,
+      })),
   );
 }
 
 export async function loadConsentByPageType(
   executor: SqlExecutor,
   source: string,
+  filters: FilterParams,
   requestId?: string,
 ): Promise<ConsentByPageTypeRow[]> {
   const rows = await executor.query({
     name: "consent-overview-by-page-type",
     statement: CONSENT_BY_PAGE_TYPE_QUERY,
-    parameters: { source: quoteQualifiedIdentifier(source) },
+    parameters: baseParams(source, filters),
     rowSchema: byPageTypeRowSchema,
     requestId,
     maxRows: 20,
@@ -201,16 +245,17 @@ export async function loadConsentByPageType(
 export async function loadOptInRateEvolution(
   executor: SqlExecutor,
   source: string,
+  filters: FilterParams,
   requestId?: string,
 ): Promise<OptInRateEvolutionRow[]> {
-  const { startTs, endTs } = defaultDateRange();
+  const { startTs, endTs } = periodWindow(filters, "day");
   const rows = await executor.query({
     name: "consent-overview-rate-evolution",
     statement: OPT_IN_RATE_EVOLUTION_QUERY,
-    parameters: { source: quoteQualifiedIdentifier(source), startTs, endTs },
+    parameters: { ...baseParams(source, filters), startTs, endTs },
     rowSchema: rateEvolutionRowSchema,
     requestId,
-    maxRows: 400,
+    maxRows: 500,
   });
   return optInRateEvolutionSchema.parse(
     rows

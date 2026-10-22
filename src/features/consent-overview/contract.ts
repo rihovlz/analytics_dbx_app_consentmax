@@ -1,5 +1,18 @@
 import { z } from "zod";
 
+// ── Paramètres de filtre (query string) ───────────────────────────────────────
+
+export const GRANULARITIES = ["day", "week", "month"] as const;
+export type Granularity = (typeof GRANULARITIES)[number];
+
+export const filterParamsSchema = z.object({
+  member: z.string().optional(),       // ex: "LRM" — undefined = tous
+  startDate: z.string().optional(),    // "YYYY-MM-DD"
+  endDate: z.string().optional(),      // "YYYY-MM-DD"
+  granularity: z.enum(GRANULARITIES).optional().default("month"),
+});
+export type FilterParams = z.infer<typeof filterParamsSchema>;
+
 // ── KPI header ────────────────────────────────────────────────────────────────
 
 export const kpiHeaderSchema = z.object({
@@ -9,24 +22,22 @@ export const kpiHeaderSchema = z.object({
   custom: z.coerce.number(),
   optOut: z.coerce.number(),
   withoutChoice: z.coerce.number(),
-  consentRate: z.coerce.number(),  // opt-in / contact_with_choice  [0-1]
+  consentRate: z.coerce.number(),
   rejectRate: z.coerce.number(),
   customRate: z.coerce.number(),
   lastEventAt: z.string().nullable(),
 });
-
 export type KpiHeader = z.infer<typeof kpiHeaderSchema>;
 
-// ── Opt-in by month ───────────────────────────────────────────────────────────
+// ── Opt-in by période (day / week / month) ────────────────────────────────────
 
-export const optInByMonthRowSchema = z.object({
-  month: z.string(),             // "YYYY-MM"
+export const optInByPeriodRowSchema = z.object({
+  period: z.string(),          // "YYYY-MM-DD" | "YYYY-Www" | "YYYY-MM"
   firstConsent: z.coerce.number(),
-  refresh: z.coerce.number(),
+  reexposed: z.coerce.number(),
 });
-
-export const optInByMonthSchema = z.array(optInByMonthRowSchema);
-export type OptInByMonthRow = z.infer<typeof optInByMonthRowSchema>;
+export const optInByPeriodSchema = z.array(optInByPeriodRowSchema);
+export type OptInByPeriodRow = z.infer<typeof optInByPeriodRowSchema>;
 
 // ── Consent rate by member ────────────────────────────────────────────────────
 
@@ -38,20 +49,19 @@ export const consentByMemberRowSchema = z.object({
   total: z.coerce.number(),
   consentRate: z.coerce.number(),
 });
-
 export const consentByMemberSchema = z.array(consentByMemberRowSchema);
 export type ConsentByMemberRow = z.infer<typeof consentByMemberRowSchema>;
 
 // ── Opt-in by device ──────────────────────────────────────────────────────────
 
 export const consentByDeviceRowSchema = z.object({
-  deviceType: z.string(),        // "Desktop" | "Web mobile" | "App" | "Kiosk" | "DOOH" | "Unknown"
+  deviceType: z.string(),
   optIn: z.coerce.number(),
   optOut: z.coerce.number(),
   total: z.coerce.number(),
   consentRate: z.coerce.number(),
+  shareOfTotal: z.coerce.number(),   // part du volume total toutes devices confondues
 });
-
 export const consentByDeviceSchema = z.array(consentByDeviceRowSchema);
 export type ConsentByDeviceRow = z.infer<typeof consentByDeviceRowSchema>;
 
@@ -64,30 +74,34 @@ export const consentByPageTypeRowSchema = z.object({
   total: z.coerce.number(),
   consentRate: z.coerce.number(),
 });
-
 export const consentByPageTypeSchema = z.array(consentByPageTypeRowSchema);
 export type ConsentByPageTypeRow = z.infer<typeof consentByPageTypeRowSchema>;
 
 // ── Opt-in rate evolution (daily) ─────────────────────────────────────────────
 
 export const optInRateEvolutionRowSchema = z.object({
-  day: z.string(),               // "YYYY-MM-DD"
+  day: z.string(),
   consentRate: z.coerce.number(),
 });
-
 export const optInRateEvolutionSchema = z.array(optInRateEvolutionRowSchema);
 export type OptInRateEvolutionRow = z.infer<typeof optInRateEvolutionRowSchema>;
 
-// ── Aggregate response ────────────────────────────────────────────────────────
+// ── Réponse agrégée ───────────────────────────────────────────────────────────
 
 export const consentOverviewSchema = z.object({
   status: z.enum(["demo", "ok"]),
+  filters: z.object({
+    member: z.string().nullable(),
+    startDate: z.string().nullable(),
+    endDate: z.string().nullable(),
+    granularity: z.enum(GRANULARITIES),
+    availableMembers: z.array(z.string()),
+  }),
   kpi: kpiHeaderSchema,
-  byMonth: optInByMonthSchema,
+  byPeriod: optInByPeriodSchema,
   byMember: consentByMemberSchema,
   byDevice: consentByDeviceSchema,
   byPageType: consentByPageTypeSchema,
   rateEvolution: optInRateEvolutionSchema,
 });
-
 export type ConsentOverviewResult = z.infer<typeof consentOverviewSchema>;

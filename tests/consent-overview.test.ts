@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import type { FilterParams } from "../src/features/consent-overview/contract";
 import {
   loadConsentByDevice,
   loadConsentByMember,
   loadKpiHeader,
-  loadOptInByMonth,
+  loadOptInByPeriod,
 } from "../src/features/consent-overview/server/repository";
 import { getConsentOverview } from "../src/features/consent-overview/server/service";
 import type { DemoConfig } from "../src/lib/config/server-config";
@@ -19,89 +20,115 @@ const demoConfig: DemoConfig = {
   logLevel: "info",
 };
 
-// ── Demo mode ─────────────────────────────────────────────────────────────────
+const NO_FILTER: FilterParams = { granularity: "month" };
+const SOURCE = "prd-consent.analytics.last_consent_event";
+const QUOTED_SOURCE = "`prd-consent`.`analytics`.`last_consent_event`";
 
-test("consent-overview demo returns expected KPI shape", async () => {
-  const result = await getConsentOverview(undefined, { config: demoConfig });
+// ── Demo ──────────────────────────────────────────────────────────────────────
+
+test("consent-overview demo retourne la shape KPI attendue", async () => {
+  const result = await getConsentOverview(NO_FILTER, undefined, { config: demoConfig });
   assert.equal(result.status, "demo");
-  assert.ok(result.kpi.contactTotal > 0, "contactTotal > 0");
-  assert.ok(result.kpi.optIn > 0, "optIn > 0");
-  assert.ok(result.kpi.consentRate > 0 && result.kpi.consentRate < 1, "consentRate in (0,1)");
-  assert.ok(result.byMonth.length > 0, "byMonth non vide");
-  assert.ok(result.byMember.length > 0, "byMember non vide");
-  assert.ok(result.byDevice.length > 0, "byDevice non vide");
-  assert.ok(result.byPageType.length > 0, "byPageType non vide");
-  assert.ok(result.rateEvolution.length > 0, "rateEvolution non vide");
+  assert.ok(result.kpi.contactTotal > 0);
+  assert.ok(result.kpi.consentRate > 0 && result.kpi.consentRate < 1);
+  assert.ok(result.byPeriod.length > 0);
+  assert.ok(result.byMember.length > 0);
+  assert.ok(result.byDevice.length > 0);
+  assert.ok(result.byPageType.length > 0);
+  assert.ok(result.rateEvolution.length > 0);
 });
 
-test("consent-overview demo consentRate coherent with optIn / contactWithChoice", async () => {
-  const result = await getConsentOverview(undefined, { config: demoConfig });
+test("consent-overview demo consentRate cohérent avec optIn / contactWithChoice", async () => {
+  const result = await getConsentOverview(NO_FILTER, undefined, { config: demoConfig });
   const expected = result.kpi.optIn / result.kpi.contactWithChoice;
-  assert.ok(Math.abs(result.kpi.consentRate - expected) < 0.01, "consentRate cohérent");
+  assert.ok(Math.abs(result.kpi.consentRate - expected) < 0.01);
 });
 
-// ── Repository — SQL bindings (fake executor) ─────────────────────────────────
+test("consent-overview demo granularity=day retourne des périodes au format YYYY-MM-DD", async () => {
+  const result = await getConsentOverview({ granularity: "day" }, undefined, { config: demoConfig });
+  assert.ok(result.byPeriod[0]?.period.match(/^\d{4}-\d{2}-\d{2}$/));
+});
 
-const SOURCE = "dev-consent.analytics.last_consent_event";
-const QUOTED_SOURCE = "`dev-consent`.`analytics`.`last_consent_event`";
+test("consent-overview demo granularity=week retourne des périodes au format YYYY-WW", async () => {
+  const result = await getConsentOverview({ granularity: "week" }, undefined, { config: demoConfig });
+  assert.ok(result.byPeriod[0]?.period.match(/^\d{4}-\d{2}$/));
+});
 
-test("loadKpiHeader binds correct source and returns parsed header", async () => {
+// ── Repository — bindings SQL ─────────────────────────────────────────────────
+
+test("loadKpiHeader lie la source et propage le filtre member", async () => {
   const executor: SqlExecutor = {
     query: async (options) => {
       assert.equal(options.name, "consent-overview-kpi");
       assert.equal(options.parameters?.["source"], QUOTED_SOURCE);
+      assert.equal(options.parameters?.["member"], "LRM");
       assert.equal(options.maxRows, 1);
       return [
         {
-          contact_total: "1000",
-          contact_with_choice: "900",
-          opt_in: "600",
-          custom: "10",
-          opt_out: "290",
-          without_choice: "100",
-          last_event_at: "2026-10-20",
+          contact_total: "1000", contact_with_choice: "900",
+          opt_in: "600", custom: "10", opt_out: "290",
+          without_choice: "100", last_event_at: "2026-10-20",
         },
       ] as never[];
     },
   };
-  const result = await loadKpiHeader(executor, SOURCE);
+  const result = await loadKpiHeader(executor, SOURCE, { member: "LRM", granularity: "month" });
   assert.equal(result.contactTotal, 1000);
   assert.equal(result.optIn, 600);
-  assert.ok(Math.abs(result.consentRate - 600 / 900) < 0.001, "consentRate = opt_in / contact_with_choice");
+  assert.ok(Math.abs(result.consentRate - 600 / 900) < 0.001);
 });
 
-test("loadOptInByMonth binds source and maps snake_case to camelCase", async () => {
+test("loadKpiHeader sans filtre envoie member=null", async () => {
   const executor: SqlExecutor = {
     query: async (options) => {
-      assert.equal(options.name, "consent-overview-by-month");
-      assert.equal(options.parameters?.["source"], QUOTED_SOURCE);
-      return [{ month: "2026-10", first_consent: "100", refresh: "40" }] as never[];
+      assert.equal(options.parameters?.["member"], null);
+      return [
+        { contact_total: "500", contact_with_choice: "400", opt_in: "300",
+          custom: "5", opt_out: "95", without_choice: "100", last_event_at: null },
+      ] as never[];
     },
   };
-  const result = await loadOptInByMonth(executor, SOURCE);
-  assert.equal(result[0]?.month, "2026-10");
-  assert.equal(result[0]?.firstConsent, 100);
-  assert.equal(result[0]?.refresh, 40);
+  await loadKpiHeader(executor, SOURCE, NO_FILTER);
 });
 
-test("loadConsentByMember computes consentRate per row", async () => {
+test("loadOptInByPeriod propage la granularité dans les paramètres", async () => {
+  const executor: SqlExecutor = {
+    query: async (options) => {
+      assert.equal(options.name, "consent-overview-by-period");
+      assert.equal(options.parameters?.["granularity"], "day");
+      return [{ period: "2026-10-21", first_consent: "100", reexposed: "40" }] as never[];
+    },
+  };
+  const result = await loadOptInByPeriod(executor, SOURCE, { granularity: "day" });
+  assert.equal(result[0]?.period, "2026-10-21");
+  assert.equal(result[0]?.firstConsent, 100);
+  assert.equal(result[0]?.reexposed, 40);
+});
+
+test("loadConsentByMember calcule consentRate par ligne", async () => {
   const executor: SqlExecutor = {
     query: async () =>
       [{ member: "LRM", opt_in: "600", opt_out: "300", custom: "10", total: "950" }] as never[],
   };
-  const result = await loadConsentByMember(executor, SOURCE);
+  const result = await loadConsentByMember(executor, SOURCE, NO_FILTER);
   assert.equal(result[0]?.member, "LRM");
   assert.ok(Math.abs((result[0]?.consentRate ?? 0) - 600 / 950) < 0.001);
 });
 
-test("loadConsentByDevice applies device_type_agg logic via SQL (verifies binding only)", async () => {
+test("loadConsentByDevice filtre Unknown et lie la source correctement", async () => {
   const executor: SqlExecutor = {
     query: async (options) => {
       assert.equal(options.name, "consent-overview-by-device");
-      return [{ device_type: "Desktop", opt_in: "500", opt_out: "400", total: "950" }] as never[];
+      assert.equal(options.parameters?.["source"], QUOTED_SOURCE);
+      return [
+        { device_type: "Desktop", opt_in: 600, opt_out: 400, total: 1000 },
+        { device_type: "Unknown", opt_in: 10,  opt_out: 5,   total: 15 },
+      ] as never[];
     },
   };
-  const result = await loadConsentByDevice(executor, SOURCE);
+  const result = await loadConsentByDevice(executor, SOURCE, NO_FILTER);
+  assert.equal(result.length, 1, "Unknown filtré");
   assert.equal(result[0]?.deviceType, "Desktop");
-  assert.ok(Math.abs((result[0]?.consentRate ?? 0) - 500 / 950) < 0.001);
+  assert.ok(result[0]?.shareOfTotal > 0, "shareOfTotal calculé");
+  assert.ok(Math.abs((result[0]?.consentRate ?? 0) - 600 / 1000) < 0.001);
 });
