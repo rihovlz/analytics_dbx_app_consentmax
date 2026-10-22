@@ -46,6 +46,7 @@ function baseParams(source: string, filters: FilterParams) {
   return {
     source: quoteQualifiedIdentifier(source),
     member: filters.member ?? null,
+    deviceType: filters.deviceType ?? null,
     startTs: filters.startDate ? new Date(`${filters.startDate}T00:00:00Z`).toISOString() : null,
     endTs: filters.endDate ? new Date(`${filters.endDate}T23:59:59Z`).toISOString() : null,
   };

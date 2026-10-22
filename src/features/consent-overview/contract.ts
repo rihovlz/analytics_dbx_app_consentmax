@@ -7,6 +7,7 @@ export type Granularity = (typeof GRANULARITIES)[number];
 
 export const filterParamsSchema = z.object({
   member: z.string().optional(),       // ex: "LRM" — undefined = tous
+  deviceType: z.string().optional(),   // ex: "Desktop" — undefined = tous
   startDate: z.string().optional(),    // "YYYY-MM-DD"
   endDate: z.string().optional(),      // "YYYY-MM-DD"
   granularity: z.enum(GRANULARITIES).optional().default("month"),
@@ -92,10 +93,12 @@ export const consentOverviewSchema = z.object({
   status: z.enum(["demo", "ok"]),
   filters: z.object({
     member: z.string().nullable(),
+    deviceType: z.string().nullable(),
     startDate: z.string().nullable(),
     endDate: z.string().nullable(),
     granularity: z.enum(GRANULARITIES),
     availableMembers: z.array(z.string()),
+    availableDeviceTypes: z.array(z.string()),
   }),
   kpi: kpiHeaderSchema,
   byPeriod: optInByPeriodSchema,

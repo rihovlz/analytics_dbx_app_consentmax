@@ -4,10 +4,21 @@
 // ── Clause WHERE commune ──────────────────────────────────────────────────────
 // Les paramètres :member, :startTs, :endTs sont optionnels : si NULL, la clause est ignorée.
 
+// device_type_agg expression réutilisée pour le filtre
+const DEVICE_TYPE_EXPR = `CASE
+    WHEN LOWER(channel)     IN ('app')                   THEN 'App'
+    WHEN LOWER(channel)     IN ('kiosk')                 THEN 'Kiosk'
+    WHEN LOWER(channel)     IN ('dooh')                  THEN 'DOOH'
+    WHEN LOWER(device_type) IN ('m', 'mobile', 'tablet') THEN 'Web mobile'
+    WHEN LOWER(device_type) IN ('d', 'desktop')          THEN 'Desktop'
+    ELSE 'Unknown'
+  END`;
+
 const WHERE_FILTERS = `
-WHERE (:member IS NULL OR member = :member)
-  AND (:startTs IS NULL OR event_timestamp >= :startTs)
-  AND (:endTs   IS NULL OR event_timestamp <  :endTs)
+WHERE (:member     IS NULL OR member = :member)
+  AND (:deviceType IS NULL OR (${DEVICE_TYPE_EXPR}) = :deviceType)
+  AND (:startTs    IS NULL OR event_timestamp >= :startTs)
+  AND (:endTs      IS NULL OR event_timestamp <  :endTs)
 `;
 
 // ── KPI header ────────────────────────────────────────────────────────────────
@@ -47,6 +58,7 @@ SELECT
   SUM(CASE WHEN fl_first_consent = false THEN 1 ELSE 0 END)                           AS reexposed
 FROM IDENTIFIER(:source)
 WHERE (:member IS NULL OR member = :member)
+  AND (:deviceType IS NULL OR (${DEVICE_TYPE_EXPR}) = :deviceType)
   AND current_consent = 'accept_all'
   AND event_timestamp >= :startTs
   AND event_timestamp <  :endTs
@@ -116,6 +128,7 @@ SELECT
   ) / NULLIF(COUNT(DISTINCT CASE WHEN fl_consent_w_choice THEN email_hash END), 0) AS consent_rate
 FROM IDENTIFIER(:source)
 WHERE (:member IS NULL OR member = :member)
+  AND (:deviceType IS NULL OR (${DEVICE_TYPE_EXPR}) = :deviceType)
   AND event_timestamp >= :startTs
   AND event_timestamp <  :endTs
 GROUP BY 1

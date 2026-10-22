@@ -52,10 +52,12 @@ function demoResult(filters: FilterParams): ConsentOverviewResult {
     status: "demo",
     filters: {
       member: filters.member ?? null,
+      deviceType: filters.deviceType ?? null,
       startDate: filters.startDate ?? null,
       endDate: filters.endDate ?? null,
       granularity: gran,
       availableMembers: ALL_MEMBERS,
+      availableDeviceTypes: ["Web mobile", "Desktop", "App", "Kiosk", "DOOH"],
     },
     kpi: {
       contactTotal: 24_600_000, contactWithChoice: 22_900_000,
@@ -139,10 +141,12 @@ export async function getConsentOverview(
     status: "ok",
     filters: {
       member: filters.member ?? null,
+      deviceType: filters.deviceType ?? null,
       startDate: filters.startDate ?? null,
       endDate: filters.endDate ?? null,
       granularity: gran,
       availableMembers: byMember.map((r) => r.member),
+      availableDeviceTypes: byDevice.map((r) => r.deviceType),
     },
     kpi, byPeriod, byMember, byDevice, byPageType, rateEvolution,
   };
