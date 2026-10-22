@@ -20,12 +20,21 @@ function fmtN(n: number): string {
 }
 function fmtPct(r: number, digits = 1): string { return `${(r * 100).toFixed(digits)} %`; }
 
-/** ISO "YYYY-MM-DD" → "dd/mm/yyyy" */
+/** Convertit n'importe quel format de date en "dd/mm/yyyy".
+ *  Accepte "YYYY-MM-DD", "YYYYMMDD", "YYYY-MM-DDTHH:mm:ss..." */
 function fmtDate(iso?: string | null): string {
   if (!iso) return "";
-  const parts = iso.slice(0, 10).split("-");
-  if (parts.length !== 3) return iso;
-  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  const s = iso.slice(0, 10); // prend les 10 premiers chars
+  // Format avec tirets : "YYYY-MM-DD"
+  const withDash = s.split("-");
+  if (withDash.length === 3 && withDash[0]!.length === 4) {
+    return `${withDash[2]}/${withDash[1]}/${withDash[0]}`;
+  }
+  // Format sans tirets : "YYYYMMDD"
+  if (s.length === 8 && /^\d{8}$/.test(s)) {
+    return `${s.slice(6, 8)}/${s.slice(4, 6)}/${s.slice(0, 4)}`;
+  }
+  return s;
 }
 
 function toISO(d: Date): string { return d.toISOString().slice(0, 10); }
@@ -462,12 +471,7 @@ function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvoluti
   const PX_PER_PT = 6;                          // pixels par point de données
   const H = 220;
   const PAD = { top: 16, right: 20, bottom: 36, left: 52 };
-  const SVG_W = PAD.left + data.length * PX_PER_PT + PAD.right;
-
-  const toX = (i: number) => PAD.left + i * PX_PER_PT;
-  const toY = (v: number) => PAD.top  + (1 - (v - yMin) / yRange) * (H - PAD.top - PAD.bottom);
-
-  const linePath = data.map((r, i) => `${i === 0 ? "M" : "L"}${toX(i).toFixed(1)},${toY(r.consentRate).toFixed(1)}`).join(" ");
+  const toY = (v: number) => PAD.top + (1 - (v - yMin) / yRange) * (H - PAD.top - PAD.bottom);
   const yTicks   = Array.from({ length: 5 }, (_, i) => yMin + (i / 4) * yRange);
 
   // Étiquettes X : 1 tous les 10 points environ, ancre adaptée bords
@@ -477,64 +481,89 @@ function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvoluti
     .filter((i) => i % labelStep === 0 || i === data.length - 1);
 
   function handleMouseMove(e: React.MouseEvent<SVGSVGElement>) {
-    const rect  = e.currentTarget.getBoundingClientRect();
-    // Coordonnées en pixels SVG réels (pas de viewBox)
-    const pxX   = e.clientX - rect.left;
-    const i     = Math.max(0, Math.min(data.length - 1, Math.round((pxX - PAD.left) / PX_PER_PT)));
-    const row   = data[i];
-    if (row) setTooltip({ svgX: toX(i), svgY: toY(row.consentRate), day: row.day, rate: row.consentRate });
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pxX  = e.clientX - rect.left; // pas de PAD.left dans ce SVG
+    const i    = Math.max(0, Math.min(data.length - 1, Math.round(pxX / PX_PER_PT)));
+    const row  = data[i];
+    if (row) setTooltip({ svgX: i * PX_PER_PT, svgY: toY(row.consentRate), day: row.day, rate: row.consentRate });
   }
+
+  // Largeur de l'axe Y (fixe, toujours visible)
+  const Y_AXIS_W = PAD.left;
+  // Largeur du SVG courbe (sans axe Y)
+  const CURVE_W  = data.length * PX_PER_PT + PAD.right;
+
+  // Coordonnée X dans le SVG courbe (sans PAD.left)
+  const toCurveX = (i: number) => i * PX_PER_PT;
+
+  const curvePath = data
+    .map((r, i) => `${i === 0 ? "M" : "L"}${toCurveX(i).toFixed(1)},${toY(r.consentRate).toFixed(1)}`)
+    .join(" ");
 
   return (
     <section aria-label="Opt-in Rate Evolution" className="rounded-2xl border border-line bg-surface p-5 shadow-panel">
       <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Opt-in rate evolution</h3>
 
-      {/* Conteneur scrollable, scroll à droite par défaut */}
-      <div ref={scrollRef} className="relative overflow-x-auto" style={{ height: `${H}px` }}>
-        <svg width={SVG_W} height={H}
-          role="img" aria-label="Opt-in rate evolution"
-          onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)}>
+      {/* Conteneur : axe Y fixe à gauche + zone scrollable à droite */}
+      <div className="flex" style={{ height: `${H}px` }}>
 
-          {/* Grille Y + labels — position fixe dans le scroll */}
+        {/* Axe Y — fixe, non scrollable */}
+        <svg width={Y_AXIS_W} height={H} className="shrink-0" aria-hidden="true">
           {yTicks.map((v) => (
             <g key={v}>
-              <line x1={PAD.left} y1={toY(v)} x2={SVG_W - PAD.right} y2={toY(v)}
-                stroke="currentColor" strokeOpacity={0.1} strokeWidth={1} />
-              <text x={PAD.left - 6} y={toY(v) + 4} textAnchor="end" fontSize={12}
+              {/* Ligne horizontale de grille — dépasse dans la zone courbe via overflow visible */}
+              <text x={Y_AXIS_W - 6} y={toY(v) + 4} textAnchor="end" fontSize={12}
                 fill="currentColor" fillOpacity={0.6}>{fmtPct(v, 0)}</text>
             </g>
           ))}
-
-          {/* Étiquettes X */}
-          {xIndices.map((i) => {
-            const row    = data[i]; if (!row) return null;
-            const x      = toX(i);
-            const anchor = i === data.length - 1 ? "end" : i === 0 ? "start" : "middle";
-            return (
-              <text key={i} x={x} y={H - 6} textAnchor={anchor} fontSize={11}
-                fill="currentColor" fillOpacity={0.6}>
-                {fmtDate(row.day)}
-              </text>
-            );
-          })}
-
-          {/* Courbe */}
-          <path d={linePath} fill="none" stroke="#16a34a" strokeWidth={1.5} />
-          {tooltip && <circle cx={tooltip.svgX} cy={tooltip.svgY} r={4} fill="#16a34a" stroke="white" strokeWidth={1.5} />}
-
-          {/* Zone de capture souris */}
-          <rect x={PAD.left} y={PAD.top} width={SVG_W - PAD.left - PAD.right}
-            height={H - PAD.top - PAD.bottom} fill="transparent" />
         </svg>
 
-        {/* Infobulle positionnée en px SVG */}
-        {tooltip && (
-          <div className="pointer-events-none absolute z-10 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl"
-            style={{ left: tooltip.svgX + 10, top: tooltip.svgY - 50 }}>
-            <p className="font-semibold">{fmtDate(tooltip.day)}</p>
-            <p>Consent rate: <span className="font-bold">{fmtPct(tooltip.rate)}</span></p>
-          </div>
-        )}
+        {/* Zone scrollable — courbe + axe X + grille */}
+        <div ref={scrollRef} className="relative min-w-0 flex-1 overflow-x-auto">
+          <svg width={CURVE_W} height={H}
+            role="img" aria-label="Opt-in rate evolution"
+            onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)}>
+
+            {/* Grille Y (lignes horizontales seulement, labels dans le SVG fixe) */}
+            {yTicks.map((v) => (
+              <line key={v} x1={0} y1={toY(v)} x2={CURVE_W} y2={toY(v)}
+                stroke="currentColor" strokeOpacity={0.1} strokeWidth={1} />
+            ))}
+
+            {/* Étiquettes X */}
+            {xIndices.map((i) => {
+              const row    = data[i]; if (!row) return null;
+              const x      = toCurveX(i);
+              const anchor = i === data.length - 1 ? "end" : i === 0 ? "start" : "middle";
+              return (
+                <text key={i} x={x} y={H - 6} textAnchor={anchor} fontSize={11}
+                  fill="currentColor" fillOpacity={0.6}>
+                  {fmtDate(row.day)}
+                </text>
+              );
+            })}
+
+            {/* Courbe */}
+            <path d={curvePath} fill="none" stroke="#16a34a" strokeWidth={1.5} />
+            {tooltip && (
+              <circle cx={toCurveX(data.findIndex((r) => r.day === tooltip.day))}
+                cy={tooltip.svgY} r={4} fill="#16a34a" stroke="white" strokeWidth={1.5} />
+            )}
+
+            {/* Zone de capture souris */}
+            <rect x={0} y={PAD.top} width={CURVE_W} height={H - PAD.top - PAD.bottom}
+              fill="transparent" />
+          </svg>
+
+          {/* Infobulle */}
+          {tooltip && (
+            <div className="pointer-events-none absolute z-10 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl"
+              style={{ left: toCurveX(data.findIndex((r) => r.day === tooltip.day)) + 10, top: tooltip.svgY - 50 }}>
+              <p className="font-semibold">{fmtDate(tooltip.day)}</p>
+              <p>Consent rate: <span className="font-bold">{fmtPct(tooltip.rate)}</span></p>
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );
@@ -646,11 +675,14 @@ const DEFAULT_FILTERS: FilterParams = { granularity: "month" };
 
 function Spinner() {
   return (
-    <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center rounded-2xl bg-surface/60 backdrop-blur-sm">
-      <svg className="h-10 w-10 animate-spin text-accent" viewBox="0 0 24 24" fill="none" aria-label="Loading">
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-      </svg>
+    /* fixed = centré dans le viewport, indépendant du scroll de la page */
+    <div className="pointer-events-none fixed inset-0 z-[100] flex items-center justify-center">
+      <div className="flex items-center justify-center rounded-2xl bg-surface/80 p-5 shadow-xl backdrop-blur-sm">
+        <svg className="h-12 w-12 animate-spin text-accent" viewBox="0 0 24 24" fill="none" aria-label="Loading">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+        </svg>
+      </div>
     </div>
   );
 }
@@ -725,8 +757,7 @@ export function ConsentOverviewCard() {
       {state.status === "error" && <ErrorState title="Data unavailable" message={state.message} requestId={state.requestId} />}
 
       {result && (
-        /* Wrapper relatif pour le spinner overlay */
-        <div className="relative space-y-5">
+        <div className="space-y-5">
           {isRefreshing && <Spinner />}
 
           {/* Row 1 : KPI fusionné + Consent by device */}
