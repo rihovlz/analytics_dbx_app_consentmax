@@ -6,8 +6,16 @@ export const GRANULARITIES = ["day", "week", "month"] as const;
 export type Granularity = (typeof GRANULARITIES)[number];
 
 export const filterParamsSchema = z.object({
-  member: z.string().optional(),       // ex: "LRM" — undefined = tous
-  deviceType: z.string().optional(),   // ex: "Desktop" — undefined = tous
+  // membres sélectionnés — tableau JSON encodé en query string, undefined = tous
+  members: z.preprocess(
+    (v) => { try { return typeof v === "string" ? JSON.parse(v) : v; } catch { return v; } },
+    z.array(z.string()).optional(),
+  ),
+  // devices sélectionnés — tableau JSON encodé en query string, undefined = tous
+  deviceTypes: z.preprocess(
+    (v) => { try { return typeof v === "string" ? JSON.parse(v) : v; } catch { return v; } },
+    z.array(z.string()).optional(),
+  ),
   startDate: z.string().optional(),    // "YYYY-MM-DD"
   endDate: z.string().optional(),      // "YYYY-MM-DD"
   granularity: z.enum(GRANULARITIES).optional().default("month"),
@@ -27,6 +35,10 @@ export const kpiHeaderSchema = z.object({
   rejectRate: z.coerce.number(),
   customRate: z.coerce.number(),
   lastEventAt: z.string().nullable(),
+  // Taux sur les 30 derniers jours — null si période < 30j ou données insuffisantes
+  last30dConsentRate: z.coerce.number().nullable(),
+  last30dRejectRate: z.coerce.number().nullable(),
+  last30dCustomRate: z.coerce.number().nullable(),
 });
 export type KpiHeader = z.infer<typeof kpiHeaderSchema>;
 
@@ -92,8 +104,8 @@ export type OptInRateEvolutionRow = z.infer<typeof optInRateEvolutionRowSchema>;
 export const consentOverviewSchema = z.object({
   status: z.enum(["demo", "ok"]),
   filters: z.object({
-    member: z.string().nullable(),
-    deviceType: z.string().nullable(),
+    members: z.array(z.string()),
+    deviceTypes: z.array(z.string()),
     startDate: z.string().nullable(),
     endDate: z.string().nullable(),
     granularity: z.enum(GRANULARITIES),

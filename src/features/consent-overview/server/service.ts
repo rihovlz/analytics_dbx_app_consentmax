@@ -51,12 +51,12 @@ function demoResult(filters: FilterParams): ConsentOverviewResult {
   return {
     status: "demo",
     filters: {
-      member: filters.member ?? null,
-      deviceType: filters.deviceType ?? null,
+      members:     filters.members    ?? [],
+      deviceTypes: filters.deviceTypes ?? [],
       startDate: filters.startDate ?? null,
-      endDate: filters.endDate ?? null,
+      endDate:   filters.endDate   ?? null,
       granularity: gran,
-      availableMembers: ALL_MEMBERS,
+      availableMembers:     ALL_MEMBERS,
       availableDeviceTypes: ["Web mobile", "Desktop", "App", "Kiosk", "DOOH"],
     },
     kpi: {
@@ -64,6 +64,7 @@ function demoResult(filters: FilterParams): ConsentOverviewResult {
       optIn: 13_948_207, custom: 108_005, optOut: 8_875_978, withoutChoice: 1_600_000,
       consentRate: 0.609, rejectRate: 0.388, customRate: 0.005,
       lastEventAt: "2026-10-20T23:59:56",
+      last30dConsentRate: 0.614, last30dRejectRate: 0.381, last30dCustomRate: 0.005,
     },
     byPeriod: periods,
     byMember: [
@@ -140,12 +141,12 @@ export async function getConsentOverview(
   return {
     status: "ok",
     filters: {
-      member: filters.member ?? null,
-      deviceType: filters.deviceType ?? null,
-      startDate: filters.startDate ?? null,
-      endDate: filters.endDate ?? null,
+      members:     filters.members     ?? [],
+      deviceTypes: filters.deviceTypes ?? [],
+      startDate:   filters.startDate   ?? null,
+      endDate:     filters.endDate     ?? null,
       granularity: gran,
-      availableMembers: byMember.map((r) => r.member),
+      availableMembers:     byMember.map((r) => r.member),
       availableDeviceTypes: byDevice.map((r) => r.deviceType),
     },
     kpi, byPeriod, byMember, byDevice, byPageType, rateEvolution,

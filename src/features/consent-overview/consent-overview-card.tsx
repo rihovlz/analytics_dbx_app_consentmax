@@ -147,6 +147,62 @@ function DateRangePicker({ startDate, endDate, onChange }: {
   );
 }
 
+// ── Multi-select dropdown ─────────────────────────────────────────────────────
+
+function MultiSelect({ label, options, selected, onChange }: {
+  label: string;
+  options: string[];
+  selected: string[];
+  onChange: (v: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function h(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); }
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+
+  function toggle(v: string) {
+    onChange(selected.includes(v) ? selected.filter((s) => s !== v) : [...selected, v]);
+  }
+
+  const btnLabel = selected.length === 0
+    ? `All ${label}`
+    : selected.length === 1
+    ? selected[0]!
+    : `${selected.length} ${label}`;
+
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" onClick={() => setOpen((o) => !o)}
+        className="flex min-w-[120px] items-center justify-between gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium hover:border-accent focus:outline-none focus:ring-2 focus:ring-accent">
+        <span className={selected.length > 0 ? "text-on-surface" : "text-muted"}>{btnLabel}</span>
+        <svg className="h-3.5 w-3.5 shrink-0 text-muted" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-1 max-h-64 min-w-[160px] overflow-y-auto rounded-xl border border-line bg-surface p-2 shadow-xl">
+          {options.map((opt) => (
+            <label key={opt} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-accent/10">
+              <input type="checkbox" checked={selected.includes(opt)} onChange={() => toggle(opt)}
+                className="h-3.5 w-3.5 rounded accent-accent" />
+              <span>{opt}</span>
+            </label>
+          ))}
+          {selected.length > 0 && (
+            <button type="button" onClick={() => { onChange([]); setOpen(false); }}
+              className="mt-1 w-full rounded-lg border border-line py-1 text-xs text-muted hover:text-on-surface">
+              Clear
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Filter bar ────────────────────────────────────────────────────────────────
 
 function FilterBar({ filters, availableMembers, availableDeviceTypes, onChange }: {
@@ -155,31 +211,28 @@ function FilterBar({ filters, availableMembers, availableDeviceTypes, onChange }
   availableDeviceTypes: string[];
   onChange: (f: Partial<FilterParams>) => void;
 }) {
-  const hasFilter = filters.member || filters.deviceType || filters.startDate || filters.endDate;
+  const hasFilter = (filters.members?.length ?? 0) > 0
+    || (filters.deviceTypes?.length ?? 0) > 0
+    || filters.startDate || filters.endDate;
+
   return (
     <div className="flex flex-wrap items-center gap-3">
-      {/* Member */}
-      <select value={filters.member ?? ""} onChange={(e) => onChange({ member: e.target.value || undefined })}
-        className="rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent"
-        aria-label="Filter by member">
-        <option value="">All members</option>
-        {availableMembers.map((m) => <option key={m} value={m}>{m}</option>)}
-      </select>
-
-      {/* Device type */}
-      <select value={filters.deviceType ?? ""} onChange={(e) => onChange({ deviceType: e.target.value || undefined })}
-        className="rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent"
-        aria-label="Filter by device type">
-        <option value="">All devices</option>
-        {availableDeviceTypes.map((d) => <option key={d} value={d}>{d}</option>)}
-      </select>
-
-      {/* Date range */}
+      <MultiSelect
+        label="members"
+        options={availableMembers}
+        selected={filters.members ?? []}
+        onChange={(v) => onChange({ members: v.length > 0 ? v : undefined })}
+      />
+      <MultiSelect
+        label="devices"
+        options={availableDeviceTypes}
+        selected={filters.deviceTypes ?? []}
+        onChange={(v) => onChange({ deviceTypes: v.length > 0 ? v : undefined })}
+      />
       <DateRangePicker startDate={filters.startDate} endDate={filters.endDate} onChange={(r) => onChange(r)} />
-
       {hasFilter && (
         <button type="button"
-          onClick={() => onChange({ member: undefined, deviceType: undefined, startDate: undefined, endDate: undefined })}
+          onClick={() => onChange({ members: undefined, deviceTypes: undefined, startDate: undefined, endDate: undefined })}
           className="rounded-lg border border-line px-3 py-2 text-sm text-muted hover:text-on-surface">
           Reset
         </button>
@@ -223,17 +276,24 @@ function KpiHeader({ kpi, deviceData }: {
           {/* Split opt-in / custom / opt-out — flex-1 pour remplir la hauteur restante */}
           <div className="flex flex-1 flex-col gap-2 pt-1">
             {[
-              { label: "Opt-in",  val: kpi.optIn,  pct: kpi.consentRate, color: "bg-green-600/90" },
-              { label: "Custom",  val: kpi.custom,  pct: kpi.customRate,  color: "bg-amber-500/90" },
-              { label: "Opt-out", val: kpi.optOut,  pct: kpi.rejectRate,  color: "bg-red-600/90"   },
-            ].map(({ label, val, pct, color }) => (
+              { label: "Opt-in",  val: kpi.optIn,  pct: kpi.consentRate, l30: kpi.last30dConsentRate, color: "bg-green-600/90" },
+              { label: "Custom",  val: kpi.custom,  pct: kpi.customRate,  l30: kpi.last30dCustomRate,  color: "bg-amber-500/90" },
+              { label: "Opt-out", val: kpi.optOut,  pct: kpi.rejectRate,  l30: kpi.last30dRejectRate,  color: "bg-red-600/90"   },
+            ].map(({ label, val, pct, l30, color }) => (
               <div key={label}
                 className={`flex flex-1 items-center justify-between rounded-xl ${color} px-4`}
                 style={{ minHeight: "2.8rem" }}>
                 <span className="text-sm font-semibold text-white">{label}</span>
-                <div className="flex items-baseline gap-2">
+                <div className="flex items-baseline gap-3">
                   <span className="text-base font-bold text-white tabular-nums">{fmtN(val)}</span>
-                  <span className="text-xs text-white/75">{fmtPct(pct)}</span>
+                  {/* % période choisie */}
+                  <span className="text-sm font-semibold text-white/90">{fmtPct(pct)}</span>
+                  {/* % last 30 days — affiché uniquement si disponible */}
+                  {l30 !== null && l30 !== undefined && (
+                    <span className="text-xs text-white/60" title="last 30 days">
+                      {fmtPct(l30)} <span className="opacity-70">30d</span>
+                    </span>
+                  )}
                 </div>
               </div>
             ))}
@@ -711,8 +771,8 @@ export function ConsentOverviewCard() {
     // Si on a déjà des données : garder l'affichage et montrer un spinner overlay
     setIsRefreshing(true);
     const params = new URLSearchParams();
-    if (f.member)      params.set("member",      f.member);
-    if (f.deviceType)  params.set("deviceType",  f.deviceType);
+    if (f.members     && f.members.length     > 0) params.set("members",     JSON.stringify(f.members));
+    if (f.deviceTypes && f.deviceTypes.length > 0) params.set("deviceTypes", JSON.stringify(f.deviceTypes));
     if (f.startDate)   params.set("startDate",   f.startDate);
     if (f.endDate)     params.set("endDate",     f.endDate);
     if (f.granularity) params.set("granularity", f.granularity);

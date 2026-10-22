@@ -5,8 +5,8 @@ import { withApiRoute } from "@/lib/http/with-api-route";
 export const GET = withApiRoute((request, context) => {
   const q = request.query as Record<string, string>;
   const filters = filterParamsSchema.parse({
-    member:      q["member"]      || undefined,
-    deviceType:  q["deviceType"]  || undefined,
+    members:     q["members"]     || undefined,
+    deviceTypes: q["deviceTypes"] || undefined,
     startDate:   q["startDate"]   || undefined,
     endDate:     q["endDate"]     || undefined,
     granularity: q["granularity"] || undefined,
