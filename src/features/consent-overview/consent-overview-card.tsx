@@ -151,7 +151,7 @@ function DateRangePicker({ startDate, endDate, onChange }: {
 
 function MultiSelect({ label, options, selected, onChange }: {
   label: string;
-  options: string[];
+  options: string[];      // déjà triées par l'appelant
   selected: string[];
   onChange: (v: string[]) => void;
 }) {
@@ -169,8 +169,7 @@ function MultiSelect({ label, options, selected, onChange }: {
 
   const btnLabel = selected.length === 0
     ? `All ${label}`
-    : selected.length === 1
-    ? selected[0]!
+    : selected.length === 1 ? selected[0]!
     : `${selected.length} ${label}`;
 
   return (
@@ -203,36 +202,76 @@ function MultiSelect({ label, options, selected, onChange }: {
   );
 }
 
-// ── Filter bar ────────────────────────────────────────────────────────────────
+// ── Filter bar — édition locale, apply sur bouton ─────────────────────────────
 
-function FilterBar({ filters, availableMembers, availableDeviceTypes, onChange }: {
-  filters: FilterParams;
+function FilterBar({
+  appliedFilters,
+  availableMembers,
+  availableDeviceTypes,
+  onApply,
+}: {
+  appliedFilters: FilterParams;
   availableMembers: string[];
   availableDeviceTypes: string[];
-  onChange: (f: Partial<FilterParams>) => void;
+  onApply: (f: FilterParams) => void;
 }) {
-  const hasFilter = (filters.members?.length ?? 0) > 0
-    || (filters.deviceTypes?.length ?? 0) > 0
-    || filters.startDate || filters.endDate;
+  // État local de la barre — ne déclenche pas de requête avant Apply
+  const [pending, setPending] = useState<FilterParams>(appliedFilters);
+
+  // Synchroniser si les filtres appliqués changent de l'extérieur (reset, granularité)
+  useEffect(() => { setPending(appliedFilters); }, [appliedFilters]);
+
+  const hasPending =
+    JSON.stringify({ ...pending, granularity: undefined }) !==
+    JSON.stringify({ ...appliedFilters, granularity: undefined });
+
+  const hasFilter = (pending.members?.length ?? 0) > 0
+    || (pending.deviceTypes?.length ?? 0) > 0
+    || pending.startDate || pending.endDate;
+
+  // Tri alphabétique des options
+  const sortedMembers = [...availableMembers].sort((a, b) => a.localeCompare(b));
+  const sortedDevices = [...availableDeviceTypes].sort((a, b) => a.localeCompare(b));
+
+  function handleApply() { onApply(pending); }
+
+  function handleReset() {
+    const reset: FilterParams = { granularity: pending.granularity };
+    setPending(reset);
+    onApply(reset);
+  }
 
   return (
     <div className="flex flex-wrap items-center gap-3">
       <MultiSelect
         label="members"
-        options={availableMembers}
-        selected={filters.members ?? []}
-        onChange={(v) => onChange({ members: v.length > 0 ? v : undefined })}
+        options={sortedMembers}
+        selected={pending.members ?? []}
+        onChange={(v) => setPending((p) => ({ ...p, members: v.length > 0 ? v : undefined }))}
       />
       <MultiSelect
         label="devices"
-        options={availableDeviceTypes}
-        selected={filters.deviceTypes ?? []}
-        onChange={(v) => onChange({ deviceTypes: v.length > 0 ? v : undefined })}
+        options={sortedDevices}
+        selected={pending.deviceTypes ?? []}
+        onChange={(v) => setPending((p) => ({ ...p, deviceTypes: v.length > 0 ? v : undefined }))}
       />
-      <DateRangePicker startDate={filters.startDate} endDate={filters.endDate} onChange={(r) => onChange(r)} />
-      {hasFilter && (
-        <button type="button"
-          onClick={() => onChange({ members: undefined, deviceTypes: undefined, startDate: undefined, endDate: undefined })}
+      <DateRangePicker
+        startDate={pending.startDate}
+        endDate={pending.endDate}
+        onChange={(r) => setPending((p) => ({ ...p, ...r }))}
+      />
+
+      {/* Bouton Apply — visible si la sélection diffère des filtres appliqués */}
+      {hasPending && (
+        <button type="button" onClick={handleApply}
+          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-accent">
+          Apply
+        </button>
+      )}
+
+      {/* Reset — réinitialise et applique immédiatement */}
+      {(hasFilter || hasPending) && (
+        <button type="button" onClick={handleReset}
           className="rounded-lg border border-line px-3 py-2 text-sm text-muted hover:text-on-surface">
           Reset
         </button>
@@ -793,8 +832,12 @@ export function ConsentOverviewCard() {
 
   useEffect(() => { load(filters); }, [load, filters]);
 
-  const handleFilterChange = (partial: Partial<FilterParams>) => setFilters((f) => ({ ...f, ...partial }));
-  const handleGranularity  = (g: Granularity) => setFilters((f) => ({ ...f, granularity: g }));
+  // Granularité = effet immédiat (pas de requête SQL lourde, juste le rendu change)
+  // Pour le bar chart period : il re-fetch car granularity est dans les params SQL
+  const handleGranularity = (g: Granularity) => setFilters((f) => ({ ...f, granularity: g }));
+
+  // Apply : remplace les filtres appliqués → déclenche le fetch
+  const handleApply = (f: FilterParams) => setFilters(f);
 
   const result           = state.status === "success" ? state.result : null;
   const availableMembers = result?.filters.availableMembers    ?? [];
@@ -820,10 +863,10 @@ export function ConsentOverviewCard() {
           )}
         </div>
         <FilterBar
-          filters={filters}
+          appliedFilters={filters}
           availableMembers={availableMembers}
           availableDeviceTypes={availableDevices}
-          onChange={handleFilterChange}
+          onApply={handleApply}
         />
       </div>
 
