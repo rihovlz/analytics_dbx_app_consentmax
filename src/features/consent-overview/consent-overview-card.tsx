@@ -710,10 +710,11 @@ function ConsentByMember({ data }: { data: ConsentOverviewResult["byMember"] }) 
   const maxOptIn = Math.max(...data.map((r) => r.optIn), 1);
 
   // Tri côté client sur les données déjà reçues (pas de nouvelle requête)
+  // Tri : taux d'opt-in en mode %, volume d'opt-in en mode #
   const rows = [...data].sort((a, b) =>
     sort === "alpha"
       ? a.member.localeCompare(b.member)
-      : b.optIn - a.optIn,
+      : mode === "pct" ? b.consentRate - a.consentRate : b.optIn - a.optIn,
   );
 
   return (
