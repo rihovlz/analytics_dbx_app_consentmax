@@ -577,19 +577,35 @@ function OptInByPeriod({ data, granularity, onGranularity }: {
 
 // ── Opt-in rate evolution ─────────────────────────────────────────────────────
 
-// Niveaux de zoom : facteur multiplicatif sur la largeur par point
-const ZOOM_LEVELS = [1, 2, 3, 4, 6, 8, 12, 16] as const;
+const DEFAULT_WINDOW_DAYS = 30;
+const MIN_WINDOW_DAYS = 7;
+const ZOOM_CANDIDATE_DAYS = [180, 90, 60, 30, 14, 7] as const;
+
+/** Largeurs de fenêtre possibles, de la vue complète (zoom arrière) à 7 jours (zoom avant). */
+function zoomSteps(total: number): number[] {
+  const steps = new Set<number>([total]);
+  for (const d of ZOOM_CANDIDATE_DAYS) if (d < total && d >= MIN_WINDOW_DAYS) steps.add(d);
+  return [...steps].sort((a, b) => b - a);
+}
 
 function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvolution"] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [tooltip, setTooltip] = useState<{ svgX: number; svgY: number; day: string; rate: number } | null>(null);
-  const [zoomIdx, setZoomIdx] = useState(0);
+  const total = data.length;
+  const steps = zoomSteps(total);
+  const defaultIdx = (() => {
+    const i = steps.indexOf(DEFAULT_WINDOW_DAYS);
+    return i >= 0 ? i : steps.findIndex((d) => d <= DEFAULT_WINDOW_DAYS);
+  })();
+  const [zoomIdx, setZoomIdx] = useState(-1); // -1 = défaut
+  const activeIdx = zoomIdx < 0 ? Math.max(defaultIdx, 0) : Math.min(zoomIdx, steps.length - 1);
+  const windowDays = steps[activeIdx] ?? total;
 
   // Scroll à droite après chargement ou changement de zoom
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollLeft = el.scrollWidth;
-  }, [data, zoomIdx]);
+  }, [data, activeIdx]);
 
   if (data.length === 0) return null;
 
@@ -605,8 +621,8 @@ function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvoluti
   const PAD = { top: 16, right: 20, bottom: 36, left: 52 };
   // On vise une largeur totale courbe ≥ conteneur visible.
   // On utilise 4px/pt comme minimum ; le SVG s'adapte via width="100%"
-  const BASE_PX_PER_PT = Math.max(4, Math.round(800 / Math.max(data.length, 1)));
-  const PX_PER_PT = BASE_PX_PER_PT * ZOOM_LEVELS[zoomIdx]!;
+  // Une fenêtre de `windowDays` jours occupe 800 px : on en déduit la largeur par point
+  const PX_PER_PT = Math.max(1, 800 / Math.max(windowDays, 1));
   const toY = (v: number) => PAD.top + (1 - (v - yMin) / yRange) * (H - PAD.top - PAD.bottom);
   const yTicks   = Array.from({ length: 5 }, (_, i) => yMin + (i / 4) * yRange);
 
@@ -641,18 +657,30 @@ function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvoluti
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">Opt-in rate evolution</h3>
         <div className="flex items-center gap-1 rounded-lg border border-line p-0.5" role="group" aria-label="Zoom temporel">
-          <button type="button" aria-label="Zoom arrière"
-            onClick={() => setZoomIdx((i) => Math.max(0, i - 1))}
-            disabled={zoomIdx === 0}
-            className="rounded-md px-2.5 py-0.5 text-sm font-semibold text-muted hover:text-on-surface disabled:opacity-30">
-            −
+          <button type="button" aria-label="Zoom arrière (vue plus large)"
+            onClick={() => setZoomIdx(Math.max(0, activeIdx - 1))}
+            disabled={activeIdx === 0}
+            className="rounded-md p-1.5 text-muted hover:text-on-surface disabled:opacity-30">
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3M8 11h6" strokeLinecap="round" />
+            </svg>
           </button>
-          <span className="min-w-[3rem] text-center text-xs tabular-nums text-muted">×{ZOOM_LEVELS[zoomIdx]}</span>
-          <button type="button" aria-label="Zoom avant"
-            onClick={() => setZoomIdx((i) => Math.min(ZOOM_LEVELS.length - 1, i + 1))}
-            disabled={zoomIdx === ZOOM_LEVELS.length - 1}
-            className="rounded-md px-2.5 py-0.5 text-sm font-semibold text-muted hover:text-on-surface disabled:opacity-30">
-            +
+          <span className="min-w-[4.5rem] text-center text-xs tabular-nums text-muted">{windowDays} j</span>
+          <button type="button" aria-label="Zoom avant (vue plus détaillée)"
+            onClick={() => setZoomIdx(Math.min(steps.length - 1, activeIdx + 1))}
+            disabled={activeIdx === steps.length - 1}
+            className="rounded-md p-1.5 text-muted hover:text-on-surface disabled:opacity-30">
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3M11 8v6M8 11h6" strokeLinecap="round" />
+            </svg>
+          </button>
+          <button type="button" aria-label="Revenir à la vue par défaut (30 derniers jours)"
+            onClick={() => setZoomIdx(-1)}
+            disabled={activeIdx === defaultIdx}
+            className="rounded-md p-1.5 text-muted hover:text-on-surface disabled:opacity-30">
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <path d="M3 12a9 9 0 109-9 9.4 9.4 0 00-6.4 2.5L3 8" strokeLinecap="round" strokeLinejoin="round" /><path d="M3 3v5h5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </button>
         </div>
       </div>
