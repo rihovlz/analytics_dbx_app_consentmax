@@ -823,10 +823,10 @@ function ConsentByMember({ data }: { data: ConsentOverviewResult["byMember"] }) 
           return (
             <div key={row.member} className="group relative flex items-center gap-3">
               <span className="w-8 shrink-0 text-xs font-semibold">{row.member}</span>
-              <div className="flex h-5 min-w-0 flex-1 overflow-hidden rounded">
-                <div className="shrink-0 bg-green-600 transition-all" style={{ width: `${(optInW  * 100).toFixed(2)}%` }} />
+              <div className="flex h-5 min-w-0 flex-1">
+                <div className="shrink-0 rounded-l bg-green-600 transition-all" style={{ width: `${(optInW  * 100).toFixed(2)}%` }} />
                 {customW > 0.001 && <div className="shrink-0 bg-amber-500 transition-all" style={{ width: `${(customW * 100).toFixed(2)}%` }} />}
-                <div className="shrink-0 bg-red-500 transition-all"   style={{ width: `${(optOutW * 100).toFixed(2)}%` }} />
+                <div className="shrink-0 rounded-r bg-red-500 transition-all"   style={{ width: `${(optOutW * 100).toFixed(2)}%` }} />
               </div>
               <span className="w-16 shrink-0 text-right text-xs tabular-nums font-medium">{label}</span>
               {/* Infobulle */}
@@ -890,9 +890,9 @@ function ConsentByPageType({ data }: { data: ConsentOverviewResult["byPageType"]
           return (
             <div key={row.pageType} className="group relative flex items-center gap-3">
               <span className="w-40 shrink-0 truncate text-sm" title={row.pageType}>{row.pageType}</span>
-              <div className="flex h-5 min-w-0 flex-1 overflow-hidden rounded">
-                <div className="shrink-0 bg-green-600 transition-all" style={{ width: `${(optInW  * 100).toFixed(1)}%` }} />
-                <div className="shrink-0 bg-red-500 transition-all"   style={{ width: `${(optOutW * 100).toFixed(1)}%` }} />
+              <div className="flex h-5 min-w-0 flex-1">
+                <div className="shrink-0 rounded-l bg-green-600 transition-all" style={{ width: `${(optInW  * 100).toFixed(1)}%` }} />
+                <div className="shrink-0 rounded-r bg-red-500 transition-all"   style={{ width: `${(optOutW * 100).toFixed(1)}%` }} />
               </div>
               <span className="w-16 shrink-0 text-right text-xs tabular-nums font-medium">{label}</span>
               <div className="pointer-events-none absolute left-40 top-full z-10 mt-1 hidden w-52 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl group-hover:block">
