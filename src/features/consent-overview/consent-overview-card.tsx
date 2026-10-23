@@ -784,16 +784,35 @@ function ConsentByMember({ data }: { data: ConsentOverviewResult["byMember"] }) 
 
 function ConsentByPageType({ data }: { data: ConsentOverviewResult["byPageType"] }) {
   const [mode, setMode] = useState<DisplayMode>("pct");
+  const [sort, setSort] = useState<MemberSort>("optin");
   const maxOptIn = Math.max(...data.map((r) => r.optIn), 1);
+
+  // Tri : taux d'opt-in en mode %, volume d'opt-in en mode #, ou alphabétique sur le type de page
+  const rows = [...data].sort((a, b) =>
+    sort === "alpha"
+      ? a.pageType.localeCompare(b.pageType)
+      : mode === "pct" ? b.consentRate - a.consentRate : b.optIn - a.optIn,
+  );
 
   return (
     <section aria-label="Opt-in rate by page type" className="rounded-2xl border border-line bg-surface p-5 shadow-panel">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">Opt-in rate by page type</h3>
-        <ModeToggle mode={mode} onChange={setMode} />
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1 rounded-lg border border-line p-0.5" role="group" aria-label="Tri">
+            {([["optin", "Opt-in ↓"], ["alpha", "A–Z"]] as const).map(([key, text]) => (
+              <button key={key} type="button" onClick={() => setSort(key)}
+                aria-pressed={sort === key}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${sort === key ? "bg-accent text-white" : "text-muted hover:text-on-surface"}`}>
+                {text}
+              </button>
+            ))}
+          </div>
+          <ModeToggle mode={mode} onChange={setMode} />
+        </div>
       </div>
       <div className="space-y-2">
-        {data.map((row) => {
+        {rows.map((row) => {
           const optInW  = mode === "pct" ? row.consentRate     : row.optIn  / maxOptIn;
           const optOutW = mode === "pct" ? 1 - row.consentRate : row.optOut / maxOptIn;
           const label   = mode === "pct" ? fmtPct(row.consentRate) : fmtN(row.optIn);
