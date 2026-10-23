@@ -776,7 +776,8 @@ type MemberSort = "alpha" | "optin";
 function ConsentByMember({ data }: { data: ConsentOverviewResult["byMember"] }) {
   const [mode, setMode] = useState<DisplayMode>("pct");
   const [sort, setSort] = useState<MemberSort>("optin");
-  const maxOptIn = Math.max(...data.map((r) => r.optIn), 1);
+  // Mode # : échelle commune = plus grand total (opt-in + custom + opt-out)
+  const maxTotal = Math.max(...data.map((r) => r.optIn + r.custom + r.optOut), 1);
 
   // Tri côté client sur les données déjà reçues (pas de nouvelle requête)
   // Tri : taux d'opt-in en mode %, volume d'opt-in en mode #
@@ -815,9 +816,9 @@ function ConsentByMember({ data }: { data: ConsentOverviewResult["byMember"] }) 
 
       <div className="space-y-1.5">
         {rows.map((row) => {
-          const optInW  = mode === "pct" ? row.optIn  / (row.total || 1) : row.optIn  / maxOptIn;
-          const customW = mode === "pct" ? row.custom / (row.total || 1) : row.custom / maxOptIn;
-          const optOutW = mode === "pct" ? row.optOut / (row.total || 1) : row.optOut / maxOptIn;
+          const optInW  = mode === "pct" ? row.optIn  / (row.total || 1) : row.optIn  / maxTotal;
+          const customW = mode === "pct" ? row.custom / (row.total || 1) : row.custom / maxTotal;
+          const optOutW = mode === "pct" ? row.optOut / (row.total || 1) : row.optOut / maxTotal;
           const label   = mode === "pct" ? fmtPct(row.consentRate) : fmtN(row.optIn);
           return (
             <div key={row.member} className="group relative flex items-center gap-3">
@@ -854,7 +855,8 @@ function ConsentByMember({ data }: { data: ConsentOverviewResult["byMember"] }) 
 function ConsentByPageType({ data }: { data: ConsentOverviewResult["byPageType"] }) {
   const [mode, setMode] = useState<DisplayMode>("pct");
   const [sort, setSort] = useState<MemberSort>("optin");
-  const maxOptIn = Math.max(...data.map((r) => r.optIn), 1);
+  // Mode # : échelle commune = plus grand total (opt-in + opt-out) pour que rien ne déborde
+  const maxTotal = Math.max(...data.map((r) => r.optIn + r.optOut), 1);
 
   // Tri : taux d'opt-in en mode %, volume d'opt-in en mode #, ou alphabétique sur le type de page
   const rows = [...data].sort((a, b) =>
@@ -882,8 +884,8 @@ function ConsentByPageType({ data }: { data: ConsentOverviewResult["byPageType"]
       </div>
       <div className="space-y-2">
         {rows.map((row) => {
-          const optInW  = mode === "pct" ? row.consentRate     : row.optIn  / maxOptIn;
-          const optOutW = mode === "pct" ? 1 - row.consentRate : row.optOut / maxOptIn;
+          const optInW  = mode === "pct" ? row.consentRate     : row.optIn  / maxTotal;
+          const optOutW = mode === "pct" ? 1 - row.consentRate : row.optOut / maxTotal;
           const label   = mode === "pct" ? fmtPct(row.consentRate) : fmtN(row.optIn);
           return (
             <div key={row.pageType} className="group relative flex items-center gap-3">
