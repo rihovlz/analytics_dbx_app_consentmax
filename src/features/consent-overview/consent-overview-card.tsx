@@ -964,11 +964,19 @@ function Spinner() {
 }
 
 // Impression / PDF : fond clair, sans ombres, blocs non coupés en deux pages
+// Export PDF : une seule feuille A4 paysage, uniquement les blocs de données.
+// Le contenu est mis à l'échelle (zoom) pour tenir dans la hauteur utile de la page.
 const PRINT_STYLE = `
 @media print {
-  @page { size: A4 landscape; margin: 12mm; }
-  body { background: #ffffff !important; }
+  @page { size: A4 landscape; margin: 8mm; }
+  html, body { background: #ffffff !important; height: auto !important; overflow: visible !important; }
+  .consent-overview-root { padding: 0 !important; min-height: 0 !important; }
   .consent-overview-root section { break-inside: avoid; box-shadow: none !important; }
+  .consent-overview-body { zoom: 0.5; }
+  .consent-overview-body section { padding: 0.5rem 0.75rem !important; }
+  .consent-overview-body .space-y-2 > * + * { margin-top: 0.1rem !important; }
+  .consent-overview-body .space-y-1\\.5 > * + * { margin-top: 0.05rem !important; }
+  .consent-overview-root .space-y-5 > * + * { margin-top: 0.5rem !important; }
 }`;
 
 export function ConsentOverviewCard() {
@@ -1021,7 +1029,7 @@ export function ConsentOverviewCard() {
     <div className="consent-overview-root min-h-screen space-y-5 p-6">
       <style>{PRINT_STYLE}</style>
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="print:hidden flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-wrap items-baseline gap-3">
           <h1 className="text-2xl font-bold">ConsentMax Analytics</h1>
           {lastEventAt && (
@@ -1052,10 +1060,14 @@ export function ConsentOverviewCard() {
       {state.status === "error" && <ErrorState title="Data unavailable" message={state.message} requestId={state.requestId} />}
 
       {result && (
-        <div className="space-y-5">
+        <div className="consent-overview-body space-y-5">
           {isRefreshing && <Spinner />}
 
           {/* Row 1 : KPI fusionné + Consent by device */}
+          <div className="hidden print:block">
+            <h1 className="text-lg font-bold">ConsentMax Analytics</h1>
+            {lastEventAt && <p className="text-xs">last event : {fmtDateTime(lastEventAt)}</p>}
+          </div>
           <KpiHeader kpi={result.kpi} deviceData={result.byDevice} />
 
           {/* Row 2 : Opt-in by period + Opt-in rate evolution côte à côte, hauteur fixée */}
