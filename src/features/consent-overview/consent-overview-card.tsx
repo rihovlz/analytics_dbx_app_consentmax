@@ -37,7 +37,11 @@ function fmtDate(iso?: string | null): string {
   return s;
 }
 
-function toISO(d: Date): string { return d.toISOString().slice(0, 10); }
+function toISO(d: Date): string {
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+}
 
 /** Formate un label de période selon la granularité */
 function fmtPeriodLabel(period: string, gran: Granularity): string {
