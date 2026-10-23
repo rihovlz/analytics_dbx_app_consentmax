@@ -577,15 +577,19 @@ function OptInByPeriod({ data, granularity, onGranularity }: {
 
 // ── Opt-in rate evolution ─────────────────────────────────────────────────────
 
+// Niveaux de zoom : facteur multiplicatif sur la largeur par point
+const ZOOM_LEVELS = [1, 2, 3, 4, 6, 8, 12, 16] as const;
+
 function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvolution"] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [tooltip, setTooltip] = useState<{ svgX: number; svgY: number; day: string; rate: number } | null>(null);
+  const [zoomIdx, setZoomIdx] = useState(0);
 
-  // Scroll à droite après chargement
+  // Scroll à droite après chargement ou changement de zoom
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollLeft = el.scrollWidth;
-  }, [data]);
+  }, [data, zoomIdx]);
 
   if (data.length === 0) return null;
 
@@ -601,7 +605,8 @@ function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvoluti
   const PAD = { top: 16, right: 20, bottom: 36, left: 52 };
   // On vise une largeur totale courbe ≥ conteneur visible.
   // On utilise 4px/pt comme minimum ; le SVG s'adapte via width="100%"
-  const PX_PER_PT = Math.max(4, Math.round(800 / Math.max(data.length, 1)));
+  const BASE_PX_PER_PT = Math.max(4, Math.round(800 / Math.max(data.length, 1)));
+  const PX_PER_PT = BASE_PX_PER_PT * ZOOM_LEVELS[zoomIdx]!;
   const toY = (v: number) => PAD.top + (1 - (v - yMin) / yRange) * (H - PAD.top - PAD.bottom);
   const yTicks   = Array.from({ length: 5 }, (_, i) => yMin + (i / 4) * yRange);
 
@@ -633,7 +638,24 @@ function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvoluti
 
   return (
     <section aria-label="Opt-in Rate Evolution" className="rounded-2xl border border-line bg-surface p-5 shadow-panel">
-      <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Opt-in rate evolution</h3>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">Opt-in rate evolution</h3>
+        <div className="flex items-center gap-1 rounded-lg border border-line p-0.5" role="group" aria-label="Zoom temporel">
+          <button type="button" aria-label="Zoom arrière"
+            onClick={() => setZoomIdx((i) => Math.max(0, i - 1))}
+            disabled={zoomIdx === 0}
+            className="rounded-md px-2.5 py-0.5 text-sm font-semibold text-muted hover:text-on-surface disabled:opacity-30">
+            −
+          </button>
+          <span className="min-w-[3rem] text-center text-xs tabular-nums text-muted">×{ZOOM_LEVELS[zoomIdx]}</span>
+          <button type="button" aria-label="Zoom avant"
+            onClick={() => setZoomIdx((i) => Math.min(ZOOM_LEVELS.length - 1, i + 1))}
+            disabled={zoomIdx === ZOOM_LEVELS.length - 1}
+            className="rounded-md px-2.5 py-0.5 text-sm font-semibold text-muted hover:text-on-surface disabled:opacity-30">
+            +
+          </button>
+        </div>
+      </div>
 
       {/* Conteneur : axe Y fixe à gauche + zone scrollable à droite */}
       <div className="flex" style={{ height: `${H}px` }}>
