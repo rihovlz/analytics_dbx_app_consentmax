@@ -49,6 +49,12 @@ function fmtDateTime(value: string): string {
   return `${get("day")}/${get("month")}/${get("year")} ${get("hour")}:${get("minute")}`;
 }
 
+/** "YYYY-MM-DD" → "mm/yyyy" */
+function fmtMonthYear(iso: string): string {
+  const s = iso.slice(0, 10).split("-");
+  return s.length === 3 ? `${s[1]}/${s[0]}` : iso;
+}
+
 function toISO(d: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
@@ -719,7 +725,7 @@ function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvoluti
               return (
                 <text key={i} x={x} y={H - 6} textAnchor={anchor} fontSize={11}
                   fill="currentColor" fillOpacity={0.6}>
-                  {fmtDate(row.day)}
+                  {windowDays >= 90 ? fmtMonthYear(row.day) : fmtDate(row.day)}
                 </text>
               );
             })}
