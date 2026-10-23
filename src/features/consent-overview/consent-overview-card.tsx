@@ -667,9 +667,25 @@ function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvoluti
   // Coordonnée X dans le SVG courbe (sans PAD.left)
   const toCurveX = (i: number) => i * PX_PER_PT;
 
-  const curvePath = data
-    .map((r, i) => `${i === 0 ? "M" : "L"}${toCurveX(i).toFixed(1)},${toY(r.consentRate).toFixed(1)}`)
-    .join(" ");
+  // Courbe lissée (Catmull-Rom → Bézier), comme TimeSeriesChart type="monotone"
+  const pts = data.map((r, i) => [toCurveX(i), toY(r.consentRate)] as const);
+  const curvePath = pts.reduce((acc, [x, y], i, arr) => {
+    if (i === 0) return `M${x.toFixed(1)},${y.toFixed(1)}`;
+    const p0 = arr[i - 2] ?? arr[i - 1]!;
+    const p1 = arr[i - 1]!;
+    const p2 = [x, y] as const;
+    const p3 = arr[i + 1] ?? p2;
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6;
+    const c1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6;
+    const c2y = p2[1] - (p3[1] - p1[1]) / 6;
+    return `${acc} C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${x.toFixed(1)},${y.toFixed(1)}`;
+  }, "");
+  // Remplissage sous la courbe, dégradé du vert vers la transparence (même dégradé que TimeSeriesChart)
+  const areaPath = pts.length > 0
+    ? `${curvePath} L${toCurveX(data.length - 1).toFixed(1)},${H - PAD.bottom} L${toCurveX(0).toFixed(1)},${H - PAD.bottom} Z`
+    : "";
+  const activeIndex = tooltip ? data.findIndex((r) => r.day === tooltip.day) : -1;
 
   return (
     <section aria-label="Opt-in Rate Evolution" className="rounded-2xl border border-line bg-surface p-5 shadow-panel">
@@ -724,10 +740,19 @@ function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvoluti
             role="img" aria-label="Opt-in rate evolution"
             onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)}>
 
-            {/* Grille Y (lignes horizontales seulement, labels dans le SVG fixe) */}
+            {/* Dégradé du remplissage (style TimeSeriesChart) */}
+            <defs>
+              <linearGradient id="opt-in-rate-area" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#16a34a" stopOpacity={0.17} />
+                <stop offset="72%" stopColor="#16a34a" stopOpacity={0.035} />
+                <stop offset="100%" stopColor="#16a34a" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+
+            {/* Grille Y : horizontale, pointillée, sans grille verticale */}
             {yTicks.map((v) => (
               <line key={v} x1={0} y1={toY(v)} x2={CURVE_W} y2={toY(v)}
-                stroke="currentColor" strokeOpacity={0.1} strokeWidth={1} />
+                stroke="var(--chart-grid)" strokeDasharray="3 5" strokeWidth={1} />
             ))}
 
             {/* Étiquettes X */}
@@ -743,11 +768,13 @@ function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvoluti
               );
             })}
 
-            {/* Courbe */}
-            <path d={curvePath} fill="none" stroke="#16a34a" strokeWidth={1.5} />
-            {tooltip && (
-              <circle cx={toCurveX(data.findIndex((r) => r.day === tooltip.day))}
-                cy={tooltip.svgY} r={4} fill="#16a34a" stroke="white" strokeWidth={1.5} />
+            {/* Remplissage puis courbe (2,35 px, sans point) */}
+            <path d={areaPath} fill="url(#opt-in-rate-area)" stroke="none" />
+            <path d={curvePath} fill="none" stroke="#16a34a" strokeWidth={2.35} strokeLinejoin="round" strokeLinecap="round" />
+            {/* Point actif au survol uniquement */}
+            {activeIndex >= 0 && tooltip && (
+              <circle cx={toCurveX(activeIndex)} cy={tooltip.svgY} r={4.5}
+                fill="#16a34a" stroke="var(--surface)" strokeWidth={2.5} />
             )}
 
             {/* Zone de capture souris */}
@@ -757,10 +784,16 @@ function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvoluti
 
           {/* Infobulle */}
           {tooltip && (
-            <div className="pointer-events-none absolute z-10 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl"
-              style={{ left: toCurveX(data.findIndex((r) => r.day === tooltip.day)) + 10, top: tooltip.svgY - 50 }}>
-              <p className="font-semibold">{fmtDate(tooltip.day)}</p>
-              <p>Consent rate: <span className="font-bold">{fmtPct(tooltip.rate)}</span></p>
+            <div className="pointer-events-none absolute z-10 min-w-40 rounded-2xl border border-line bg-tooltip p-3 shadow-floating"
+              style={{ left: toCurveX(activeIndex) + 12, top: tooltip.svgY - 56 }}>
+              <p className="text-xs font-medium text-muted">{fmtDate(tooltip.day)}</p>
+              <p className="mt-2 flex items-center justify-between gap-4 text-sm">
+                <span className="flex items-center gap-2 text-muted">
+                  <span className="size-2 rounded-full bg-[#16a34a]" aria-hidden="true" />
+                  Opt-in rate
+                </span>
+                <span className="font-semibold tabular-nums text-ink">{fmtPct(tooltip.rate)}</span>
+              </p>
             </div>
           )}
         </div>
