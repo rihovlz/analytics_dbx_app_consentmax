@@ -597,6 +597,18 @@ function zoomSteps(total: number): number[] {
 function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvolution"] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [tooltip, setTooltip] = useState<{ svgX: number; svgY: number; day: string; rate: number } | null>(null);
+  // Largeur réelle de la zone de courbe (mesurée, pas supposée)
+  const [plotWidth, setPlotWidth] = useState(800);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      if (entry) setPlotWidth(entry.contentRect.width);
+    });
+    ro.observe(el);
+    setPlotWidth(el.clientWidth || 800);
+    return () => ro.disconnect();
+  }, []);
   const total = data.length;
   const steps = zoomSteps(total);
   const defaultIdx = (() => {
@@ -628,7 +640,8 @@ function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvoluti
   // On vise une largeur totale courbe ≥ conteneur visible.
   // On utilise 4px/pt comme minimum ; le SVG s'adapte via width="100%"
   // Une fenêtre de `windowDays` jours occupe 800 px : on en déduit la largeur par point
-  const PX_PER_PT = Math.max(1, 800 / Math.max(windowDays, 1));
+  // La fenêtre visible (windowDays jours) occupe exactement la largeur mesurée
+  const PX_PER_PT = Math.max(1, plotWidth / Math.max(windowDays, 1));
   const toY = (v: number) => PAD.top + (1 - (v - yMin) / yRange) * (H - PAD.top - PAD.bottom);
   const yTicks   = Array.from({ length: 5 }, (_, i) => yMin + (i / 4) * yRange);
 
