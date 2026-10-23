@@ -871,7 +871,7 @@ export function ConsentOverviewCard() {
           <h1 className="text-2xl font-bold">ConsentMax Analytics</h1>
           {lastEventAt && (
             <span className="text-xs text-muted">
-              last refresh: <span className="font-medium text-on-surface">{fmtDateTime(lastEventAt)}</span>
+              last event: <span className="font-medium text-on-surface">{fmtDateTime(lastEventAt)}</span>
             </span>
           )}
           {result?.status === "demo" && (
