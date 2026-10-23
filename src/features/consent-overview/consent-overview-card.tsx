@@ -82,6 +82,9 @@ function fmtPeriodLabel(period: string, gran: Granularity): string {
 
 type DateRange = { startDate?: string; endDate?: string };
 
+// Début de l'historique utilisé par le serveur quand aucune date n'est choisie
+const DATA_START = "2024-10-01";
+
 const PRESETS: { label: string; range: () => DateRange }[] = [
   { label: "Today",          range: () => { const d = toISO(new Date()); return { startDate: d, endDate: d }; } },
   { label: "Yesterday",      range: () => { const d = new Date(); d.setDate(d.getDate()-1); const s = toISO(d); return { startDate: s, endDate: s }; } },
@@ -107,12 +110,10 @@ function DateRangePicker({ startDate, endDate, onChange }: {
   }, []);
 
   // Résumé du filtre en dd/mm/yyyy
-  const label = startDate && endDate && startDate === endDate
-    ? fmtDate(startDate)
-    : startDate && endDate ? `${fmtDate(startDate)} → ${fmtDate(endDate)}`
-    : startDate ? `From ${fmtDate(startDate)}`
-    : endDate   ? `Until ${fmtDate(endDate)}`
-    : "Select period";
+  // Toujours la plage effective : sans filtre, c'est l'historique complet jusqu'à aujourd'hui
+  const effStart = startDate ?? DATA_START;
+  const effEnd   = endDate ?? toISO(new Date());
+  const label = effStart === effEnd ? fmtDate(effStart) : `${fmtDate(effStart)} → ${fmtDate(effEnd)}`;
 
   return (
     <div ref={ref} className="relative">
@@ -121,7 +122,7 @@ function DateRangePicker({ startDate, endDate, onChange }: {
         <svg className="h-4 w-4 shrink-0 text-muted" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
           <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
         </svg>
-        <span className={startDate || endDate ? "text-on-surface" : "text-muted"}>{label}</span>
+        <span className="text-on-surface">{label}</span>
         {(startDate || endDate) && (
           <span role="button" tabIndex={0} aria-label="Clear dates" className="ml-1 text-muted hover:text-on-surface"
             onClick={(e) => { e.stopPropagation(); onChange({ startDate: undefined, endDate: undefined }); }}
