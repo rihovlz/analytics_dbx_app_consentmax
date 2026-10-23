@@ -437,7 +437,7 @@ type DisplayMode = "pct" | "abs";
 
 function ModeToggle({ mode, onChange }: { mode: DisplayMode; onChange: (m: DisplayMode) => void }) {
   return (
-    <div className="flex gap-1 rounded-lg border border-line p-0.5">
+    <div className="print:hidden flex gap-1 rounded-lg border border-line p-0.5">
       {(["pct", "abs"] as DisplayMode[]).map((m) => (
         <button key={m} type="button" onClick={() => onChange(m)}
           className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${mode === m ? "bg-accent text-white" : "text-muted hover:text-on-surface"}`}>
@@ -691,7 +691,7 @@ function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvoluti
     <section aria-label="Opt-in Rate Evolution" className="rounded-2xl border border-line bg-surface p-5 shadow-panel">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">Opt-in rate evolution</h3>
-        <div className="flex items-center gap-1 rounded-lg border border-line p-0.5" role="group" aria-label="Zoom temporel">
+        <div className="print:hidden flex items-center gap-1 rounded-lg border border-line p-0.5" role="group" aria-label="Zoom temporel">
           <button type="button" aria-label="Zoom arrière (vue plus large)"
             onClick={() => setZoomIdx(Math.max(0, activeIdx - 1))}
             disabled={activeIdx === 0}
@@ -825,7 +825,7 @@ function ConsentByMember({ data }: { data: ConsentOverviewResult["byMember"] }) 
       <div className="mb-1 flex items-center justify-between gap-3">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">Consent by member</h3>
         <div className="flex items-center gap-2">
-          <div className="flex gap-1 rounded-lg border border-line p-0.5" role="group" aria-label="Tri">
+          <div className="print:hidden flex gap-1 rounded-lg border border-line p-0.5" role="group" aria-label="Tri">
             {([["optin", "Opt-in ↓"], ["alpha", "A–Z"]] as const).map(([key, text]) => (
               <button key={key} type="button" onClick={() => setSort(key)}
                 aria-pressed={sort === key}
@@ -903,7 +903,7 @@ function ConsentByPageType({ data }: { data: ConsentOverviewResult["byPageType"]
       <div className="mb-4 flex items-center justify-between gap-3">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">Opt-in rate by page type</h3>
         <div className="flex items-center gap-2">
-          <div className="flex gap-1 rounded-lg border border-line p-0.5" role="group" aria-label="Tri">
+          <div className="print:hidden flex gap-1 rounded-lg border border-line p-0.5" role="group" aria-label="Tri">
             {([["optin", "Opt-in ↓"], ["alpha", "A–Z"]] as const).map(([key, text]) => (
               <button key={key} type="button" onClick={() => setSort(key)}
                 aria-pressed={sort === key}
@@ -963,6 +963,14 @@ function Spinner() {
   );
 }
 
+// Impression / PDF : fond clair, sans ombres, blocs non coupés en deux pages
+const PRINT_STYLE = `
+@media print {
+  @page { size: A4 landscape; margin: 12mm; }
+  body { background: #ffffff !important; }
+  .consent-overview-root section { break-inside: avoid; box-shadow: none !important; }
+}`;
+
 export function ConsentOverviewCard() {
   const [filters, setFilters]       = useState<FilterParams>(DEFAULT_FILTERS);
   const [state, setState]           = useState<State>({ status: "initial" });
@@ -1010,7 +1018,8 @@ export function ConsentOverviewCard() {
   const isInitialLoad = state.status === "initial" && isRefreshing;
 
   return (
-    <div className="min-h-screen space-y-5 p-6">
+    <div className="consent-overview-root min-h-screen space-y-5 p-6">
+      <style>{PRINT_STYLE}</style>
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-wrap items-baseline gap-3">
@@ -1023,13 +1032,19 @@ export function ConsentOverviewCard() {
           {result?.status === "demo" && (
             <span className="rounded-full bg-amber-100 px-3 py-0.5 text-xs font-medium text-amber-800">Demo mode</span>
           )}
+          <button type="button" onClick={() => window.print()} disabled={!result}
+            className="print:hidden rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-muted hover:text-on-surface disabled:opacity-30">
+            Exporter en PDF
+          </button>
         </div>
+        <div className="print:hidden">
         <FilterBar
           appliedFilters={filters}
           availableMembers={availableMembers}
           availableDeviceTypes={availableDevices}
           onApply={handleApply}
         />
+        </div>
       </div>
 
       {/* Chargement initial (aucune donnée encore) */}
