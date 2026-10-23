@@ -63,7 +63,7 @@ export function kpiHeaderQuery(f: FilterOpts): string {
   COUNT(DISTINCT CASE WHEN current_consent = 'reject_all'    THEN email_hash END)     AS opt_out,
   COUNT(DISTINCT CASE WHEN NOT fl_consent_w_choice OR fl_consent_w_choice IS NULL
                        THEN email_hash END)                                            AS without_choice,
-  MAX(KRA_UPDATE_DATE_TIME)                                                            AS last_event_at
+  MAX(CONVERT_TIMEZONE('UTC', 'Europe/Paris', event_timestamp))                        AS last_event_at
 FROM IDENTIFIER(:source)
 ${w}`;
 }

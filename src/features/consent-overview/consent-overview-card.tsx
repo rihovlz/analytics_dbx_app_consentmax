@@ -37,6 +37,18 @@ function fmtDate(iso?: string | null): string {
   return s;
 }
 
+/** Date-heure ISO ou "YYYY-MM-DD HH:mm:ss" → "dd/mm/yyyy HH:mm" (heure de Paris) */
+function fmtDateTime(value: string): string {
+  const d = new Date(value.includes("T") || value.endsWith("Z") ? value : value.replace(" ", "T"));
+  if (Number.isNaN(d.getTime())) return fmtDate(value);
+  const parts = new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris", day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(d);
+  const get = (t: string) => parts.find((x) => x.type === t)?.value ?? "";
+  return `${get("day")}/${get("month")}/${get("year")} ${get("hour")}:${get("minute")}`;
+}
+
 function toISO(d: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
@@ -859,7 +871,7 @@ export function ConsentOverviewCard() {
           <h1 className="text-2xl font-bold">ConsentMax Analytics</h1>
           {lastEventAt && (
             <span className="text-xs text-muted">
-              last refresh: <span className="font-medium text-on-surface">{fmtDate(lastEventAt.slice(0, 10))}</span>
+              last refresh: <span className="font-medium text-on-surface">{fmtDateTime(lastEventAt)}</span>
             </span>
           )}
           {result?.status === "demo" && (

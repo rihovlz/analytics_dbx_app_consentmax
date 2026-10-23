@@ -78,7 +78,10 @@ const kpiRowSchema = z.object({
   custom:               coerceNum,
   opt_out:              coerceNum,
   without_choice:       coerceNum,
-  last_event_at:        z.string().nullable(),
+  last_event_at:        z.preprocess(
+    (v) => (v instanceof Date ? v.toISOString() : v == null ? null : String(v)),
+    z.string().nullable(),
+  ),
 });
 
 // Même schéma que kpiRowSchema — on réutilise kpiRowSchema pour last30d
