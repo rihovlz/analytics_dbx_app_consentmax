@@ -6,21 +6,21 @@ env:
   - name: APP_MODE
     value: databricks
   - name: APP_NAME
-    value: "__APP_NAME__"
+    value: "analytics-dbx-app-consentmax"
   - name: APP_DESCRIPTION
-    value: "__APP_DESCRIPTION__"
+    value: "Dashboard ConsentMax — suivi du consentement et contribution Alliance"
   - name: APP_SUPPORT_NAME
-    value: "__APP_SUPPORT_NAME__"
+    value: "richard.hooft"
   - name: APP_SUPPORT_SLACK_URL
-    value: "__APP_SUPPORT_SLACK_URL__"
+    value: "https://valiuz.slack.com/team/richard.hooft"
   - name: DATABRICKS_SQL_WAREHOUSE_ID
     valueFrom: sql-warehouse
   - name: DATABRICKS_GENIE_SPACE_ID_FRAIM_SALES
     valueFrom: fraim-sales
   - name: DATABRICKS_CATALOG
-    value: "__DATABRICKS_CATALOG__"
+    value: "prd-consent"
   - name: DATABRICKS_SCHEMA
-    value: "__DATABRICKS_SCHEMA__"
+    value: "analytics"
   - name: LOG_LEVEL
     value: info
   - name: GENIE_MAX_CONCURRENT_STREAMS
