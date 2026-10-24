@@ -784,12 +784,16 @@ function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvoluti
 
           {/* Infobulle */}
           {tooltip && (
-            <div className="pointer-events-none absolute z-10 min-w-40 rounded-2xl border border-line bg-tooltip p-3 shadow-floating"
-              style={{ left: toCurveX(activeIndex) + 12, top: tooltip.svgY - 56 }}>
+            <div className="pointer-events-none absolute z-10 w-64 whitespace-nowrap rounded-2xl border border-line bg-tooltip p-3.5 shadow-floating"
+              style={{
+                left: toCurveX(activeIndex) + 14,
+                // Au-dessus du point si la place existe, sinon en dessous pour ne pas être rognée en haut
+                top: tooltip.svgY > 90 ? tooltip.svgY - 70 : tooltip.svgY + 16,
+              }}>
               <p className="text-xs font-medium text-muted">{fmtDate(tooltip.day)}</p>
-              <p className="mt-2 flex items-center justify-between gap-4 text-sm">
+              <p className="mt-2.5 flex items-center justify-between gap-6 text-sm">
                 <span className="flex items-center gap-2 text-muted">
-                  <span className="size-2 rounded-full bg-[#16a34a]" aria-hidden="true" />
+                  <span className="size-2 shrink-0 rounded-full bg-[#16a34a]" aria-hidden="true" />
                   Opt-in rate
                 </span>
                 <span className="font-semibold tabular-nums text-ink">{fmtPct(tooltip.rate)}</span>
