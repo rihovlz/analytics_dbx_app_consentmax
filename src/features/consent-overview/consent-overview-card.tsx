@@ -784,7 +784,7 @@ function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvoluti
 
           {/* Infobulle */}
           {tooltip && (
-            <div className="pointer-events-none absolute z-10 w-64 whitespace-nowrap rounded-2xl border border-line bg-tooltip p-3.5 shadow-floating"
+            <div className="pointer-events-none absolute z-10 w-48 whitespace-nowrap rounded-2xl border border-line bg-tooltip p-3.5 shadow-floating"
               style={{
                 left: toCurveX(activeIndex) + 14,
                 // Au-dessus du point si la place existe, sinon en dessous pour ne pas être rognée en haut
@@ -830,7 +830,7 @@ function ConsentByMember({ data }: { data: ConsentOverviewResult["byMember"] }) 
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">Consent by member</h3>
         <div className="flex items-center gap-2">
           <div className="print:hidden flex gap-1 rounded-lg border border-line p-0.5" role="group" aria-label="Tri">
-            {([["optin", "Opt-in ↓"], ["alpha", "A–Z"]] as const).map(([key, text]) => (
+            {([["alpha", "A–Z"], ["optin", "Opt-in ↓"]] as const).map(([key, text]) => (
               <button key={key} type="button" onClick={() => setSort(key)}
                 aria-pressed={sort === key}
                 className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${sort === key ? "bg-accent text-white" : "text-muted hover:text-on-surface"}`}>
@@ -908,7 +908,7 @@ function ConsentByPageType({ data }: { data: ConsentOverviewResult["byPageType"]
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">Opt-in rate by page type</h3>
         <div className="flex items-center gap-2">
           <div className="print:hidden flex gap-1 rounded-lg border border-line p-0.5" role="group" aria-label="Tri">
-            {([["optin", "Opt-in ↓"], ["alpha", "A–Z"]] as const).map(([key, text]) => (
+            {([["alpha", "A–Z"], ["optin", "Opt-in ↓"]] as const).map(([key, text]) => (
               <button key={key} type="button" onClick={() => setSort(key)}
                 aria-pressed={sort === key}
                 className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${sort === key ? "bg-accent text-white" : "text-muted hover:text-on-surface"}`}>
