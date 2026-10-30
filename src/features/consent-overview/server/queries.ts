@@ -69,29 +69,34 @@ ${w}`;
 }
 
 export function optInByPeriodQuery(f: FilterOpts): string {
-  const memberClause   = f.members && f.members.length > 0
-    ? `AND ${buildInClause("member", f.members, ALLOWED_MEMBERS)}` : "";
-  const deviceClause   = f.deviceTypes && f.deviceTypes.length > 0
-    ? `AND ${buildInClause(DEVICE_TYPE_EXPR, f.deviceTypes, ALLOWED_DEVICES)}` : "";
+  // consent_event_w_flags n'a ni member ni channel : les filtres passent par le dernier état par email.
+  const hasMembers = !!f.members && f.members.length > 0;
+  const hasDevices = !!f.deviceTypes && f.deviceTypes.length > 0;
+  const lastWhere = [
+    hasMembers ? buildInClause("member", f.members!, ALLOWED_MEMBERS) : null,
+    hasDevices ? buildInClause(DEVICE_TYPE_EXPR, f.deviceTypes!, ALLOWED_DEVICES) : null,
+  ].filter(Boolean).join(" AND ");
+  const memberJoin = (hasMembers || hasDevices)
+    ? `JOIN (SELECT DISTINCT email_hash FROM IDENTIFIER(:memberSource) WHERE ${lastWhere}) m ON w.emailHash = m.email_hash`
+    : "";
   return `SELECT
   CASE
     WHEN :granularity = 'day'
-      THEN CAST(CONVERT_TIMEZONE('UTC', 'Europe/Paris', event_timestamp) AS DATE)
+      THEN CAST(CONVERT_TIMEZONE('UTC', 'Europe/Paris', w.event_timestamp) AS DATE)
     WHEN :granularity = 'week'
       THEN CONCAT(
-        YEAR(CONVERT_TIMEZONE('UTC', 'Europe/Paris', event_timestamp)), '-W',
-        LPAD(WEEKOFYEAR(CONVERT_TIMEZONE('UTC', 'Europe/Paris', event_timestamp)), 2, '0')
+        YEAR(CONVERT_TIMEZONE('UTC', 'Europe/Paris', w.event_timestamp)), '-W',
+        LPAD(WEEKOFYEAR(CONVERT_TIMEZONE('UTC', 'Europe/Paris', w.event_timestamp)), 2, '0')
       )
-    ELSE DATE_FORMAT(CONVERT_TIMEZONE('UTC', 'Europe/Paris', event_timestamp), 'yyyy-MM')
+    ELSE DATE_FORMAT(CONVERT_TIMEZONE('UTC', 'Europe/Paris', w.event_timestamp), 'yyyy-MM')
   END                                                                                  AS period,
-  SUM(CASE WHEN fl_first_consent = true  THEN 1 ELSE 0 END)                           AS first_consent,
-  SUM(CASE WHEN fl_first_consent = false THEN 1 ELSE 0 END)                           AS reexposed
-FROM IDENTIFIER(:source)
-WHERE current_consent = 'accept_all'
-  AND event_timestamp >= :startTs
-  AND event_timestamp <  :endTs
-  ${memberClause}
-  ${deviceClause}
+  COUNT(DISTINCT CASE WHEN w.fl_first_consent = true  THEN w.emailHash END)           AS first_consent,
+  COUNT(DISTINCT CASE WHEN w.fl_first_consent = false THEN w.emailHash END)           AS reexposed
+FROM IDENTIFIER(:source) w
+${memberJoin}
+WHERE w.event_name = 'accept_all'
+  AND w.event_timestamp >= :startTs
+  AND w.event_timestamp <  :endTs
 GROUP BY 1
 ORDER BY 1 ASC`;
 }
@@ -160,6 +165,36 @@ WHERE event_timestamp >= :startTs
   AND event_timestamp <  :endTs
   ${memberClause}
   ${deviceClause}
+GROUP BY 1
+ORDER BY 1 ASC`;
+}
+
+/**
+ * Purge : emails dont le dernier consentement est accept_all et dont l'expiration est échue.
+ * Référence : dtm-core-enrichment reports.py (ActualsPurges). Un email par ligne (last_consent_event).
+ * Granularité : même découpage que byPeriod, sur la date d'expiration (fuseau Europe/Paris).
+ */
+export function optInPurgeQuery(f: FilterOpts = {}): string {
+  // Même règle de filtre que byPeriod : membre et device du dernier état par email.
+  const conditions = [
+    f.members && f.members.length > 0 ? buildInClause("member", f.members, ALLOWED_MEMBERS) : null,
+    f.deviceTypes && f.deviceTypes.length > 0 ? buildInClause(DEVICE_TYPE_EXPR, f.deviceTypes, ALLOWED_DEVICES) : null,
+  ].filter(Boolean);
+  const filterSql = conditions.map((c) => `AND ${c}`).join("\n  ");
+  return `SELECT
+  CASE
+    WHEN :granularity = 'day'
+      THEN CAST(CAST(expiration_date AS DATE) AS STRING)
+    WHEN :granularity = 'week'
+      THEN CONCAT(YEAR(CAST(expiration_date AS DATE)), '-W', LPAD(WEEKOFYEAR(CAST(expiration_date AS DATE)), 2, '0'))
+    ELSE DATE_FORMAT(CAST(expiration_date AS DATE), 'yyyy-MM')
+  END AS period,
+  COUNT(DISTINCT email_hash) AS purge
+FROM IDENTIFIER(:purgeSource)
+WHERE current_consent = 'accept_all'
+  AND CAST(expiration_date AS DATE) >= :startDate
+  AND CAST(expiration_date AS DATE) <= LEAST(:endDate, current_date())
+  ${filterSql}
 GROUP BY 1
 ORDER BY 1 ASC`;
 }

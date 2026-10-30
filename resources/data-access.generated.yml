@@ -27,3 +27,8 @@ resources:
             securable_full_name: "prd-consent.analytics.last_consent_event"
             securable_type: TABLE
             permission: SELECT
+        - name: "data-consent-event-w-flags"
+          uc_securable:
+            securable_full_name: "prd-consent.analytics.consent_event_w_flags"
+            securable_type: TABLE
+            permission: SELECT

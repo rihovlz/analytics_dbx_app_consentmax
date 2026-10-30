@@ -266,39 +266,39 @@ function FilterBar({
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <MultiSelect
-        label="members"
-        options={sortedMembers}
-        selected={pending.members ?? []}
-        onChange={(v) => setPending((p) => ({ ...p, members: v.length > 0 ? v : undefined }))}
-      />
-      <MultiSelect
-        label="devices"
-        options={sortedDevices}
-        selected={pending.deviceTypes ?? []}
-        onChange={(v) => setPending((p) => ({ ...p, deviceTypes: v.length > 0 ? v : undefined }))}
-      />
+      <div className="w-44">
+        <MultiSelect
+          label="members"
+          options={sortedMembers}
+          selected={pending.members ?? []}
+          onChange={(v) => setPending((p) => ({ ...p, members: v.length > 0 ? v : undefined }))}
+        />
+      </div>
+      <div className="w-44">
+        <MultiSelect
+          label="devices"
+          options={sortedDevices}
+          selected={pending.deviceTypes ?? []}
+          onChange={(v) => setPending((p) => ({ ...p, deviceTypes: v.length > 0 ? v : undefined }))}
+        />
+      </div>
       <DateRangePicker
         startDate={pending.startDate}
         endDate={pending.endDate}
         onChange={(r) => setPending((p) => ({ ...p, ...r }))}
       />
 
-      {/* Bouton Apply — visible si la sélection diffère des filtres appliqués */}
-      {hasPending && (
-        <button type="button" onClick={handleApply}
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-accent">
+      {/* Boutons toujours présents : pas de décalage quand ils apparaissent */}
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={handleApply} disabled={!hasPending}
+          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-accent disabled:cursor-not-allowed disabled:opacity-40">
           Apply
         </button>
-      )}
-
-      {/* Reset — réinitialise et applique immédiatement */}
-      {(hasFilter || hasPending) && (
-        <button type="button" onClick={handleReset}
-          className="rounded-lg border border-line px-3 py-2 text-sm text-muted hover:text-on-surface">
+        <button type="button" onClick={handleReset} disabled={!hasFilter && !hasPending}
+          className="rounded-lg border border-line px-3 py-2 text-sm text-muted hover:text-on-surface disabled:cursor-not-allowed disabled:opacity-40">
           Reset
         </button>
-      )}
+      </div>
     </div>
   );
 }
@@ -454,7 +454,7 @@ const GRAN_LABELS: Record<Granularity, string> = {
   day: "Last 30 days", week: "Last 12 weeks", month: "Last 12 months",
 };
 
-type BarTooltip = { x: number; y: number; label: string; firstConsent: number; reexposed: number; total: number; pctFirst: string; pctReex: string };
+type BarTooltip = { x: number; y: number; label: string; firstConsent: number; reexposed: number; purge: number; optIn: number; pctFirst: string; pctReex: string };
 
 function OptInByPeriod({ data, granularity, onGranularity }: {
   data: ConsentOverviewResult["byPeriod"]; granularity: Granularity;
@@ -463,15 +463,27 @@ function OptInByPeriod({ data, granularity, onGranularity }: {
   const scrollRef  = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const [tooltip, setTooltip] = useState<BarTooltip | null>(null);
+  const [hidden, setHidden] = useState<{ first: boolean; reexposed: boolean; purge: boolean }>({
+    first: false, reexposed: false, purge: true,
+  });
+  const toggle = (key: keyof typeof hidden) => setHidden((h) => ({ ...h, [key]: !h[key] }));
+  const showFirst = !hidden.first;
+  const showReex  = !hidden.reexposed;
+  const showPurge = !hidden.purge;
 
   // Dimensions SVG
   const BAR_W   = granularity === "month" ? 44 : granularity === "week" ? 40 : 32;
   const PAD_L   = 30;    // marge gauche pour que la première étiquette -45° ne soit pas coupée
-  const CHART_H = 180;
+  const CHART_H = 180;   // hauteur de la zone au-dessus de la ligne de zéro (opt-in)
   const LABEL_H = 50;    // espace pour labels à -45°
-  const SVG_H   = CHART_H + LABEL_H;
   const SVG_W   = PAD_L + Math.max(data.length * BAR_W, 100);
-  const maxVal  = Math.max(...data.map((r) => r.firstConsent + r.reexposed), 1);
+  // Échelle commune : même nombre de pixels par unité pour l'opt-in et la purge.
+  const maxOptIn = Math.max(...data.map((r) => (showFirst ? r.firstConsent : 0) + (showReex ? r.reexposed : 0)), 1);
+  const pxPerUnit = CHART_H / maxOptIn;
+  const maxPurge  = Math.max(...data.map((r) => (showPurge ? r.purge : 0)), 0);
+  const NEG_H   = showPurge ? Math.ceil(maxPurge * pxPerUnit) : 0; // zone sous zéro, dimensionnée par la purge max
+  const ZERO_Y  = CHART_H;
+  const SVG_H   = CHART_H + NEG_H + LABEL_H;
 
   const showEvery = 1; // tous les labels, rotation gère le chevauchement
 
@@ -485,13 +497,13 @@ function OptInByPeriod({ data, granularity, onGranularity }: {
     const section = sectionRef.current;
     if (!section) return;
     const rect = section.getBoundingClientRect();
-    const total    = row.firstConsent + row.reexposed;
-    const pctFirst = total > 0 ? fmtPct(row.firstConsent / total) : "—";
-    const pctReex  = total > 0 ? fmtPct(row.reexposed    / total) : "—";
+    const optIn    = (showFirst ? row.firstConsent : 0) + (showReex ? row.reexposed : 0);
+    const pctFirst = optIn > 0 ? fmtPct(row.firstConsent / optIn) : "—";
+    const pctReex  = optIn > 0 ? fmtPct(row.reexposed    / optIn) : "—";
     // Position relative au bloc section
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    setTooltip({ x, y, label, firstConsent: row.firstConsent, reexposed: row.reexposed, total, pctFirst, pctReex });
+    setTooltip({ x, y, label, firstConsent: row.firstConsent, reexposed: row.reexposed, purge: row.purge, optIn, pctFirst, pctReex });
   }
 
   return (
@@ -509,19 +521,33 @@ function OptInByPeriod({ data, granularity, onGranularity }: {
           ))}
         </div>
       </div>
-      <p className="mb-3 flex items-center gap-4 text-xs text-muted">
-        <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-4 rounded-sm bg-green-700" />1st consent</span>
-        <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-4 rounded-sm bg-green-400" />Reexposed</span>
-      </p>
+      <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
+        {([
+          { key: "first",     label: "1st consent", on: showFirst, color: "bg-green-700" },
+          { key: "reexposed", label: "Reexposed",   on: showReex,  color: "bg-green-400" },
+          { key: "purge",     label: "Purge",       on: showPurge, color: "bg-red-500" },
+        ] as const).map((item) => (
+          <button key={item.key} type="button" aria-pressed={item.on}
+            onClick={() => toggle(item.key)}
+            className={`flex items-center gap-1.5 rounded-md border border-line px-2 py-1 transition-opacity ${item.on ? "text-on-surface" : "text-muted line-through opacity-50"}`}>
+            <span className={`inline-block h-2.5 w-4 rounded-sm ${item.color} ${item.on ? "" : "opacity-40"}`} />
+            {item.label}
+          </button>
+        ))}
+      </div>
 
       {/* Conteneur scrollable — tout dans un SVG pour axe X propre */}
       <div ref={scrollRef} className="overflow-x-auto">
         <svg width={SVG_W} height={SVG_H} role="img" aria-label={`Opt-in — ${GRAN_LABELS[granularity]}`}>
           {data.map((row, i) => {
-            const total  = row.firstConsent + row.reexposed;
-            const barH   = Math.round((total / maxVal) * CHART_H);
-            const firstH = total > 0 ? Math.round((row.firstConsent / total) * barH) : 0;
-            const reexH  = barH - firstH;
+            const firstV = showFirst ? row.firstConsent : 0;
+            const reexV  = showReex  ? row.reexposed    : 0;
+            const purgeV = showPurge ? row.purge        : 0;
+            const optIn  = firstV + reexV;
+            const optInH = Math.round(optIn * pxPerUnit);
+            const firstH = optIn > 0 ? Math.round((firstV / optIn) * optInH) : 0;
+            const reexH  = optInH - firstH;
+            const purgeH = Math.round(purgeV * pxPerUnit);
             const cx     = PAD_L + i * BAR_W + BAR_W / 2;
             const label  = fmtPeriodLabel(row.period, granularity);
             const showLabel = i % showEvery === 0 || i === data.length - 1;
@@ -533,19 +559,23 @@ function OptInByPeriod({ data, granularity, onGranularity }: {
                 onMouseEnter={(e) => handleBarHover(e, row, label)}
                 onMouseMove={(e)  => handleBarHover(e, row, label)}
                 style={{ cursor: "default" }}>
-                {/* Segment reexposed (vert clair, en haut) */}
-                <rect x={barX} y={CHART_H - barH} width={barW} height={reexH} fill="#4ade80" rx={2} ry={2} />
-                {/* Segment 1st consent (vert foncé, en bas) */}
-                <rect x={barX} y={CHART_H - firstH} width={barW} height={firstH} fill="#15803d" />
+                {/* Purge : négative, sous la ligne de zéro */}
+                {purgeH > 0 && <rect x={barX} y={ZERO_Y} width={barW} height={purgeH} fill="#ef4444" rx={2} ry={2} />}
+                {/* Segment reexposed (vert clair, en haut de l'opt-in) */}
+                <rect x={barX} y={ZERO_Y - optInH} width={barW} height={reexH} fill="#4ade80" rx={2} ry={2} />
+                {/* Segment 1st consent (vert foncé, à la base de l'opt-in) */}
+                <rect x={barX} y={ZERO_Y - firstH} width={barW} height={firstH} fill="#15803d" />
+                {/* Ligne de zéro */}
+                <line x1={PAD_L} x2={SVG_W} y1={ZERO_Y} y2={ZERO_Y} stroke="currentColor" strokeOpacity={0.35} />
                 {/* Étiquette axe X — rotation -45° ancrée sous le centre de la barre */}
                 {showLabel && (
                   <text
-                    x={cx} y={CHART_H + 10}
+                    x={cx} y={CHART_H + NEG_H + 10}
                     textAnchor="end"
                     fontSize={10}
                     fill="currentColor"
                     fillOpacity={0.6}
-                    transform={`rotate(-45, ${cx}, ${CHART_H + 10})`}>
+                    transform={`rotate(-45, ${cx}, ${CHART_H + NEG_H + 10})`}>
                     {label}
                   </text>
                 )}
@@ -573,8 +603,15 @@ function OptInByPeriod({ data, granularity, onGranularity }: {
             <span className="text-white/60">({tooltip.pctReex})</span>
           </div>
           <div className="mt-1 flex justify-between border-t border-white/20 pt-1 font-semibold">
-            <span>Total</span><span className="tabular-nums">{fmtN(tooltip.total)}</span>
+            <span>Opt-in</span><span className="tabular-nums">{fmtN(tooltip.optIn)}</span>
           </div>
+          {showPurge && (
+            <div className="flex items-center gap-1.5">
+              <span className="inline-block h-2 w-3 shrink-0 rounded-sm bg-red-500" />
+              <span className="flex-1">Purge</span>
+              <span className="tabular-nums">{fmtN(tooltip.purge)}</span>
+            </div>
+          )}
         </div>
       )}
     </section>
@@ -597,6 +634,17 @@ function zoomSteps(total: number): number[] {
 function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvolution"] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [tooltip, setTooltip] = useState<{ svgX: number; svgY: number; day: string; rate: number } | null>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  const [sectionWidth, setSectionWidth] = useState(0);
+  const [scrollX, setScrollX] = useState(0);
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setSectionWidth(el.clientWidth));
+    ro.observe(el);
+    setSectionWidth(el.clientWidth);
+    return () => ro.disconnect();
+  }, []);
   // Largeur réelle de la zone de courbe (mesurée, pas supposée)
   const [plotWidth, setPlotWidth] = useState(800);
   useEffect(() => {
@@ -686,9 +734,14 @@ function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvoluti
     ? `${curvePath} L${toCurveX(data.length - 1).toFixed(1)},${H - PAD.bottom} L${toCurveX(0).toFixed(1)},${H - PAD.bottom} Z`
     : "";
   const activeIndex = tooltip ? data.findIndex((r) => r.day === tooltip.day) : -1;
+  // Position de l'infobulle dans la section : à gauche du point, ou à droite si le point est près du bord droit
+  const pointLeft  = Y_AXIS_W + toCurveX(Math.max(activeIndex, 0)) - scrollX;
+  const tooltipFlip = pointLeft > (sectionWidth * 0.6);
+  const tooltipLeft  = pointLeft + 14;
+  const tooltipRight = sectionWidth - pointLeft + 14;
 
   return (
-    <section aria-label="Opt-in Rate Evolution" className="rounded-2xl border border-line bg-surface p-5 shadow-panel">
+    <section ref={sectionRef} aria-label="Opt-in Rate Evolution" className="relative rounded-2xl border border-line bg-surface p-5 shadow-panel">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">Opt-in rate evolution</h3>
         <div className="print:hidden flex items-center gap-1 rounded-lg border border-line p-0.5" role="group" aria-label="Zoom temporel">
@@ -735,7 +788,7 @@ function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvoluti
         </svg>
 
         {/* Zone scrollable — courbe + axe X + grille. Si CURVE_W < espace dispo : s'étire */}
-        <div ref={scrollRef} className="relative min-w-0 flex-1 overflow-x-auto">
+        <div ref={scrollRef} className="relative min-w-0 flex-1 overflow-x-auto" onScroll={(e) => setScrollX(e.currentTarget.scrollLeft)}>
           <svg width={Math.max(CURVE_W, 100)} height={H} style={{ minWidth: `${CURVE_W}px`, width: "100%" }}
             role="img" aria-label="Opt-in rate evolution"
             onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)}>
@@ -782,12 +835,14 @@ function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvoluti
               fill="transparent" />
           </svg>
 
-          {/* Infobulle */}
-          {tooltip && (
-            <div className="pointer-events-none absolute z-10 w-48 whitespace-nowrap rounded-2xl border border-line bg-tooltip p-3.5 shadow-floating"
+        </div>
+      </div>
+
+      {/* Infobulle : hors du conteneur scrollable, donc jamais rognée à droite */}
+      {tooltip && (
+            <div className="pointer-events-none absolute z-30 w-48 whitespace-nowrap rounded-2xl border border-line bg-tooltip p-3.5 shadow-floating"
               style={{
-                left: toCurveX(activeIndex) + 14,
-                // Au-dessus du point si la place existe, sinon en dessous pour ne pas être rognée en haut
+                ...(tooltipFlip ? { right: tooltipRight } : { left: tooltipLeft }),
                 top: tooltip.svgY > 90 ? tooltip.svgY - 70 : tooltip.svgY + 16,
               }}>
               <p className="text-xs font-medium text-muted">{fmtDate(tooltip.day)}</p>
@@ -799,9 +854,144 @@ function OptInRateEvolution({ data }: { data: ConsentOverviewResult["rateEvoluti
                 <span className="font-semibold tabular-nums text-ink">{fmtPct(tooltip.rate)}</span>
               </p>
             </div>
-          )}
-        </div>
+      )}
+    </section>
+  );
+}
+
+// ── Cumulative opt-in + tendance linéaire ─────────────────────────────────────
+
+function CumulativeOptIn({ data, granularity }: { data: ConsentOverviewResult["byPeriod"]; granularity: Granularity }) {
+  const W = 960, H = 260, PAD = { l: 60, r: 16, t: 16, b: 56 };
+  const innerW = W - PAD.l - PAD.r;
+  const n = data.length;
+  const [hover, setHover] = useState<number | null>(null);
+
+  // Cumuls : opt-in (1st consent + reexposed) et purges ; le stock est leur différence
+  const cumOpt: number[] = [];
+  const cumPurge: number[] = [];
+  let accOpt = 0, accPurge = 0;
+  data.forEach((r, i) => {
+    accOpt += r.firstConsent + r.reexposed;
+    accPurge += r.purge;
+    cumOpt[i] = accOpt;
+    cumPurge[i] = accPurge;
+  });
+  const stock = cumOpt.map((o, i) => o - cumPurge[i]!);
+
+  if (n < 2) return null;
+
+  // Régression linéaire (moindres carrés) du stock sur l'index de période
+  const mx = (n - 1) / 2;
+  const my = stock.reduce((a, v) => a + v, 0) / n;
+  const sxx = stock.reduce((a, _, i) => a + (i - mx) ** 2, 0);
+  const sxy = stock.reduce((a, v, i) => a + (i - mx) * (v - my), 0);
+  const slope = sxx > 0 ? sxy / sxx : 0;
+  const intercept = my - slope * mx;
+  const trend = stock.map((_, i) => intercept + slope * i);
+  const lastGap = stock[n - 1]! - trend[n - 1]!;
+
+  // Échelle commune (opt-in au-dessus de zéro, purge en dessous) : même pxPerUnit
+  const maxOpt   = Math.max(0, ...cumOpt, ...trend);
+  const maxPurge = Math.max(0, ...cumPurge);
+  const innerH   = H - PAD.t - PAD.b;
+  const scaleTop = Math.max(maxOpt, 1);
+  const pxPerUnit = (innerH * 0.7) / scaleTop;
+  const ZERO_Y   = PAD.t + Math.min(innerH * 0.7, scaleTop * pxPerUnit) ;
+  const NEG_H    = maxPurge * pxPerUnit;
+  const yPx      = (v: number) => ZERO_Y - v * pxPerUnit;
+  const SVG_BOTTOM = ZERO_Y + NEG_H + 16;
+
+  const step  = innerW / n;
+  const barW  = Math.max(4, step * 0.6);
+  const cx    = (i: number) => PAD.l + step * i + step / 2;
+  const x     = (i: number) => PAD.l + (i / (n - 1)) * innerW;
+  const stockPath = stock.map((v, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${yPx(v).toFixed(1)}`).join(" ");
+  const trendPath = `M${x(0).toFixed(1)},${yPx(trend[0]!).toFixed(1)} L${x(n - 1).toFixed(1)},${yPx(trend[n - 1]!).toFixed(1)}`;
+  const labelStep = Math.max(1, Math.ceil(n / 12));
+
+  const yTicksPos = [0.25, 0.5, 0.75, 1].map((f) => f * scaleTop);
+
+  return (
+    <section aria-label="Opt-in stock" className="relative rounded-2xl border border-line bg-surface p-5 shadow-panel"
+      onMouseLeave={() => setHover(null)}>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">Opt-in stock</h3>
+        <p className="flex flex-wrap items-center gap-4 text-xs text-muted">
+          <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-4 rounded-sm bg-green-700" />Cumul opt-in</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-4 rounded-sm bg-red-500" />Cumul purge</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 bg-ink" />Stock</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block w-4 border-t border-dashed border-current opacity-50" />Tendance</span>
+          <span>Trend : {slope >= 0 ? "+" : "−"}{fmtN(Math.abs(slope))} / period</span>
+          <span>Vs trend (last): {lastGap >= 0 ? "+" : "−"}{fmtN(Math.abs(lastGap))}</span>
+        </p>
       </div>
+      <svg viewBox={`0 0 ${W} ${SVG_BOTTOM + 40}`} width="100%" role="img" aria-label="Cumulative opt-in and purge with stock trend">
+        {yTicksPos.map((v) => (
+          <g key={`p${v}`}>
+            <line x1={PAD.l} x2={W - PAD.r} y1={yPx(v)} y2={yPx(v)} stroke="var(--chart-grid)" strokeDasharray="3 5" />
+            <text x={PAD.l - 8} y={yPx(v) + 4} textAnchor="end" fontSize={11} fill="currentColor" fillOpacity={0.6}>{fmtN(v)}</text>
+          </g>
+        ))}
+        <text x={PAD.l - 8} y={ZERO_Y + 4} textAnchor="end" fontSize={11} fill="currentColor" fillOpacity={0.6}>0</text>
+        <line x1={PAD.l} x2={W - PAD.r} y1={ZERO_Y} y2={ZERO_Y} stroke="currentColor" strokeOpacity={0.35} />
+
+        {/* Barres cumulées : opt-in au-dessus de zéro, purge en dessous */}
+        {data.map((_, i) => {
+          const optH   = cumOpt[i]! * pxPerUnit;
+          const purgeH = cumPurge[i]! * pxPerUnit;
+          return (
+            <g key={`bar-${i}`}>
+              {optH > 0 && <rect x={cx(i) - barW / 2} y={ZERO_Y - optH} width={barW} height={optH} fill="#15803d" rx={2} ry={2} />}
+              {purgeH > 0 && <rect x={cx(i) - barW / 2} y={ZERO_Y} width={barW} height={purgeH} fill="#ef4444" rx={2} ry={2} />}
+            </g>
+          );
+        })}
+
+        {/* Stock (ligne fine) et tendance linéaire (pointillés) */}
+        <path d={stockPath} fill="none" stroke="var(--ink, #111827)" strokeWidth={1.5} strokeLinejoin="round" />
+        <path d={trendPath} fill="none" stroke="currentColor" strokeOpacity={0.45} strokeWidth={1.5} strokeDasharray="6 5" />
+        {stock.map((v, i) => (
+          <circle key={`s-${i}`} cx={x(i)} cy={yPx(v)} r={2.5} fill="var(--ink, #111827)" />
+        ))}
+
+        {data.map((r, i) => i % labelStep !== 0 ? null : (
+          <text key={r.period} x={cx(i)} y={SVG_BOTTOM + 8} textAnchor="end" fontSize={10}
+            fill="currentColor" fillOpacity={0.6}
+            transform={`rotate(-45, ${cx(i)}, ${SVG_BOTTOM + 8})`}>
+            {fmtPeriodLabel(r.period, granularity)}
+          </text>
+        ))}
+
+        {hover !== null && (
+          <line x1={cx(hover)} x2={cx(hover)} y1={PAD.t} y2={SVG_BOTTOM} stroke="currentColor" strokeOpacity={0.3} />
+        )}
+        {data.map((_, i) => (
+          <rect key={`hit-${i}`} x={PAD.l + step * i} y={PAD.t} width={step} height={SVG_BOTTOM - PAD.t}
+            fill="transparent" onMouseEnter={() => setHover(i)} />
+        ))}
+      </svg>
+
+      {hover !== null && (
+        <div className="pointer-events-none absolute z-10 w-56 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl"
+          style={{
+            top: 12,
+            ...(cx(hover) / W > 0.6
+              ? { right: `calc(${((W - cx(hover)) / W) * 100}% + 12px)` }
+              : { left: `calc(${(cx(hover) / W) * 100}% + 12px)` }),
+          }}>
+          <p className="font-semibold">{fmtPeriodLabel(data[hover]!.period, granularity)}</p>
+          <p className="mt-1.5 flex justify-between gap-4"><span>Cumul opt-in</span><span className="tabular-nums">{fmtN(cumOpt[hover]!)}</span></p>
+          <p className="flex justify-between gap-4"><span>Cumul purge</span><span className="tabular-nums">{fmtN(cumPurge[hover]!)}</span></p>
+          <p className="mt-1 flex justify-between gap-4 border-t border-white/20 pt-1">
+            <span>Purge / opt-in</span>
+            <span className="tabular-nums">{cumOpt[hover]! > 0 ? fmtPct(cumPurge[hover]! / cumOpt[hover]!) : "—"}</span>
+          </p>
+          <p className="mt-1 flex justify-between gap-4">
+            <span>Stock</span><span className="tabular-nums">{fmtN(stock[hover]!)}</span>
+          </p>
+        </div>
+      )}
     </section>
   );
 }
@@ -1079,6 +1269,9 @@ export function ConsentOverviewCard() {
             <OptInByPeriod data={result.byPeriod} granularity={granularity} onGranularity={handleGranularity} />
             <OptInRateEvolution data={result.rateEvolution} />
           </div>
+
+          {/* Row 2b : stock d'opt-in (cumul opt-in − purges) sur la période, avec tendance linéaire */}
+          <CumulativeOptIn data={result.byPeriod} granularity={granularity} />
 
           {/* Row 3 : Consent by member pleine largeur */}
           <ConsentByMember data={result.byMember} />

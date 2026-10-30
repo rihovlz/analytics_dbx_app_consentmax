@@ -5,6 +5,7 @@ import {
   loadConsentByPageType,
   loadKpiHeader,
   loadOptInByPeriod,
+  loadPurgeByPeriod,
   loadOptInRateEvolution,
 } from "@/features/consent-overview/server/repository";
 import { getServerConfig, type ServerConfig } from "@/lib/config/server-config";
@@ -12,13 +13,28 @@ import { getSqlExecutor } from "@/lib/databricks/sql";
 import type { SqlExecutor } from "@/lib/databricks/types";
 
 const SOURCE = "prd-consent.analytics.last_consent_event";
+// Emails distincts par période : historique complet, pas le dernier état.
+const HISTORY_SOURCE = "prd-consent.analytics.consent_event_w_flags";
 
+const ALL_DEVICES = ["Web mobile", "Desktop", "App", "Kiosk", "DOOH"];
 const ALL_MEMBERS = [
   "LRM","BOU","DEC","AUC","KIA","ELD","ONY","NOR",
   "JUL","CHD","RGO","BZB","TAO","FLU","ALI","TSM","CEE","VLZ",
 ];
 
 type Dependencies = { config?: ServerConfig; executor?: SqlExecutor };
+
+/** Ajoute la purge à chaque période d'opt-in ; une période sans purge vaut 0. */
+function mergePurge(
+  rows: { period: string; firstConsent: number; reexposed: number }[],
+  purge: Map<string, number>,
+) {
+  const periods = new Set([...rows.map((r) => r.period), ...purge.keys()]);
+  return [...periods].sort().map((period) => {
+    const row = rows.find((r) => r.period === period);
+    return { period, firstConsent: row?.firstConsent ?? 0, reexposed: row?.reexposed ?? 0, purge: purge.get(period) ?? 0 };
+  });
+}
 
 // ── Demo fixtures ─────────────────────────────────────────────────────────────
 
@@ -28,24 +44,24 @@ function demoResult(filters: FilterParams): ConsentOverviewResult {
     gran === "day"
       ? Array.from({ length: 30 }, (_, i) => {
           const d = new Date("2026-09-22"); d.setDate(d.getDate() + i);
-          return { period: d.toISOString().slice(0, 10), firstConsent: 18000 + Math.round(Math.random() * 6000), reexposed: 8000 + Math.round(Math.random() * 3000) };
+          return { period: d.toISOString().slice(0, 10), firstConsent: 18000 + Math.round(Math.random() * 6000), reexposed: 8000 + Math.round(Math.random() * 3000), purge: 0 };
         })
       : gran === "week"
-      ? Array.from({ length: 12 }, (_, i) => ({ period: `2026-${String(36 - i).padStart(2, "0")}`, firstConsent: 120000 + i * 5000, reexposed: 55000 + i * 2000 })).reverse()
+      ? Array.from({ length: 12 }, (_, i) => ({ period: `2026-${String(36 - i).padStart(2, "0")}`, firstConsent: 120000 + i * 5000, reexposed: 55000 + i * 2000, purge: 0 })).reverse()
       : [
-          { period: "2025-10", firstConsent: 900_000, reexposed: 400_000 },
-          { period: "2025-11", firstConsent: 850_000, reexposed: 380_000 },
-          { period: "2025-12", firstConsent: 780_000, reexposed: 350_000 },
-          { period: "2026-01", firstConsent: 920_000, reexposed: 420_000 },
-          { period: "2026-02", firstConsent: 860_000, reexposed: 390_000 },
-          { period: "2026-03", firstConsent: 910_000, reexposed: 410_000 },
-          { period: "2026-04", firstConsent: 880_000, reexposed: 400_000 },
-          { period: "2026-05", firstConsent: 950_000, reexposed: 430_000 },
-          { period: "2026-06", firstConsent: 870_000, reexposed: 395_000 },
-          { period: "2026-07", firstConsent: 930_000, reexposed: 415_000 },
-          { period: "2026-08", firstConsent: 960_000, reexposed: 440_000 },
-          { period: "2026-09", firstConsent: 1_100_000, reexposed: 500_000 },
-          { period: "2026-10", firstConsent: 700_000, reexposed: 320_000 },
+          { period: "2025-10", firstConsent: 900_000, reexposed: 400_000, purge: 0 },
+          { period: "2025-11", firstConsent: 850_000, reexposed: 380_000, purge: 0 },
+          { period: "2025-12", firstConsent: 780_000, reexposed: 350_000, purge: 0 },
+          { period: "2026-01", firstConsent: 920_000, reexposed: 420_000, purge: 0 },
+          { period: "2026-02", firstConsent: 860_000, reexposed: 390_000, purge: 0 },
+          { period: "2026-03", firstConsent: 910_000, reexposed: 410_000, purge: 0 },
+          { period: "2026-04", firstConsent: 880_000, reexposed: 400_000, purge: 0 },
+          { period: "2026-05", firstConsent: 950_000, reexposed: 430_000, purge: 0 },
+          { period: "2026-06", firstConsent: 870_000, reexposed: 395_000, purge: 0 },
+          { period: "2026-07", firstConsent: 930_000, reexposed: 415_000, purge: 0 },
+          { period: "2026-08", firstConsent: 960_000, reexposed: 440_000, purge: 0 },
+          { period: "2026-09", firstConsent: 1_100_000, reexposed: 500_000, purge: 0 },
+          { period: "2026-10", firstConsent: 700_000, reexposed: 320_000, purge: 0 },
         ];
 
   return {
@@ -57,7 +73,7 @@ function demoResult(filters: FilterParams): ConsentOverviewResult {
       endDate:   filters.endDate   ?? null,
       granularity: gran,
       availableMembers:     ALL_MEMBERS,
-      availableDeviceTypes: ["Web mobile", "Desktop", "App", "Kiosk", "DOOH"],
+      availableDeviceTypes: ALL_DEVICES,
     },
     kpi: {
       contactTotal: 24_600_000, contactWithChoice: 22_900_000,
@@ -129,9 +145,10 @@ export async function getConsentOverview(
   const executor = dependencies.executor ?? getSqlExecutor();
   const gran = filters.granularity ?? "month";
 
-  const [kpi, byPeriod, byMember, byDevice, byPageType, rateEvolution] = await Promise.all([
+  const [kpi, rawByPeriod, purgeByPeriod, byMember, byDevice, byPageType, rateEvolution] = await Promise.all([
     loadKpiHeader(executor, SOURCE, filters, requestId),
-    loadOptInByPeriod(executor, SOURCE, filters, requestId),
+    loadOptInByPeriod(executor, HISTORY_SOURCE, filters, requestId),
+    loadPurgeByPeriod(executor, filters, requestId),
     loadConsentByMember(executor, SOURCE, filters, requestId),
     loadConsentByDevice(executor, SOURCE, filters, requestId),
     loadConsentByPageType(executor, SOURCE, filters, requestId),
@@ -146,9 +163,12 @@ export async function getConsentOverview(
       startDate:   filters.startDate   ?? null,
       endDate:     filters.endDate     ?? null,
       granularity: gran,
-      availableMembers:     byMember.map((r) => r.member),
-      availableDeviceTypes: byDevice.map((r) => r.deviceType),
+      // Listes fixes : ne dépendent pas des filtres, pour que la sélection reste disponible
+      availableMembers:     ALL_MEMBERS,
+      availableDeviceTypes: ALL_DEVICES,
     },
-    kpi, byPeriod, byMember, byDevice, byPageType, rateEvolution,
+    kpi,
+    byPeriod: mergePurge(rawByPeriod, purgeByPeriod),
+    byMember, byDevice, byPageType, rateEvolution,
   };
 }

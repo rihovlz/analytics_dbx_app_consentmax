@@ -48,6 +48,7 @@ export const optInByPeriodRowSchema = z.object({
   period: z.string(),          // "YYYY-MM-DD" | "YYYY-Www" | "YYYY-MM"
   firstConsent: z.coerce.number(),
   reexposed: z.coerce.number(),
+  purge: z.coerce.number().default(0),
 });
 export const optInByPeriodSchema = z.array(optInByPeriodRowSchema);
 export type OptInByPeriodRow = z.infer<typeof optInByPeriodRowSchema>;

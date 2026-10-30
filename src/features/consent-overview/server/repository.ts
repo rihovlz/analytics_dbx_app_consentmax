@@ -22,6 +22,7 @@ import {
   kpiHeaderQuery,
   optInByPeriodQuery,
   optInRateEvolutionQuery,
+  optInPurgeQuery,
 } from "@/features/consent-overview/server/queries";
 import { quoteQualifiedIdentifier } from "@/lib/databricks/identifiers";
 import type { SqlExecutor } from "@/lib/databricks/types";
@@ -140,6 +141,7 @@ export async function loadKpiHeader(
     rowSchema:  kpiRowSchema,
     requestId,
     maxRows:    1,
+    waitTimeoutSeconds: 10,
   });
   const row = rows[0];
   if (!row) throw new Error("consent-overview-kpi returned no rows");
@@ -160,6 +162,7 @@ export async function loadKpiHeader(
       rowSchema:  kpiRowSchema,
       requestId,
       maxRows:    1,
+      waitTimeoutSeconds: 10,
     });
     const row30 = r30[0];
     const wc30  = row30?.contact_with_choice ?? 0;
@@ -187,6 +190,35 @@ export async function loadKpiHeader(
   });
 }
 
+const purgeRowSchema = z.object({ period: z.string(), purge: coerceNum });
+
+const PURGE_SOURCE = "prd-consent.analytics.last_consent_event";
+
+/** Purge par période, sur la même granularité que byPeriod. Fusionnée par clé `period`. */
+export async function loadPurgeByPeriod(
+  executor: SqlExecutor,
+  filters: FilterParams,
+  requestId?: string,
+): Promise<Map<string, number>> {
+  const { startTs, endTs } = periodWindow(filters);
+  const rows = await executor.query({
+    name:       "consent-overview-purge-by-period",
+    statement:  optInPurgeQuery(filterOpts(filters)),
+    parameters: {
+      purgeSource: quoteQualifiedIdentifier(PURGE_SOURCE),
+      // Dates envoyées comme DATE (et non STRING) : LEAST(:endDate, current_date()) l'exige.
+      startDate:   new Date(`${startTs.slice(0, 10)}T00:00:00Z`),
+      endDate:     new Date(`${endTs.slice(0, 10)}T00:00:00Z`),
+      granularity: filters.granularity ?? "month",
+    },
+    rowSchema:  purgeRowSchema,
+    requestId,
+    maxRows:    800,
+    waitTimeoutSeconds: 10,
+  });
+  return new Map(rows.map((r) => [r.period, r.purge]));
+}
+
 export async function loadOptInByPeriod(
   executor: SqlExecutor,
   source: string,
@@ -197,10 +229,19 @@ export async function loadOptInByPeriod(
   const rows = await executor.query({
     name:       "consent-overview-by-period",
     statement:  optInByPeriodQuery(filterOpts(filters)),
-    parameters: { source: quoteQualifiedIdentifier(source), startTs, endTs, granularity: filters.granularity ?? "month" },
+    parameters: {
+      source: quoteQualifiedIdentifier(source),
+      // Un paramètre nommé absent du SQL est refusé par Databricks : on ne le fournit que si le filtre existe.
+      // La jointure existe si un filtre membre OU device est actif : le paramètre doit suivre la même règle.
+      ...(((filters.members?.length ?? 0) > 0) || ((filters.deviceTypes?.length ?? 0) > 0)
+        ? { memberSource: quoteQualifiedIdentifier("prd-consent.analytics.last_consent_event") }
+        : {}),
+      startTs, endTs, granularity: filters.granularity ?? "month",
+    },
     rowSchema:  byPeriodRowSchema,
     requestId,
     maxRows:    800,
+    waitTimeoutSeconds: 10,
   });
   return optInByPeriodSchema.parse(
     rows.map((r) => ({ period: r.period, firstConsent: r.first_consent, reexposed: r.reexposed })),
@@ -221,6 +262,7 @@ export async function loadConsentByMember(
     rowSchema:  byMemberRowSchema,
     requestId,
     maxRows:    50,
+    waitTimeoutSeconds: 10,
   });
   return consentByMemberSchema.parse(
     rows.map((r) => ({
@@ -248,6 +290,7 @@ export async function loadConsentByDevice(
     rowSchema:  byDeviceRowSchema,
     requestId,
     maxRows:    20,
+    waitTimeoutSeconds: 10,
   });
   const grandTotal = rows.reduce((s, r) => s + r.opt_in, 0) || 1;
   return consentByDeviceSchema.parse(
@@ -278,6 +321,7 @@ export async function loadConsentByPageType(
     rowSchema:  byPageTypeRowSchema,
     requestId,
     maxRows:    20,
+    waitTimeoutSeconds: 10,
   });
   return consentByPageTypeSchema.parse(
     rows.map((r) => ({
@@ -304,6 +348,7 @@ export async function loadOptInRateEvolution(
     rowSchema:  rateEvolutionRowSchema,
     requestId,
     maxRows:    800,
+    waitTimeoutSeconds: 10,
   });
   return optInRateEvolutionSchema.parse(
     rows

@@ -11,6 +11,10 @@
     {
       "fullName": "prd-consent.analytics.last_consent_event",
       "permission": "SELECT"
+    },
+    {
+      "fullName": "prd-consent.analytics.consent_event_w_flags",
+      "permission": "SELECT"
     }
   ],
   "personalState": [],

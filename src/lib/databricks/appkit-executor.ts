@@ -30,6 +30,8 @@ export class AppKitSqlExecutor implements SqlExecutor {
     let timer: NodeJS.Timeout | undefined;
     try {
       if (!name || !Number.isSafeInteger(maxRows) || maxRows < 1 || maxRows > 100_000) throw new Error("Invalid query bounds");
+      const waitTimeout = options.waitTimeoutSeconds ?? 0;
+      if (!Number.isInteger(waitTimeout) || waitTimeout < 0 || waitTimeout > 50) throw new Error("Invalid wait timeout");
       const sqlPrefix = options.statement.replace(/^(?:\s|--[^\r\n]*(?:\r?\n|$)|\/\*[\s\S]*?\*\/)*/, "");
       if (!/^(SELECT|WITH)\b/i.test(sqlPrefix)) throw new Error("Analytics executor accepts reads only");
       // Select known compatibility exceptions before submission; never retry a native failure.
@@ -51,7 +53,7 @@ export class AppKitSqlExecutor implements SqlExecutor {
           options.statement, parameters, {
             catalog: this.config.catalog, schema: this.config.schema,
             row_limit: maxRows, byte_limit: 8 * 1024 * 1024,
-            disposition: "INLINE", format: "JSON_ARRAY", wait_timeout: "0s",
+            disposition: "INLINE", format: "JSON_ARRAY", wait_timeout: `${options.waitTimeoutSeconds ?? 0}s`,
           }, controller.signal,
         )),
         new Promise<never>((_, reject) => {

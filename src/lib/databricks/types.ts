@@ -12,6 +12,8 @@ export type SqlQueryOptions<T> = {
   rowSchema: z.ZodType<T>;
   requestId?: string;
   maxRows?: number;
+  /** Seconds the warehouse may hold the response inline before the executor polls. Default: 0. */
+  waitTimeoutSeconds?: number;
 };
 
 export interface SqlExecutor {
