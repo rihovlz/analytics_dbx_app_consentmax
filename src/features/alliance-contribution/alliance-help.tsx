@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
-type Lang = "fr" | "en";
+import { useLanguage, type Lang } from "@/components/language/language-context";
 
 const MATRIX_HELP: Record<Lang, ReactNode> = {
   fr: (
@@ -40,25 +40,10 @@ const MEMBER_HELP: Record<Lang, ReactNode> = {
   ),
 };
 
-export function HelpBox({ content, lang: langProp, showSwitch = true }: {
-  content: Record<Lang, ReactNode>;
-  lang?: Lang;
-  showSwitch?: boolean;
-}) {
-  const [localLang, setLocalLang] = useState<Lang>("fr");
-  const lang = langProp ?? localLang;
+export function HelpBox({ content }: { content: Record<Lang, ReactNode> }) {
+  const { lang } = useLanguage();
   return (
     <div className="mb-4 rounded-xl border border-line bg-surface/60 p-4 text-xs text-muted">
-      {showSwitch && (
-        <div className="mb-2 flex justify-end gap-1" role="group" aria-label="Language">
-          {(["fr", "en"] as const).map((l) => (
-            <button key={l} type="button" aria-pressed={lang === l} onClick={() => setLocalLang(l)}
-              className={`rounded-md px-2 py-0.5 text-xs font-medium ${lang === l ? "bg-accent text-white" : "text-muted hover:text-on-surface"}`}>
-              {l.toUpperCase()}
-            </button>
-          ))}
-        </div>
-      )}
       {content[lang]}
     </div>
   );

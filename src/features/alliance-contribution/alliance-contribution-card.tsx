@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { useLanguage } from "@/components/language/language-context";
 import { MatrixHelp, MemberHelp } from "@/features/alliance-contribution/alliance-help";
 
 import {
@@ -9,6 +10,19 @@ import {
   type AllianceContribution,
   type MemberRow,
 } from "@/features/alliance-contribution/contract";
+
+const ALLIANCE_UI = {
+  fr: {
+    loading: "Chargement…", unavailable: "Données indisponibles.", invalid: "Réponse du serveur invalide.",
+    matrixTitle: "Opt-in — collecteurs × destinataires", matrixCorner: "Collecteur ↓ / Destinataire →",
+    memberTitle: "Opt-in — consentement propre et contribution alliance",
+  },
+  en: {
+    loading: "Loading…", unavailable: "Data unavailable.", invalid: "Invalid server response.",
+    matrixTitle: "Opt-in — collectors × recipients", matrixCorner: "Collector ↓ / Recipient →",
+    memberTitle: "Opt-in — self consent and alliance contribution",
+  },
+} as const;
 
 function fmtN(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} M`;
@@ -81,6 +95,8 @@ type State =
 
 export function AllianceContributionCard() {
   const [state, setState] = useState<State>({ status: "loading" });
+  const { lang } = useLanguage();
+  const t = ALLIANCE_UI[lang];
   const [highlighted, setHighlighted] = useState<string | null>(null);
   const [barTip, setBarTip] = useState<{ row: MemberRow; x: number; y: number } | null>(null);
   const memberRef = useRef<HTMLElement>(null);
@@ -95,15 +111,15 @@ export function AllianceContributionCard() {
       .then(async (res) => {
         const payload = await res.json();
         if (!res.ok) {
-          setState({ status: "error", message: payload.error?.message ?? "Data unavailable." });
+          setState({ status: "error", message: payload.error?.message ?? t.unavailable });
           return;
         }
         setState({ status: "success", result: allianceContributionSchema.parse(payload) });
       })
-      .catch(() => setState({ status: "error", message: "Invalid server response." }));
+      .catch(() => setState({ status: "error", message: t.invalid }));
   }, []);
 
-  if (state.status === "loading") return <p className="p-5 text-sm text-muted">Loading…</p>;
+  if (state.status === "loading") return <p className="p-5 text-sm text-muted">{t.loading}</p>;
   if (state.status === "error") return <p className="p-5 text-sm text-red-600">{state.message}</p>;
 
   const { members, matrix, byMember } = state.result;
@@ -151,13 +167,13 @@ export function AllianceContributionCard() {
   return (
     <div className="space-y-5">
       <section aria-label="Alliance contribution matrix" className="rounded-2xl border border-line bg-surface p-5 shadow-panel">
-        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Opt-in — collectors × recipients</h3>
+        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">{t.matrixTitle}</h3>
         <MatrixHelp />
         <div className="overflow-x-auto">
           <table className="border-separate border-spacing-0 text-xs tabular-nums">
             <thead>
               <tr>
-                <th className="sticky left-0 bg-surface p-1.5 text-left font-medium text-muted">Collector ↓ / Recipient →</th>
+                <th className="sticky left-0 bg-surface p-1.5 text-left font-medium text-muted">{t.matrixCorner}</th>
                 {members.map((r) => (
                   <th key={r} className={`p-1.5 font-semibold ${isDim(r) ? "opacity-40" : ""} ${highlighted === r ? "text-accent" : ""}`}>
                     <button type="button" onClick={() => toggle(r)} aria-pressed={highlighted === r}>{r}</button>
@@ -195,7 +211,7 @@ export function AllianceContributionCard() {
       </section>
 
       <section ref={memberRef} aria-label="Alliance contribution by member" className="relative rounded-2xl border border-line bg-surface p-5 shadow-panel">
-        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Opt-in — self consent and alliance contribution</h3>
+        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">{t.memberTitle}</h3>
         <MemberHelp />
         <div className="overflow-x-auto">
           <table className="w-full text-sm tabular-nums">

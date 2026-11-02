@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from "react";
 
+import { useLanguage, type Lang } from "@/components/language/language-context";
 import { HelpBox } from "@/features/alliance-contribution/alliance-help";
 import { missingsSchema, type Missings, type MissingRow } from "@/features/missings/contract";
-
-type Lang = "fr" | "en";
 
 const UI: Record<Lang, {
   loading: string; unavailable: string; invalid: string;
@@ -134,7 +133,7 @@ function fmtPts(v: number | null): string {
 export function MissingsCard() {
   const [state, setState] = useState<State>({ status: "loading" });
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "member", dir: "asc" });
-  const [lang, setLang] = useState<Lang>("fr");
+  const { lang } = useLanguage();
   const t = UI[lang];
 
   function sortBy(key: SortKey) {
@@ -192,25 +191,15 @@ export function MissingsCard() {
   if (state.status === "error") return <p className="p-5 text-sm text-red-600">{state.message}</p>;
 
   const { rows, globalUnknownPct } = state.result;
-  const switcher = (
-    <div className="mb-2 flex justify-end gap-1" role="group" aria-label="Language">
-      {(["fr", "en"] as const).map((l) => (
-        <button key={l} type="button" aria-pressed={lang === l} onClick={() => setLang(l)}
-          className={`rounded-md px-2 py-0.5 text-xs font-medium ${lang === l ? "bg-accent text-white" : "text-muted hover:text-on-surface"}`}>
-          {l.toUpperCase()}
-        </button>
-      ))}
-    </div>
-  );
+
 
   return (
     <div className="space-y-5">
       <section aria-label="Summary" className="rounded-2xl border border-line bg-surface p-5 shadow-panel">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">{t.summary}</h3>
-          {switcher}
         </div>
-        <HelpBox content={SUMMARY} lang={lang} showSwitch={false} />
+        <HelpBox content={SUMMARY} />
       </section>
 
       <section aria-label="Missing contacts" className="rounded-2xl border border-line bg-surface p-5 shadow-panel">
@@ -221,7 +210,7 @@ export function MissingsCard() {
             <span className="text-2xl font-bold tabular-nums">{fmtPct(globalUnknownPct)}</span>
           </p>
         </div>
-        <HelpBox content={HELP} lang={lang} showSwitch={false} />
+        <HelpBox content={HELP} />
         <div className="overflow-x-auto">
           <table className="w-full text-sm tabular-nums">
             <thead>
