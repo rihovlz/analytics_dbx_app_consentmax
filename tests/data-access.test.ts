@@ -47,6 +47,20 @@ test("rejects a source from another project", () => {
   );
 });
 
+test("cross-project reads require an explicit approved project matching the source", () => {
+  const source = { name: "missing-contacts", project: "prd-dtm-core-enrichment",
+    fullName: "prd-dtm-core-enrichment.analytics.optin_missing_contacts", purpose: "Missing contacts" };
+  const manifest = { project: "prd-consent", sources: [source] };
+  assert.equal(parseDataAccessManifest(manifest).sources[0].project, source.project);
+  for (const project of [undefined, "unknown-project", "prd-consent"]) {
+    assert.throws(() => parseDataAccessManifest({ ...manifest, sources: [{ ...source, project }] }), /Invalid data access manifest/);
+  }
+  assert.throws(() => parseDataAccessManifest({ ...manifest,
+    personalState: { analyses: "prd-dtm-core-enrichment.state.saved_analyses_v1",
+      preferences: "prd-dtm-core-enrichment.state.user_preferences_v1" },
+  }), /Invalid data access manifest/);
+});
+
 test("renders least-privilege Unity Catalog app resources and detects drift", async () => {
   const root = await mkdtemp(join(tmpdir(), "databricks-data-access-"));
   for (const file of supportFiles) {
@@ -64,6 +78,12 @@ test("renders least-privilege Unity Catalog app resources and detects drift", as
           name: "campaign-performance",
           fullName: "dev-dtm-media-pm.analytics.campaign_performance",
           purpose: "Campaign cockpit",
+        },
+        {
+          name: "missing-contacts",
+          project: "prd-dtm-core-enrichment",
+          fullName: "prd-dtm-core-enrichment.analytics.optin_missing_contacts",
+          purpose: "Missing contacts",
         },
       ],
     }),
@@ -83,7 +103,13 @@ test("renders least-privilege Unity Catalog app resources and detects drift", as
 
   const metadataPath = join(root, "config/appkit-resources.generated.json");
   const metadata = JSON.parse(await readFile(metadataPath, "utf8"));
-  assert.deepEqual(metadata.sources, [{ fullName: "dev-dtm-media-pm.analytics.campaign_performance", permission: "SELECT" }]);
+  assert.deepEqual(metadata.sources, [
+    { fullName: "dev-dtm-media-pm.analytics.campaign_performance", permission: "SELECT" },
+    { fullName: "prd-dtm-core-enrichment.analytics.optin_missing_contacts", permission: "SELECT" },
+  ]);
+  const bindings = parse(rendered).resources.apps.app.resources;
+  assert.equal(bindings[2].uc_securable.securable_full_name, metadata.sources[1].fullName);
+  assert.equal(bindings[2].uc_securable.permission, "SELECT");
   assert.equal(metadata.warehouse.binding, "sql-warehouse");
   assert.equal(metadata.genie, undefined);
   metadata.sources[0].permission = "MODIFY";
@@ -99,6 +125,13 @@ test("renders least-privilege Unity Catalog app resources and detects drift", as
     () => execFileSync(process.execPath, ["scripts/render-data-access.mjs", "--check"], { cwd: root, stdio: "pipe" }),
     /Command failed/,
   );
+  const accessPath = join(root, "config/data-access.json");
+  const access = JSON.parse(await readFile(accessPath, "utf8"));
+  for (const project of [undefined, "unknown-project", "prd-consent"]) {
+    access.sources[1].project = project;
+    await writeFile(accessPath, JSON.stringify(access));
+    assert.throws(() => execFileSync(process.execPath, ["scripts/render-data-access.mjs"], { cwd: root, stdio: "pipe" }));
+  }
 });
 
 

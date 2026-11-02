@@ -2,6 +2,15 @@
 
 Dernière mise à jour : 2026-11-02
 
+## Préparation du déploiement — 2026-11-02
+
+- Les cinq sources utilisées par les trois pages sont déclarées avec `SELECT`. Les deux sources Missings
+  déclarent explicitement leur catalogue `prd-dtm-core-enrichment`, ajouté à la liste des projets autorisés.
+- Les validators CLI et runtime exigent ce projet explicite pour une lecture hors du catalogue principal.
+  La préparation et l'état personnel restent limités à `prd-consent`.
+- `/api/readiness` couvre désormais les cinq sources. Aucun grant manuel ni déploiement n'est effectué par
+  cette préparation locale ; l'existence des sources et les droits runtime restent à vérifier dans le workspace.
+
 ## Intégration avec main — 2026-11-02
 
 - Fusion de `main` 3.0.0 sans Genie dans `feat/consent-overview`. Les trois features métier et la langue FR/EN

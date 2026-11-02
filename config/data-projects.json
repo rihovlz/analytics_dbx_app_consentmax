@@ -5,6 +5,7 @@
     "dev-dtm-myvaliuz",
     "dev-dtm-insight-sharing",
     "dev-consent",
-    "prd-consent"
+    "prd-consent",
+    "prd-dtm-core-enrichment"
   ]
 }
