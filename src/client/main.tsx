@@ -4,6 +4,7 @@ import { BrowserRouter, useRoutes } from "react-router-dom";
 import "@fontsource-variable/outfit";
 
 import { AppShell } from "@/components/app-shell/app-shell";
+import { LanguageProvider } from "@/components/language/language-context";
 import { LoadingState } from "@/components/states/loading-state";
 import { ErrorState } from "@/components/states/error-state";
 import { publicAppConfigSchema, type PublicAppConfig } from "@/shared/app-config";
@@ -28,6 +29,7 @@ function Pages() {
 function Application({ config }: { config: PublicAppConfig }) {
   return (
     <AppConfigContext.Provider value={config}>
+      <LanguageProvider>
       <BrowserRouter>
         <AppShell appName={config.appName} appDescription={config.appDescription}
           supportName={config.supportContact.name} supportSlackUrl={config.supportContact.slackUrl}
@@ -37,6 +39,7 @@ function Application({ config }: { config: PublicAppConfig }) {
           </PageErrorBoundary>
         </AppShell>
       </BrowserRouter>
+      </LanguageProvider>
     </AppConfigContext.Provider>
   );
 }

@@ -1,5 +1,5 @@
 bundle:
-  name: "__APP_NAME__-data"
+  name: "analytics-dbx-app-consentmax-data"
   databricks_cli_version: ">= 0.295.0"
 
 include:
@@ -20,4 +20,4 @@ targets:
     mode: production
     workspace:
       host: https://3070470996474403.3.gcp.databricks.com
-      root_path: "__DATABRICKS_PROD_ROOT_PATH__/data"
+      root_path: "/Workspace/Shared/.bundle/analytics-dbx-app-consentmax/prod/data"

@@ -9,7 +9,9 @@ test("navigation, routes directes, thèmes et clavier", async ({ page }) => {
   await page.keyboard.press("Enter");
   await expect(page.getByRole("main")).toBeFocused();
   await expect(page.getByRole("link", { name: "Genie", exact: true })).toHaveCount(0);
-  await page.getByRole("link", { name: "Visualisations", exact: true }).click();
+  await expect(page).toHaveURL(/\/consent-overview#main-content$/);
+  await expect(page.getByRole("link", { name: "Self stats", exact: true })).toHaveAttribute("aria-current", "page");
+  await page.goto("/visualizations");
   await expect(page).toHaveURL(/\/visualizations$/);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await page.reload();

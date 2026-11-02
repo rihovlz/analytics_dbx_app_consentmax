@@ -3,7 +3,7 @@
 Préconditions : serveur AppKit local, APP_MODE=demo, analyses personnelles activées, aucune donnée distante.
 Fixtures : visualisations synthétiques ; définitions personnelles en mémoire.
 
-- Naviguer entre les URL conservées avec la navigation, puis recharger une route directe.
+- Vérifier que l’accueil ouvre Self stats, puis ouvrir et recharger directement `/visualizations`.
 - Au clavier, atteindre le lien d’évitement et le contenu.
 - Vérifier les thèmes clair/sombre et l’absence de débordement sur mobile.
 - Retarder puis refuser une réponse de configuration ou de visualisation et vérifier l’état observable.

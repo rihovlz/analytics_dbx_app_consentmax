@@ -12,6 +12,9 @@ import { GET as getAnalysis, PUT as putAnalysis, DELETE as deleteAnalysis } from
 import { GET as preferences, PUT as putPreferences } from "./routes/user-preferences/route";
 import { europeFeatures } from "./visualization-demo";
 import { GET as comparisonDemo } from "./routes/period-comparison/route";
+import { GET as getConsentOverview } from "./routes/consent-overview/route";
+import { GET as getAllianceContribution } from "./routes/alliance-contribution/route";
+import { GET as getMissings } from "./routes/missings/route";
 // feature:new inserts imports above this line.
 
 export function registerRoutes(app: Application) {
@@ -32,6 +35,9 @@ export function registerRoutes(app: Application) {
   app.delete("/api/saved-analyses/:id", deleteAnalysis);
   app.get("/api/user-preferences", preferences);
   app.put("/api/user-preferences", putPreferences);
+  app.get("/api/consent-overview", getConsentOverview);
+  app.get("/api/alliance-contribution", getAllianceContribution);
+  app.get("/api/missings", getMissings);
   // feature:new inserts routes above this line.
   app.use("/api", withApiRoute(() => {
     throw new AppError("Unknown feature route", "NOT_FOUND", 404, "Cette route n’existe pas.");

@@ -1,0 +1,26 @@
+schemaVersion: 1
+template:
+  id: valiuz/analytics_dbx_app_template
+  repository: https://github.com/valiuz/analytics_dbx_app_template
+  version: 3.0.0
+capabilities:
+  - guided-app-workflow
+  - declared-data-access
+  - optional-data-preparation
+  - valiuz-app-shell
+  - databricks-app-bundle
+  - databricks-deployment-compatibility
+  - clean-template-consumer-journey
+  - template-version-tracking
+  - cost-aware-data-history
+  - feature-release-governance
+  - reusable-analytics-visualizations
+  - personal-user-state
+  - appkit-native-runtime
+  - upstream-compatibility
+  - guided-appkit-capabilities
+  - period-comparison
+  - comparison-sharing
+  - databricks-workspace-file-delivery
+appliedUpgrades:
+  - 2.1.0-to-3.0.0

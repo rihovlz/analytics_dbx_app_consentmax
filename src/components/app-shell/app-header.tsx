@@ -1,4 +1,5 @@
 import { SupportContact } from "@/components/app-shell/support-contact";
+import { LanguageToggle } from "@/components/language/language-context";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 export function AppHeader({
@@ -32,6 +33,7 @@ export function AppHeader({
           </div>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <LanguageToggle />
           <ThemeToggle />
           <SupportContact name={supportName} slackUrl={supportSlackUrl} />
         </div>

@@ -1,4 +1,15 @@
 {
-  "project": "__DATABRICKS_CATALOG__",
-  "sources": []
+  "project": "prd-consent",
+  "sources": [
+    {
+      "name": "last-consent-event",
+      "fullName": "prd-consent.analytics.last_consent_event",
+      "purpose": "Dernier état de consentement par contact — source principale dashboard ConsentMax"
+    },
+    {
+      "name": "consent-event-w-flags",
+      "fullName": "prd-consent.analytics.consent_event_w_flags",
+      "purpose": "Historique des événements avec flags de premier consentement, pour compter les emails distincts par période"
+    }
+  ]
 }

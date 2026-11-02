@@ -1,24 +1,29 @@
-# Databricks App Template
+# ConsentMax Analytics
 
 ![Databricks App Boilerplate — de la copie du repository au déploiement](docs/assets/databricks-app-boilerplate-v2.png)
 
-Golden path AppKit/Express/Vite/React/TypeScript pour construire des Databricks Apps analytics. Il fournit un shell UI Valiuz, une
-configuration validée, une couche Databricks SQL centralisée, des erreurs publiques sûres, des logs structurés, des
-tests, une bibliothèque de visualisation et un déploiement reproductible avec Databricks Asset Bundles.
+Application ConsentMax basée sur le template AppKit/Express/Vite/React/TypeScript 3.0.0, sans Genie.
+Le dépôt est déjà initialisé : ne pas relancer `init-app`.
+
+La page d’accueil ouvre `/consent-overview` (Self stats). La navigation donne aussi accès à
+`/alliance-contribution` et `/missings`. Le sélecteur FR/EN reste commun aux pages.
+Les visualisations et comparaisons du template restent accessibles directement sur `/visualizations` ;
+les analyses enregistrées restent disponibles lorsqu’elles sont activées.
+
+Les sources déclarées sont `prd-consent.analytics.last_consent_event` et
+`prd-consent.analytics.consent_event_w_flags`. Self stats propose une démo sans accès au workspace.
+Alliance et Missings conservent leurs services SQL réels ; les tests de navigation utilisent des réponses
+synthétiques. Leurs sources supplémentaires et permissions restent à vérifier avant déploiement.
 
 ## Quick Start
 
 Prérequis : Node.js 22.16+, npm et Git. Aucun accès Databricks n’est requis pour le mode démo.
 
 ```bash
-git clone https://github.com/valiuz/analytics_dbx_app_template.git my-new-app
-cd my-new-app
+git clone https://github.com/rihovlz/analytics_dbx_app_consentmax.git
+cd analytics_dbx_app_consentmax
 npm ci
-npm run app
-npm run app -- init my-new-app
-npm run app -- guide
-npm run app -- next
-npm run app -- dev
+npm run dev
 ```
 
 Ouvrir <http://localhost:3000>. Le mode démo est explicite et n’effectue aucun appel distant. La page
@@ -28,7 +33,7 @@ Ouvrir <http://localhost:3000>. Le mode démo est explicite et n’effectue aucu
 L'initialisation refuse une app existante ; utiliser `app next` pour la reprendre ou le guide de migration pour changer de version.
 Voir [le parcours CLI complet](docs/cli-workflow.md) pour un essai guidé par une seule personne, du besoin aux données et à l'app.
 
-## Parcours guidé pour une app interne
+## Outils du template conservés
 
 Le parcours reste volontairement léger pour une app maintenue par une seule personne :
 

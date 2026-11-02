@@ -149,6 +149,19 @@ globale réduit aussi les transitions restantes. Ne pas ajouter une animation qu
 `Sparkline` et les séries de type zone appliquent un dégradé léger du ton choisi vers la transparence. Limiter ce
 remplissage à une série principale afin de conserver la lisibilité.
 
+### Style standard des courbes temporelles
+
+Toute nouvelle courbe temporelle reprend le style de « Tendance des ventes » (`TimeSeriesChart`, onglet Genie) :
+
+- courbe lissée (`monotone`), trait de 2,35 px, sans point sur la courbe ; un point actif de 4,5 px apparaît au survol ;
+- remplissage en dégradé du ton vers la transparence (0,17 → 0,035 → 0) sur la série principale uniquement ;
+- grille horizontale seule, en pointillés (`3 5`), sans grille verticale ;
+- axes sans trait, libellés en `--muted` à 12 px ; l'axe X saute les libellés pour éviter le chevauchement ;
+- infobulle `bg-tooltip` avec une pastille de couleur, le nom de la série et la valeur formatée ;
+- marge haute de 14 px ; hauteur de 260 px lorsque le graphique est seul.
+
+Cette règle vaut pour `TimeSeriesChart` et pour toute courbe dessinée à la main en SVG dans une feature.
+
 `AnalyticsMap` dessine un SVG avec D3 Geo et une `FeatureCollection` GeoJSON fournie par l’appelant. Elle ne dépend
 d’aucun service cartographique. Elle ne charge aucune tuile, ne demande aucun token et ne fait aucun appel réseau au
 runtime. Le mode `heatmap` ajoute des halos aux repères. Il ne remplace pas une couche géostatistique calculée.

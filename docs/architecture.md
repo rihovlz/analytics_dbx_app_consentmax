@@ -39,6 +39,12 @@ Databricks SQL Warehouse → Unity Catalog
 
 ## Boundaries
 
+ConsentMax utilise trois tranches métier : `consent-overview`, `alliance-contribution` et `missings`.
+Chacune conserve sa page, son endpoint `/api/<feature>`, son service et ses repositories SQL.
+La route `/` redirige vers `/consent-overview`. `/visualizations` reste disponible directement.
+Le contexte `src/components/language/language-context.tsx` partage le choix FR/EN entre les pages et le
+conserve sous `analytics-lang` dans le stockage local. Cette préférence ne contient aucune donnée métier.
+
 - `src/client` compose les pages React. `src/server` expose les endpoints Express. Aucun de ces dossiers ne contient de SQL métier.
 - `src/components` contient le shell, les états et les visualisations génériques.
 - `src/features` contient les vertical slices fonctionnelles. Les modules sous `server/` ne sont importés que par le
