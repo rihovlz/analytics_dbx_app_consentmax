@@ -6,7 +6,7 @@ import { ConfigurationError } from "@/lib/errors/app-error";
 
 const identifierSchema = z.string().regex(/^[A-Za-z0-9_-]+$/);
 const sourceSchema = z.object({
-  name: z.string().regex(/^[a-z0-9][a-z0-9-]*$/),
+  name: z.string().max(25).regex(/^[a-z0-9][a-z0-9-]*$/),
   fullName: z.string().trim().min(1),
   purpose: z.string().trim().min(3).max(200),
   project: z.string().refine(isAllowedDataProject, "unknown data project").optional(),

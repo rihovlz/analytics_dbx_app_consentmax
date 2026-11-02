@@ -48,8 +48,9 @@ Le template préremplit l’infrastructure partagée Valiuz suivante :
 infrastructure. Vérifier l’ID dans le workspace avant chaque déploiement : le nom lisible du warehouse est documenté
 pour les opérateurs, mais le bundle utilise son ID stable.
 
-Déclarer chaque table ou vue consommée dans `config/data-access.json`, avec un nom technique court, son identifiant
-`projet.schema.objet` et sa finalité. `npm run data:access:render` génère un binding `uc_securable` `SELECT`. Databricks
+Déclarer chaque table ou vue consommée dans `config/data-access.json`, avec un nom technique de 25 caractères maximum,
+son identifiant `projet.schema.objet` et sa finalité. Le préfixe `data-` porte le binding à 30 caractères maximum.
+`npm run data:access:render` génère un binding `uc_securable` `SELECT`. Databricks
 accorde alors au service principal de l'app les privilèges minimaux sur l'objet et ses parents. La personne ou
 l'identité qui déploie doit être autorisée à accorder ces droits ; ne pas élargir un binding analytique à `MODIFY`. La feature optionnelle [état personnel](user-state.md)
 déclare séparément ses deux tables et leurs bindings `MODIFY`, qui incluent `SELECT`.

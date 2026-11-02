@@ -64,6 +64,9 @@ export function validateDataAccessManifest(value, { allowPlaceholder = false, re
     if (typeof name !== "string" || !sourceNamePattern.test(name)) {
       throw new Error(`Source ${index + 1} name must use lowercase letters, numbers and hyphens.`);
     }
+    if (name.length > 25) {
+      throw new Error(`Source '${name}' name must contain at most 25 characters (30 with the data- binding prefix).`);
+    }
     if (names.has(name)) throw new Error(`Source name '${name}' is duplicated.`);
     names.add(name);
     if (typeof fullName !== "string") throw new Error(`Source '${name}' fullName must be a string.`);

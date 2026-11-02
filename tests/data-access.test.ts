@@ -127,6 +127,21 @@ test("renders least-privilege Unity Catalog app resources and detects drift", as
   );
   const accessPath = join(root, "config/data-access.json");
   const access = JSON.parse(await readFile(accessPath, "utf8"));
+  access.sources[0].name = "a".repeat(25);
+  assert.doesNotThrow(() => parseDataAccessManifest(access));
+  await writeFile(accessPath, JSON.stringify(access));
+  execFileSync(process.execPath, ["scripts/render-data-access.mjs"], { cwd: root });
+  const validBundle = await readFile(join(root, "resources/data-access.generated.yml"), "utf8");
+  assert.equal(parse(validBundle).resources.apps.app.resources[1].name.length, 30);
+  access.sources[0].name += "a";
+  assert.throws(() => parseDataAccessManifest(access), /Invalid data access manifest/);
+  await writeFile(accessPath, JSON.stringify(access));
+  assert.throws(
+    () => execFileSync(process.execPath, ["scripts/render-data-access.mjs"], { cwd: root, stdio: "pipe" }),
+    /at most 25 characters/,
+  );
+  assert.equal(await readFile(join(root, "resources/data-access.generated.yml"), "utf8"), validBundle);
+  access.sources[0].name = "campaign-performance";
   for (const project of [undefined, "unknown-project", "prd-consent"]) {
     access.sources[1].project = project;
     await writeFile(accessPath, JSON.stringify(access));
