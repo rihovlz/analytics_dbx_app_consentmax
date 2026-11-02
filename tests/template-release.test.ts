@@ -168,3 +168,17 @@ test("skips version bumps for initialized apps and rejects an explicit missing b
   );
   assert.match(await readFile("README.md", "utf8"), /template:release:check/);
 });
+
+test("a major release can explicitly retain capabilities without inheriting removed ones", () => {
+  const result = assess({
+    currentVersion: "2.0.0", baseCapabilities: ["existing", "removed"], currentCapabilities: ["existing"],
+    currentRelease: { sourceCommit: baseCommit, capabilities: ["existing"] },
+    upgradeReference: { from: "1.1.0", to: "2.0.0", path: "template/upgrades/1.1.0-to-2.0.0.yml" },
+    upgradePath: "template/upgrades/1.1.0-to-2.0.0.yml",
+    changedFiles: [...releaseFiles.slice(0, 3), "template/upgrades/1.1.0-to-2.0.0.yml"],
+  });
+  assert.equal(result.bump, "major");
+  assert.deepEqual(result.removedCapabilities, ["removed"]);
+  assert.deepEqual(result.errors, []);
+  assert.match(assess({ currentRelease: { sourceCommit: baseCommit, capabilities: ["new-capability"] } }).errors.join("\n"), /must extend/);
+});

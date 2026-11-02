@@ -1,7 +1,7 @@
 # Parité AppKit 2.0
 
 Préconditions : serveur AppKit local, APP_MODE=demo, analyses personnelles activées, aucune donnée distante.
-Fixtures : données synthétiques Genie et visualisations ; définitions personnelles en mémoire.
+Fixtures : visualisations synthétiques ; définitions personnelles en mémoire.
 
 - Naviguer entre les URL conservées avec la navigation, puis recharger une route directe.
 - Au clavier, atteindre le lien d’évitement et le contenu.
@@ -9,7 +9,6 @@ Fixtures : données synthétiques Genie et visualisations ; définitions personn
 - Retarder puis refuser une réponse de configuration ou de visualisation et vérifier l’état observable.
 - Afficher une bibliothèque vide, enregistrer des filtres, modifier une note, rouvrir et supprimer l’analyse.
 - Vérifier que le payload personnel ne contient que la définition, le nom et la note.
-- Après interruption d’un POST Genie, vérifier le verrouillage sans rejeu.
 - Vérifier la limite JSON HTTP de 64 Kio et celle de 16 Kio du contenu personnel sérialisé après parsing.
 - Vérifier que les erreurs JSON du parseur Express conservent un identifiant de requête et les en-têtes privés,
   y compris lorsque les analyses personnelles sont désactivées ; vérifier les routes génériques absentes.

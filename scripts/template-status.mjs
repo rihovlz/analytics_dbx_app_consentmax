@@ -153,6 +153,7 @@ export async function runTemplateStatus(root, options) {
       : undefined;
     const from = options.from
       ?? (stateUpgrade ? state.template.version : undefined)
+      ?? manifest.upgrades.find((upgrade) => upgrade.to === manifest.template.currentVersion)?.from
       ?? manifest.versions[manifest.template.currentVersion].extends
       ?? manifest.template.currentVersion;
     const to = options.to

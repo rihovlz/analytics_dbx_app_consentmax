@@ -16,9 +16,6 @@ import { copyTrackedFiles, findRepositoryRoot, linkRepositoryNodeModules } from 
 const execFileAsync = promisify(execFile);
 const fixtureAppName = "ci-bundle-app";
 const fixtureSourceName = "data-bundle-source";
-const fixtureGenieSpaceKey = "fraim-sales";
-const fixtureGenieSpaceName = "Genie - FRAIM - Sales Performance";
-const fixtureGenieSpaceId = "01f1706a44af166db267134b70dc27c8";
 const fixtureRepositoryUrl = "https://github.com/valiuz/analytics_dbx_app_ci_fixture";
 
 type CommandResult = {
@@ -54,25 +51,21 @@ export function assertBundleContract(value: unknown, target: "dev" | "prod"): vo
   assert.deepEqual(Object.keys(apps), ["app"], "The rendered bundle must contain exactly one app resource.");
   const app = asRecord(apps.app, "resources.apps.app");
   assert.equal(app.name, fixtureAppName);
-  assert.deepEqual(asArray(app.user_api_scopes, "resources.apps.app.user_api_scopes"), ["genie"]);
+  assert.equal(app.user_api_scopes, undefined);
 
   const appResources = asArray(app.resources, "resources.apps.app.resources").map((resource, index) =>
     asRecord(resource, `resources.apps.app.resources[${index}]`),
   );
   assert.deepEqual(
     appResources.map((resource) => resource.name),
-    ["sql-warehouse", fixtureGenieSpaceKey, fixtureSourceName, "user-state-analyses", "user-state-preferences"],
-    "The app must keep its warehouse, Genie space and generated Unity Catalog binding.",
+    ["sql-warehouse", fixtureSourceName, "user-state-analyses", "user-state-preferences"],
+    "The app must keep its warehouse and generated Unity Catalog binding.",
   );
-  const genieBinding = asRecord(appResources[1].genie_space, "Genie space binding");
-  assert.equal(genieBinding.name, fixtureGenieSpaceName);
-  assert.equal(genieBinding.space_id, fixtureGenieSpaceId);
-  assert.equal(genieBinding.permission, "CAN_RUN");
-  const dataBinding = asRecord(appResources[2].uc_securable, "Unity Catalog binding");
+  const dataBinding = asRecord(appResources[1].uc_securable, "Unity Catalog binding");
   assert.equal(dataBinding.securable_full_name, "dev-dtm-operating.analytics.bundle_source");
   assert.equal(dataBinding.permission, "SELECT");
   for (const [index, table] of ["saved_analyses_v1", "user_preferences_v1"].entries()) {
-    const personal = asRecord(appResources[index + 3].uc_securable, "Personal state binding");
+    const personal = asRecord(appResources[index + 2].uc_securable, "Personal state binding");
     assert.equal(personal.securable_full_name, `dev-dtm-operating.ci_user_state.${table}`);
     assert.equal(personal.securable_type, "TABLE");
     assert.equal(personal.permission, "MODIFY");
@@ -226,16 +219,11 @@ async function initializeFixture(fixtureRoot: string, host: string): Promise<voi
     await writeFile(join(fixtureRoot, "config/data-access.json"), JSON.stringify({ project: "dev-dtm-operating", sources: [] }));
     await rm(join(fixtureRoot, "data/contracts"), { recursive: true, force: true });
     await mkdir(join(fixtureRoot, "data/contracts"), { recursive: true });
-    await writeFile(join(fixtureRoot, "config/genie-spaces.json"), JSON.stringify({ version: 1, spaces: [{
-      key: fixtureGenieSpaceKey, displayName: fixtureGenieSpaceName, aliases: [fixtureGenieSpaceKey],
-      environmentVariable: "DATABRICKS_GENIE_SPACE_ID_FRAIM_SALES", spaceId: fixtureGenieSpaceId,
-    }] }));
     const appManifest = parse(await readFile(join(fixtureRoot, "app.yaml"), "utf8"));
-    appManifest.env = appManifest.env.filter((entry: { name: string }) => !entry.name.startsWith("DATABRICKS_GENIE_SPACE_ID_") && entry.name !== "DATABRICKS_CATALOG");
-    appManifest.env.push({ name: "DATABRICKS_GENIE_SPACE_ID_FRAIM_SALES", valueFrom: fixtureGenieSpaceKey });
+    appManifest.env = appManifest.env.filter((entry: { name: string }) => entry.name !== "DATABRICKS_CATALOG");
     appManifest.env.push({ name: "DATABRICKS_CATALOG", value: "dev-dtm-operating" });
     await writeFile(join(fixtureRoot, "app.yaml"), stringify(appManifest));
-    await writeFile(join(fixtureRoot, ".env.example"), `DATABRICKS_CATALOG=dev-dtm-operating\nDATABRICKS_GENIE_SPACE_ID_FRAIM_SALES=${fixtureGenieSpaceId}\n`);
+    await writeFile(join(fixtureRoot, ".env.example"), `DATABRICKS_CATALOG=dev-dtm-operating\n`);
     for (const path of ["databricks.yml", "data/databricks.yml"]) {
       const bundle = parse(await readFile(join(fixtureRoot, path), "utf8"));
       bundle.bundle.name = path.startsWith("data/") ? `${fixtureAppName}-data` : fixtureAppName;
@@ -289,7 +277,7 @@ export async function validateBundleCliCompatibility(): Promise<void> {
   const mockWorkspace = await startMockWorkspace();
 
   try {
-    await copyTrackedFiles(sourceRoot, fixtureRoot, ["config/genie-spaces.json"]);
+    await copyTrackedFiles(sourceRoot, fixtureRoot);
     await linkRepositoryNodeModules(sourceRoot, fixtureRoot);
     await initializeFixture(fixtureRoot, mockWorkspace.host);
     await runCommand(process.execPath, ["scripts/init-user-state.mjs", "--schema", "ci_user_state"], { cwd: fixtureRoot });

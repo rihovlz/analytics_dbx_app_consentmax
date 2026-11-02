@@ -6,10 +6,6 @@ import { disabledVariants } from "./http-policy";
 import { configureAnalytics } from "@/lib/databricks/appkit-executor";
 import { privateAnalytics } from "./analytics-plugin";
 import { createRuntimeClient } from "./workspace-client";
-import { privateGenie } from "./genie-plugin";
-import { resolveGeniePluginSpaces } from "@/features/genie/server/config";
-import { withGenieClient } from "@/features/genie/server/appkit-client";
-import { configureGenie } from "@/features/genie/server/service";
 
 const config = getServerConfig();
 if (config.mode === "databricks") process.env.DATABRICKS_WAREHOUSE_ID = config.warehouseId;
@@ -21,15 +17,14 @@ await createApp({
     server({ port, host: process.env.APP_HOST ?? "0.0.0.0", bodyLimit: "64kb", telemetry: false,
       ...(process.env.NODE_ENV === "production" ? { staticPath: "dist/client" } : {}) }),
     disabledVariants(),
-    ...(config.mode === "databricks" ? [privateAnalytics(config.timeoutMs), privateGenie(resolveGeniePluginSpaces())] : []),
+    ...(config.mode === "databricks" ? [privateAnalytics(config.timeoutMs)] : []),
   ],
-  client: withGenieClient(createRuntimeClient(config)),
+  client: createRuntimeClient(config),
   cache: { enabled: false },
   disableInternalTelemetry: true,
   onPluginsReady(appkit) {
     if (config.mode === "databricks") {
       configureAnalytics((...args) => appkit.analytics.query(...args));
-      configureGenie((...args) => appkit.genie.sendMessage(...args));
     }
     appkit.server.extend(registerRoutes);
   },

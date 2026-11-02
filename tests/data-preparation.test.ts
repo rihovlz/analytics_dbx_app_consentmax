@@ -10,7 +10,6 @@ const fixtureFiles = [
   ".env.example",
   "app.yaml",
   "config/data-projects.json",
-  "config/genie-spaces.json",
   "data/databricks.yml",
   "data/resources.generated.yml",
   "resources/data-access.generated.yml",
@@ -38,12 +37,12 @@ async function prepareFixture(): Promise<string> {
   );
   await writeFile(
     join(root, "app.yaml"),
-    "env:\n  - name: DATABRICKS_CATALOG\n    value: dev-dtm-media-pm\n  - name: DATABRICKS_GENIE_SPACE_ID_FRAIM_SALES\n    valueFrom: fraim-sales\n",
+    "env:\n  - name: DATABRICKS_CATALOG\n    value: dev-dtm-media-pm\n",
     "utf8",
   );
   await writeFile(
     join(root, ".env.example"),
-    "DATABRICKS_CATALOG=dev-dtm-media-pm\nDATABRICKS_GENIE_SPACE_ID_FRAIM_SALES=01f1706a44af166db267134b70dc27c8\n",
+    "DATABRICKS_CATALOG=dev-dtm-media-pm\n",
     "utf8",
   );
   await symlink(join(process.cwd(), "node_modules"), join(root, "node_modules"), "dir");

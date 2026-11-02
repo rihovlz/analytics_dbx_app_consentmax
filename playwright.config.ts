@@ -36,7 +36,7 @@ export default defineConfig({
       USER_STATE_ENABLED: process.env.E2E_PRODUCTION === "1" ? "false" : "true",
       USER_STATE_ORIGIN: baseURL,
       APP_NAME: "Assistant analytics",
-      APP_DESCRIPTION: "Démonstration locale de l’assistant Genie",
+      APP_DESCRIPTION: "Démonstration analytics locale",
       APP_SUPPORT_NAME: "Équipe Analytics",
       APP_SUPPORT_SLACK_URL: "https://valiuz.slack.com/team/U01C3FT98HE",
     },

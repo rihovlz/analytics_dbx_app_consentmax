@@ -1,5 +1,7 @@
 # Validation AppKit 2.0 — 23 et 24 septembre 2026
 
+> Document historique de la version 2.0. Pour la version actuelle sans Genie, appliquer ensuite le guide 2.1.0 → 3.0.0 dans [template-upgrades.md](template-upgrades.md).
+
 Base examinée : `8b779bcb363a7c57bdea12342964601d0acdfef4` (template 1.5.0).
 Décision : **major 2.0.0**, car les routes, le chargement des pages et le runtime changent.
 Packages AppKit et AppKit UI : `0.76.1`. Node.js : `22.16.0`.

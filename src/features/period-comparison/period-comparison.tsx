@@ -6,7 +6,6 @@ import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
 import { comparisonResultSchema, type ComparisonResult } from "./contract";
 import { ComparisonResults } from "./comparison-results";
-import { ComparisonGenie, type ComparisonGenieOptions } from "./comparison-genie";
 import { ComparisonSharing } from "./comparison-sharing";
 import { assertComparisonSelection, readSharedComparison, type ComparisonSharingOptions } from "./sharing";
 import { defaultSelection, resolvePeriods, selectionParameters, selectionSchema, type PeriodSelection } from "./periods";
@@ -17,7 +16,6 @@ export type PeriodComparisonProps = {
   description?: string;
   initialSelection?: PeriodSelection;
   showWaterfall?: boolean;
-  genie?: ComparisonGenieOptions;
   sharing?: ComparisonSharingOptions;
 };
 type State = { status: "loading" | "blocked" } | { status: "ready"; result: ComparisonResult; applied: PeriodSelection; consultedAt: string }
@@ -26,7 +24,7 @@ const errorSchema = z.object({ error: z.object({ message: z.string(), requestId:
 const inputClass = "mt-2 min-h-11 w-full min-w-0 rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink";
 
 export function PeriodComparison({ endpoint, title = "Comparer deux périodes", description,
-  initialSelection, showWaterfall = false, genie, sharing }: PeriodComparisonProps) {
+  initialSelection, showWaterfall = false, sharing }: PeriodComparisonProps) {
   const id = useId();
   const initial = useRef(initialSelection ?? defaultSelection());
   const [selection, setSelection] = useState<PeriodSelection>(initial.current);
@@ -164,9 +162,6 @@ export function PeriodComparison({ endpoint, title = "Comparer deux périodes", 
         <ComparisonResults result={state.result} showWaterfall={showWaterfall} />
         {sharing ? <ComparisonSharing key={JSON.stringify([state.applied, state.consultedAt])}
           result={state.result} selection={state.applied} consultedAt={state.consultedAt} options={sharing} disabled={dirty} /> : null}
-        {genie && state.result.change.absolute !== null ? <ComparisonGenie
-          key={JSON.stringify([state.result.periods, state.result.filterLabel, state.result.current.value, state.result.reference.value])}
-          result={state.result} options={genie} disabled={dirty} /> : null}
       </> : null}
     </div>
   </section>;

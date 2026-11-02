@@ -5,7 +5,6 @@ import { Link, useLocation } from "react-router-dom";
 const links = [
   { href: "/", label: "Accueil" },
   { href: "/visualizations", label: "Visualisations" },
-  { href: "/genie", label: "Genie" },
   // feature:new inserts links above this line.
 ];
 
