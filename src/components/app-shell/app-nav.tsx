@@ -3,7 +3,9 @@
 import { Link, useLocation } from "react-router-dom";
 
 const links = [
-  { href: "/consent-overview", label: "Vue d'ensemble ConsentMax" },
+  { href: "/consent-overview", label: "Self stats" },
+  { href: "/alliance-contribution", label: "Alliance contribution" },
+  { href: "/missings", label: "Missings" },
   // feature:new inserts links above this line.
 ];
 

@@ -6,7 +6,7 @@ env:
   - name: APP_MODE
     value: databricks
   - name: APP_NAME
-    value: "analytics-dbx-app-consentmax"
+    value: "ConsentMax analytics"
   - name: APP_DESCRIPTION
     value: "Dashboard ConsentMax — suivi du consentement et contribution Alliance"
   - name: APP_SUPPORT_NAME

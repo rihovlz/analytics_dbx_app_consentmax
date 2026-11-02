@@ -473,14 +473,16 @@ function OptInByPeriod({ data, granularity, onGranularity }: {
 
   // Dimensions SVG
   const BAR_W   = granularity === "month" ? 44 : granularity === "week" ? 40 : 32;
+  const Y_AXIS_W = 52;   // largeur de l'axe Y fixe (graduations)
   const PAD_L   = 30;    // marge gauche pour que la première étiquette -45° ne soit pas coupée
   const CHART_H = 180;   // hauteur de la zone au-dessus de la ligne de zéro (opt-in)
   const LABEL_H = 50;    // espace pour labels à -45°
   const SVG_W   = PAD_L + Math.max(data.length * BAR_W, 100);
   // Échelle commune : même nombre de pixels par unité pour l'opt-in et la purge.
-  const maxOptIn = Math.max(...data.map((r) => (showFirst ? r.firstConsent : 0) + (showReex ? r.reexposed : 0)), 1);
+  // Calculée sur toutes les données, pas sur les séries affichées : masquer l'opt-in ne doit pas agrandir la purge.
+  const maxOptIn = Math.max(...data.map((r) => r.firstConsent + r.reexposed), 1);
   const pxPerUnit = CHART_H / maxOptIn;
-  const maxPurge  = Math.max(...data.map((r) => (showPurge ? r.purge : 0)), 0);
+  const maxPurge  = Math.max(...data.map((r) => r.purge), 0);
   const NEG_H   = showPurge ? Math.ceil(maxPurge * pxPerUnit) : 0; // zone sous zéro, dimensionnée par la purge max
   const ZERO_Y  = CHART_H;
   const SVG_H   = CHART_H + NEG_H + LABEL_H;
@@ -536,9 +538,24 @@ function OptInByPeriod({ data, granularity, onGranularity }: {
         ))}
       </div>
 
+      <div className="flex">
+        {/* Axe Y fixe, non scrollable : graduations de l'échelle commune (opt-in au-dessus de zéro) */}
+        <svg width={Y_AXIS_W} height={SVG_H} className="shrink-0" aria-hidden="true" style={{ overflow: "visible" }}>
+          {[0.25, 0.5, 0.75, 1].map((f) => (
+            <text key={f} x={Y_AXIS_W - 6} y={ZERO_Y - f * maxOptIn * pxPerUnit + 4} textAnchor="end"
+              fontSize={11} fill="currentColor" fillOpacity={0.6}>{fmtN(f * maxOptIn)}</text>
+          ))}
+          <text x={Y_AXIS_W - 6} y={ZERO_Y + 4} textAnchor="end" fontSize={11} fill="currentColor" fillOpacity={0.6}>0</text>
+        </svg>
+
       {/* Conteneur scrollable — tout dans un SVG pour axe X propre */}
-      <div ref={scrollRef} className="overflow-x-auto">
+      <div ref={scrollRef} className="min-w-0 flex-1 overflow-x-auto">
         <svg width={SVG_W} height={SVG_H} role="img" aria-label={`Opt-in — ${GRAN_LABELS[granularity]}`}>
+          {/* Grille horizontale : mêmes graduations que l'axe Y */}
+          {[0.25, 0.5, 0.75, 1].map((f) => (
+            <line key={f} x1={PAD_L} x2={SVG_W} y1={ZERO_Y - f * maxOptIn * pxPerUnit} y2={ZERO_Y - f * maxOptIn * pxPerUnit}
+              stroke="var(--chart-grid)" strokeDasharray="3 5" strokeWidth={1} />
+          ))}
           {data.map((row, i) => {
             const firstV = showFirst ? row.firstConsent : 0;
             const reexV  = showReex  ? row.reexposed    : 0;
@@ -583,6 +600,7 @@ function OptInByPeriod({ data, granularity, onGranularity }: {
             );
           })}
         </svg>
+      </div>
       </div>
 
       {/* Infobulle positionnée dans le référentiel du bloc section */}
