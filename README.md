@@ -1,24 +1,29 @@
-# Databricks App Template
+# ConsentMax Analytics
 
 ![Databricks App Boilerplate — de la copie du repository au déploiement](docs/assets/databricks-app-boilerplate-v2.png)
 
-Golden path AppKit/Express/Vite/React/TypeScript pour construire des Databricks Apps analytics. Il fournit un shell UI Valiuz, une
-configuration validée, une couche Databricks SQL centralisée, des erreurs publiques sûres, des logs structurés, des
-tests, une bibliothèque de visualisation et un déploiement reproductible avec Databricks Asset Bundles.
+Application ConsentMax basée sur le template AppKit/Express/Vite/React/TypeScript 3.0.0, sans Genie.
+Le dépôt est déjà initialisé : ne pas relancer `init-app`.
+
+La page d’accueil ouvre `/consent-overview` (Self stats). La navigation donne aussi accès à
+`/alliance-contribution` et `/missings`. Le sélecteur FR/EN reste commun aux pages.
+Les visualisations et comparaisons du template restent accessibles directement sur `/visualizations` ;
+les analyses enregistrées restent disponibles lorsqu’elles sont activées.
+
+Les sources déclarées sont `prd-consent.analytics.last_consent_event` et
+`prd-consent.analytics.consent_event_w_flags`. Self stats propose une démo sans accès au workspace.
+Alliance et Missings conservent leurs services SQL réels ; les tests de navigation utilisent des réponses
+synthétiques. Leurs sources supplémentaires et permissions restent à vérifier avant déploiement.
 
 ## Quick Start
 
 Prérequis : Node.js 22.16+, npm et Git. Aucun accès Databricks n’est requis pour le mode démo.
 
 ```bash
-git clone https://github.com/valiuz/analytics_dbx_app_template.git my-new-app
-cd my-new-app
+git clone https://github.com/rihovlz/analytics_dbx_app_consentmax.git
+cd analytics_dbx_app_consentmax
 npm ci
-npm run app
-npm run app -- init my-new-app
-npm run app -- guide
-npm run app -- next
-npm run app -- dev
+npm run dev
 ```
 
 Ouvrir <http://localhost:3000>. Le mode démo est explicite et n’effectue aucun appel distant. La page
@@ -28,21 +33,21 @@ Ouvrir <http://localhost:3000>. Le mode démo est explicite et n’effectue aucu
 L'initialisation refuse une app existante ; utiliser `app next` pour la reprendre ou le guide de migration pour changer de version.
 Voir [le parcours CLI complet](docs/cli-workflow.md) pour un essai guidé par une seule personne, du besoin aux données et à l'app.
 
-## Parcours guidé pour une app interne
+## Outils du template conservés
 
 Le parcours reste volontairement léger pour une app maintenue par une seule personne :
 
 1. `npm run app:guide` consigne utilisateurs, décision, succès et capacités envisagées dans `config/app-spec.yml`.
-   Il synchronise `docs/product-brief.md` et propose Analytics, Genie, Files, Serving, Jobs ou les autres capacités utiles.
+   Il synchronise `docs/product-brief.md` et propose Analytics, Files, Serving, Jobs ou les autres capacités utiles.
 2. `npm run app:capabilities` décrit les ressources et tests de chaque choix. `npm run app:skills` propose les skills
    Databricks correspondants, à installer hors du code de l'app.
 3. Pour un KPI, `npm run data:init -- <nom>` déclare la source, puis `npm run feature:new -- <slug>` génère la tranche.
    Garder le mode `direct` si une table existante suffit. Pour une autre capacité, suivre son guide d'intégration.
 4. `npm run app:doctor` indique la prochaine action utile. `npm run check` valide ensuite l'ensemble localement.
 
-Une app Genie seule peut choisir `npm run app:guide -- --type assistant --capabilities genie`.
-Elle n'a pas à générer un KPI. Les choix de cadrage n'activent aucun plugin, droit ou ressource.
-Voir [le parcours des capacités AppKit](docs/appkit-capabilities.md) pour les intégrations disponibles et leurs limites.
+Une app fichiers peut choisir `npm run app:guide -- --type workflow --capabilities files`.
+Elle ne nécessite pas de KPI. Les choix de cadrage n’activent aucun plugin, droit ou ressource.
+Voir [le parcours des capacités AppKit](docs/appkit-capabilities.md) pour les intégrations disponibles.
 
 Avec un assistant de développement, demander par exemple :
 
@@ -79,10 +84,10 @@ rien.
 
 ## Version du template
 
-`template/manifest.yml` donne la version courante et les capabilities du template. La version courante est `2.1.0`.
-Ce patch corrige les résultats SQL JSON vides confirmés par Databricks, notamment pour `/api/readiness`.
+`template/manifest.yml` donne la version courante et les capabilities du template. La version courante est `3.0.0`.
+Cette version retire Genie du runtime, des ressources et des parcours de création. Aucun Space n’est requis.
 La version `1.0.0` représente la baseline initiale. Les versions suivantes ajoutent les mises à niveau suivies,
-l’historisation bornée, les visualisations, l’assistant Genie OBO et les analyses personnelles.
+l’historisation bornée, les visualisations et les analyses personnelles.
 
 `init-app` crée `.valiuz-template.yml` dans chaque nouvelle app. Ce fichier indique la version utilisée et les
 capabilities attendues. La version dans `package.json` reste la version du package applicatif. Elle est indépendante.
@@ -184,88 +189,6 @@ Aucun résultat n'est stocké par cette option et aucun message n'est envoyé. V
 Voir [le design system analytics](docs/design-system.md) pour les API de composition, les tokens et les règles
 d’accessibilité.
 
-## Assistant Genie conversationnel
-
-En mode Databricks, le flux passe par le plugin Genie d’AppKit et un client de compatibilité lié à chaque requête.
-Le chat Valiuz conserve l’identité OBO, le contexte, le SQL inspectable et l’épinglage. Voir [le contrat et le parcours Genie](docs/genie.md).
-Depuis une comparaison compatible, la prop facultative `genie` ouvre une question préremplie avec les deux périodes,
-les filtres et les réserves de qualité. L’utilisateur relit puis envoie la question ; les cartes restent en mémoire.
-
-La page `/genie` montre le composant `GenieChat` en vue autonome et à côté de KPI. Le mode démo utilise une
-conversation synthétique. Il ne contacte pas Databricks et ne demande aucun jeton.
-
-Le composant accepte un alias de Space, un contexte de dashboard et une variante de mise en page :
-
-```tsx
-import { GenieChat } from "@/features/genie";
-
-<GenieChat
-  alias="fraim-sales"
-  context={{
-    filters: { region: "EMEA" },
-    dateRange: { label: "90 derniers jours" },
-    visibleMetrics: ["Chiffre d’affaires", "Marge"],
-    activeTables: ["sales_performance"],
-  }}
-  height={680}
-  variant="embedded"
-  onPin={savePinnedInsight}
-  onSave={saveConversation}
-/>
-```
-
-`variant` accepte `standalone`, `embedded`, `panel` et `floating`. `onPin` reçoit un `PinnedGenieInsight` sérialisable.
-`onSave` reçoit l’état courant de la conversation. Ces deux objets peuvent contenir des réponses, du SQL et des lignes
-gouvernées. Le composant ne choisit aucun stockage partagé.
-
-Le client envoie uniquement l’alias, la question et un contexte validé. Le serveur résout l’alias, construit le
-message et appelle l’API Conversation. Dans Databricks Apps, il utilise `x-forwarded-access-token` pour chaque
-utilisateur. Le jeton ne passe jamais dans les propriétés React, le JSON de réponse ou les logs.
-
-La route Express dédiée utilise le plugin Genie programmatique. Le client de compatibilité préserve les garanties décrites dans [les exceptions AppKit](docs/appkit-maintenance.md).
-La route accepte uniquement les requêtes JSON de même origine. Elle limite le corps à 64 Kio, la question à 10 000
-caractères et le contexte sérialisé à 12 000 caractères. Elle résout ensuite le Space et l’identité côté serveur.
-
-Le flux SSE montre les étapes Genie dès leur disponibilité. La réponse prend en charge le Markdown, les tables, les
-KPI, les graphiques et le SQL repliable. L’API Genie ne fournit pas de delta de texte. Le client révèle donc le texte
-final progressivement, sauf si l’utilisateur demande moins de mouvement. Le serveur envoie aussi des heartbeats SSE
-pendant les attentes longues. Un résultat expose au maximum 500 lignes du premier chunk et indique toute troncature.
-
-Le Markdown ne charge aucune image distante : il affiche seulement son texte alternatif. Les liens actifs sont limités
-à HTTP(S), aux chemins de même origine qui commencent par un seul `/` et aux fragments `#`. Les autres destinations
-restent du texte inerte.
-
-« Arrêter le suivi » ferme uniquement le flux dans cette page. Le traitement Databricks peut continuer. Cette
-conversation est alors verrouillée et l’utilisateur doit en démarrer une nouvelle. Dès que le `POST` est envoyé, une
-erreur réseau ou un flux incomplet rend la soumission ambiguë. Le client ne propose pas de rejeu et exige une nouvelle
-conversation. Le lecteur AppKit ne fournit que le statut d’un refus HTTP avant le flux ; le client conserve donc
-la même règle après tout POST échoué, sans proposer de nouvelle soumission automatique.
-
-Le serveur ne rejoue jamais le `POST` qui crée un message. Il retente uniquement les lectures `GET` du message et des
-résultats. Ces lectures utilisent cinq reprises au maximum, un délai exponentiel avec jitter, l’en-tête `Retry-After`
-et une échéance globale de dix minutes.
-
-En mode Databricks, le processus accepte par défaut huit flux actifs, dont deux par utilisateur. Ces compteurs sont
-en mémoire dans chaque processus Node. Ils ne forment pas une limite distribuée entre plusieurs réplicas.
-
-### Ajouter un Space Genie
-
-1. Ajouter le Space, sa clé et ses alias dans `config/genie-spaces.json`. Les alias doivent inclure la clé stable.
-2. Ajouter une variable serveur dans `app.yaml`. Utiliser `valueFrom` avec la clé de la ressource.
-3. Ajouter la même variable dans `.env.example`. Utiliser un ID de 32 caractères hexadécimaux minuscules.
-4. Exécuter `npm run data:access:render`.
-5. Examiner le binding `CAN_RUN` et le scope utilisateur `genie` dans la ressource générée.
-
-Les alias sont publics. Les Space ID restent dans la configuration serveur. Un Space ID n’est pas un secret, mais il
-ne doit pas devenir un paramètre libre du navigateur.
-
-Pour une URL MCP telle que `.../api/2.0/mcp/genie/<space-id>`, copier uniquement le dernier segment hexadécimal de
-32 caractères. Ne jamais enregistrer l’URL complète comme Space ID.
-
-Conserver les callbacks uniquement dans une session ou un stockage privé lié à l’utilisateur. Une composition partagée
-doit enregistrer la définition, puis relire les données avec l’identité de chaque lecteur. Ne jamais publier
-l’instantané OBO d’un autre utilisateur.
-
 ## Analyses et préférences personnelles
 
 La capability optionnelle `personal-user-state` ajoute **Mes analyses** : enregistrer une définition de filtres,
@@ -284,7 +207,7 @@ n’est nécessaire. La feature reste désactivée jusqu’à la configuration e
 `USER_STATE_ORIGIN` et `USER_STATE_NAMESPACE` dans `app.yaml`.
 
 Le serveur isole les données par application, environnement et identité proxy. Chaque modification ajoute une version ;
-la dernière selon l’horodatage serveur prévaut, sans fusion des éditions concurrentes. Les résultats SQL et Genie ne sont
+la dernière selon l’horodatage serveur prévaut, sans fusion des éditions concurrentes. Les résultats SQL ne sont
 pas sauvegardés. Voir [l’analyse du pattern IKEA, la démo et le guide d’activation](docs/user-state.md).
 
 ## Workflows d'assistance
@@ -320,8 +243,6 @@ Le bootstrap propose les valeurs partagées déjà utilisées par l’app FRAIM 
 | Workspace Databricks | `https://3070470996474403.3.gcp.databricks.com` |
 | SQL Warehouse | `team-da-poc` (`ab362e9710498a08`) |
 | Permission du binding warehouse | `CAN_USE` |
-| Space Genie de démonstration | `Genie - FRAIM - Sales Performance` |
-| Permission du binding Genie | `CAN_RUN` |
 
 Chaque application choisit aussi un projet de données, représenté par son catalogue Unity Catalog. Les valeurs
 autorisées sont `dev-dtm-operating`, `dev-dtm-media-pm`, `dev-dtm-myvaliuz` et `dev-dtm-insight-sharing`.
@@ -348,18 +269,13 @@ Databricks complète au démarrage dans `src/lib/config/server-config.ts`.
 | `DATABRICKS_CONFIG_PROFILE` | non | oui, recommandé | jamais utilisée |
 | `DATABRICKS_TOKEN` | non | fallback uniquement | jamais utilisée |
 | `DATABRICKS_CLIENT_ID` / `DATABRICKS_CLIENT_SECRET` | non | non | injectées par Databricks |
-| `DATABRICKS_APP_NAME` | non | non | injectée par Databricks ; SQL utilise M2M et Genie utilise OBO |
+| `DATABRICKS_APP_NAME` | non | non | injectée par Databricks ; SQL utilise M2M |
 | `DATABRICKS_SQL_WAREHOUSE_ID` | non | oui | binding `valueFrom` |
-| `DATABRICKS_GENIE_SPACE_ID_FRAIM_SALES` | non lue | ID du Space de test | binding `valueFrom` |
-| `GENIE_MAX_CONCURRENT_STREAMS` | non lue | `8` par défaut | `8` via `app.yaml` |
-| `GENIE_MAX_CONCURRENT_STREAMS_PER_USER` | non lue | `2` par défaut | `2` via `app.yaml` |
 | `DATABRICKS_CATALOG` / `DATABRICKS_SCHEMA` | non | projet autorisé + schema | `app.yaml` |
 | `DATABRICKS_SQL_TIMEOUT_MS` | 30 s par défaut | 60 s dans `.env.example` | 30 s par défaut |
 
-Les tables et vues nécessaires sont déclarées dans `config/data-access.json`. Les Spaces Genie sont déclarés dans
-`config/genie-spaces.json`. Après chaque modification, exécuter `npm run data:access:render`. Committer les manifestes
-avec `resources/data-access.generated.yml`. Ce fichier contient la ressource app, le scope `genie` et les bindings.
-Les limites de flux acceptent des entiers de 1 à 100. La limite par utilisateur ne peut pas dépasser la limite globale.
+Les tables et vues nécessaires sont déclarées dans `config/data-access.json`. Après chaque modification,
+exécuter `npm run data:access:render` et committer les ressources générées.
 
 Copier `.env.example` vers `.env.local`. Pour utiliser de vraies données, configurer un profil OAuth avec
 `databricks auth login`, passer `APP_MODE` à `databricks`, puis exécuter `npm run databricks:check` et
@@ -412,7 +328,7 @@ avant la lecture source si le checkout local ne correspond pas à la préparatio
 | `npm run lint` | lint TypeScript et React |
 | `npm run typecheck` | vérification TypeScript stricte |
 | `npm test` | tests unitaires Node |
-| `npm run test:e2e` | parcours Genie dans Chromium avec les fixtures de démo |
+| `npm run test:e2e` | parcours analytics dans Chromium avec les fixtures de démo |
 | `npm run build` | build Vite et serveur AppKit |
 | `npm run check` | manifeste, lint, types, tests unitaires et build de production |
 | `npm run app:guide` | cadre l'app et synchronise le brief produit |
@@ -460,7 +376,6 @@ src/components/maps/            carte cliente, géométrie D3 et sous-composants
 src/components/theme/            sélection locale du thème clair, système ou sombre
 src/features/<feature>/          UI, contrat et logique applicative d’une feature
 src/features/<feature>/server/   queries, repository et service serveur
-src/features/genie/              chat, contrats, rendu riche et intégration Conversation API
 src/lib/config/                  parsing et validation de l’environnement
 src/lib/databricks/              authentification et exécution SQL
 src/lib/errors/                  taxonomie d’erreurs
@@ -469,7 +384,7 @@ src/lib/logging/                 logs JSON et contexte de requête
 tests/                           tests unitaires sans Databricks
 scripts/                         bootstrap, packaging et déploiement
 template/                        manifeste, versions et guides de mise à niveau
-config/                          projets, sources Unity Catalog et Spaces Genie déclarés
+config/                          projets, sources Unity Catalog déclarés
 resources/                       bindings Databricks générés depuis le manifeste
 data/                            contrats et préparation optionnelle dans un mini-bundle séparé
 public/                          logo et favicon Valiuz partagés par le shell
@@ -489,8 +404,7 @@ La carte générée distingue une absence de valeur (« Aucune donnée ») d'une
 Pour une tranche plus riche, conserver la même structure : contrat et composant dans `src/features/<nom>/`, logique
 métier dans `server/service.ts`, accès aux données dans `server/repository.ts`, route avec `withApiRoute`, puis tests
 avec un `SqlExecutor` factice.
-Les handlers sont natifs Express et les paramètres SQL sont nommés. Le lecteur SSE Genie vient d’AppKit UI,
-avec les reprises de POST désactivées. La 2.0 ne conserve aucun pont pour les anciens handlers ou paramètres positionnels.
+Les handlers sont natifs Express et les paramètres SQL sont nommés. Le runtime ne conserve aucun pont pour les anciens handlers ou paramètres positionnels.
 
 Les composants client ne doivent importer ni la configuration serveur, ni le driver Databricks, ni des credentials.
 
@@ -513,8 +427,6 @@ Le chemin recommandé est `branche → pull request → CI → merge main → d�
 - une target `dev` basée sur les fichiers locaux ;
 - une target `prod` Git-backed qui épingle le SHA Git exact résolu par le workflow ;
 - un binding SQL Warehouse avec permission `CAN_USE` ;
-- un binding `CAN_RUN` par Space Genie déclaré ;
-- le scope utilisateur `genie` pour le transfert OBO ;
 - un binding `SELECT` par table ou vue déclarée ;
 - des permissions `CAN_USE` et `CAN_MANAGE` paramétrables.
 
@@ -528,7 +440,7 @@ La CI exécute `template:check` et compare la release à la branche de base avec
 feature du template sans décision SemVer, guide de migration, README et guide des versions mis à jour. Elle exécute
 aussi `npm run template:journey`. Ce parcours crée une copie Git propre et exécute `npm ci`, `init-app`,
 `template:status`, `app:guide`, `data:init`, `feature:new`, `app:doctor` et `npm run check`. Un job séparé exécute
-les parcours de navigation, visualisation, Genie et analyses personnelles dans Chromium.
+les parcours de navigation, visualisation et analyses personnelles dans Chromium.
 Il vérifie le serveur de développement puis le serveur compilé de production sans credentials.
 La migration d’une fixture métier 1.5 est également validée dans le repository source.
 
@@ -543,10 +455,6 @@ le vrai Databricks CLI. La matrice couvre les versions `0.295.0` et `1.14.1`. Au
 - L’app locale affiche « mode démo » : passer explicitement `APP_MODE=databricks` pour interroger le warehouse.
 - `SQL_QUERY_FAILED` : utiliser le `requestId` affiché pour retrouver le log serveur ; le SQL et les credentials ne sont
   jamais renvoyés au navigateur.
-- `GENIE_AUTH_REQUIRED` : rouvrir l’app Databricks et accepter le scope utilisateur `genie`.
-- `GENIE_PERMISSION_DENIED` : vérifier la session et le consentement Databricks, l’accès au Space Genie, au SQL
-  warehouse et aux données Unity Catalog requises.
-- `GENIE_TIMEOUT` : examiner le `requestId`, puis démarrer une nouvelle conversation si le message avait déjà été créé.
 - Le build local utilise une mauvaise version Node : exécuter `nvm use` puis `npm ci`.
 - Le déploiement Git-backed ne lit pas GitHub : ajouter un credential Git au service principal de l’app.
 - `Data project must be one of` : choisir l'un des quatre projets autorisés dans `config/data-projects.json`.
@@ -561,11 +469,11 @@ le vrai Databricks CLI. La matrice couvre les versions `0.295.0` et `1.14.1`. Au
 Voir aussi [développement local](docs/local-development.md), [architecture](docs/architecture.md),
 [Databricks](docs/databricks.md), [déploiement](docs/deployment.md) et [AGENTS.md](AGENTS.md).
 
-## Runtime 2.0 et mises à jour amont
+## Runtime et mises à jour amont
 
 AppKit 0.76.1 fournit le serveur Express, Vite en développement et les fichiers statiques en production.
 Les APIs des features conservent les services, repositories et validations Valiuz.
-Les lectures compatibles utilisent AppKit analytics ; Genie et les écritures personnelles conservent leurs garanties existantes.
+Les lectures compatibles utilisent AppKit analytics ; les écritures personnelles conservent leurs garanties existantes.
 Le registre de compatibilité documente chaque exception et son critère de suppression.
 
 La migration reste volontaire : suivre [le guide 1.5 vers 2.0](docs/migration-2.0.md).

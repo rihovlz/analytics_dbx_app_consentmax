@@ -8,7 +8,10 @@ test("navigation, routes directes, thèmes et clavier", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Aller au contenu principal" })).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("main")).toBeFocused();
-  await page.getByRole("link", { name: "Visualisations", exact: true }).click();
+  await expect(page.getByRole("link", { name: "Genie", exact: true })).toHaveCount(0);
+  await expect(page).toHaveURL(/\/consent-overview$/);
+  await expect(page.getByRole("link", { name: "Self stats", exact: true })).toHaveAttribute("aria-current", "page");
+  await page.goto("/visualizations");
   await expect(page).toHaveURL(/\/visualizations$/);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await page.reload();
@@ -85,14 +88,12 @@ test("le serveur AppKit conserve les limites HTTP, les erreurs sûres et les rou
     expect((await response.json()).error.code).toBe("NOT_FOUND");
   }
   for (const { path, body, parsed } of [
-    { path: "/api/genie/fraim-sales/messages", body: JSON.stringify({ content: "x".repeat(70_000) }), parsed: false },
     { path: "/api/saved-analyses/00000000-0000-4000-8000-000000000001", body: JSON.stringify({ title: "x".repeat(17_000) }), parsed: true },
     { path: "/api/saved-analyses/00000000-0000-4000-8000-000000000001", body: "{", parsed: false },
     { path: "/api/user-preferences", body: JSON.stringify({ content: "x".repeat(70_000) }), parsed: false },
-    { path: "/api/genie/fraim-sales/session", body: "{", parsed: false },
   ]) {
     const response = await request.fetch(path, {
-      method: path.includes("genie") ? "POST" : "PUT", data: Buffer.from(body),
+      method: "PUT", data: Buffer.from(body),
       headers: { "content-type": "application/json", origin: baseURL!, "x-request-id": "bounded-http-test" },
     });
     const disabledPersonal = parsed && process.env.E2E_PRODUCTION === "1" && path.includes("saved-analyses");
@@ -105,20 +106,8 @@ test("le serveur AppKit conserve les limites HTTP, les erreurs sûres et les rou
   }
 });
 
-test("une interruption Genie verrouille la conversation sans rejouer le POST", async ({ page }) => {
-  let submissions = 0;
-  await page.route("**/api/genie/fraim-sales/messages", async (route) => {
-    submissions++;
-    await route.abort("connectionreset");
-  });
+
+test("la page retirée utilise la page introuvable", async ({ page }) => {
   await page.goto("/genie");
-  const chat = page.getByRole("region", { name: "Les KPI et la conversation, côte à côte" })
-    .getByRole("region", { name: "Conversation Genie, space fraim-sales" });
-  await chat.getByRole("textbox", { name: "Question pour Genie" }).fill("Question interrompue");
-  await chat.getByRole("textbox", { name: "Question pour Genie" }).press("Enter");
-  await expect(chat.getByRole("textbox", { name: "Question pour Genie" })).toHaveCount(0);
-  await expect(chat.getByRole("button", { name: /Réessayer/ })).toHaveCount(0);
-  expect(submissions).toBe(1);
-  await chat.getByRole("button", { name: "Démarrer une nouvelle conversation" }).click();
-  await expect(chat.getByRole("textbox", { name: "Question pour Genie" })).toBeEnabled();
+  await expect(page.getByText("Cette page n’existe pas.")).toBeVisible();
 });

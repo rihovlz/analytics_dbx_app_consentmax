@@ -6,7 +6,7 @@ import { pathToFileURL } from "node:url";
 // Keep the existing commands as the implementation and public automation interface.
 const commands = {
   init: { script: "init-app", file: "init-app.mjs", usage: "<nom> [--non-interactive] [--data-project <catalogue>] [options init-app]", detail: "Initialiser une nouvelle copie (fichiers locaux). Options complètes : npm run init-app -- --help." },
-  guide: { script: "app:guide", file: "app-guide.mjs", usage: "[--non-interactive] [--audience <texte>] [--decision <texte>] [--success <texte>] [--capabilities analytics,genie]", detail: "Cadrer le besoin et synchroniser la spec et le brief." },
+  guide: { script: "app:guide", file: "app-guide.mjs", usage: "[--non-interactive] [--audience <texte>] [--decision <texte>] [--success <texte>] [--capabilities analytics]", detail: "Cadrer le besoin et synchroniser la spec et le brief." },
   data: { script: "data:init", file: "init-data.mjs", usage: "<nom> [--mode direct|notebook|pipeline] [--source catalogue.schema.table] [--non-interactive]", detail: "Déclarer une source ou générer sa préparation locale ; aucun SQL distant." },
   feature: { script: "feature:new", file: "new-feature.mjs", usage: "<slug> [--source <nom>] [--aggregation count|sum|avg] [--column <colonne>] [--date-column <DATE>] [--breakdown-column <dimension>] [--share-analysis] [--share-segment] [--demo-value <nombre>] [--non-interactive]", detail: "Générer un KPI ; --date-column ajoute la comparaison, --breakdown-column ses segments (waterfall pour count/sum). --share-analysis exige --date-column ; --share-segment exige --share-analysis, --breakdown-column et une dimension revue, sans données sensibles dans les liens." },
   dev: { script: "dev", usage: "", detail: "Démarrer le serveur local avec la configuration de l'app." },
@@ -71,7 +71,7 @@ function printHelp(command) {
     "5. dev / check    Ouvrir l'app / valider et construire",
     "",
     "Autres besoins : capabilities --all ; skills ; doctor",
-    "Genie ou fichiers : suivre capabilities, sans imposer une tranche KPI.",
+    "Fichiers : suivre capabilities, sans imposer une tranche KPI.",
     "Migration : migrate --app-dir <ancienne app> (lecture seule, depuis le template cible)",
     "",
     "Aide : npm run app -- <commande> --help",

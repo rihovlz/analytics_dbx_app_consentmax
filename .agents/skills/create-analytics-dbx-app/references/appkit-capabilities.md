@@ -6,7 +6,7 @@ Il relie les usages aux intégrations disponibles ; il ne donne pas d'autorisati
 ## Partir de l'action utilisateur
 
 Reformuler l'action attendue et proposer la plus petite combinaison utile.
-Exemples : suivre un chiffre → `analytics` ; poser une question sur les ventes → `genie` ; importer un document → `files`.
+Exemples : suivre un chiffre → `analytics` ; importer un document → `files`.
 Une conversation sur les données ne demande pas nécessairement un agent généraliste.
 Un filtre SQL ne demande pas nécessairement de recherche sémantique ou de base transactionnelle.
 
@@ -18,7 +18,7 @@ Réutiliser un choix utilisateur explicite ; poser une question seulement lorsqu
 Consigner les capacités retenues dans la spec, par exemple :
 
 ```bash
-npm run app:guide -- --non-interactive --type assistant --capabilities genie
+npm run app:guide -- --non-interactive --type workflow --capabilities files
 npm run app:capabilities
 ```
 
@@ -42,7 +42,7 @@ Le socle recommandé comprend six skills. Lire uniquement ceux qui servent l'ét
 
 `npm run app:skills` ajoute les spécialistes pertinents : Jobs, Model Serving, Lakebase ou Vector Search.
 Pour une préparation notebook/pipeline, consulter aussi `databricks-jobs` ou `databricks-pipelines` lorsqu'ils sont disponibles.
-Les guides Files, Genie et Agents appartiennent aux références Apps ou aux docs du package ; ne pas inventer un skill manquant.
+Les guides Files et Agents appartiennent aux références Apps ou aux docs du package ; ne pas inventer un skill manquant.
 
 Examiner la présence et les empreintes des points d'entrée :
 
@@ -62,10 +62,8 @@ Le cadrage, la démo et les tests locaux continuent sans accès Databricks.
 | Créer un nouveau scaffold AppKit | Utiliser le clone Valiuz et `init-app` ; conserver les fichiers d'une app existante |
 | SQL générique par `queryKey` ou `useAnalyticsQuery` | Passer par route → service → repository → `SqlExecutor` ; ne pas monter de route générique |
 | Remplacer l'UI par les composants AppKit | Réutiliser les composants Valiuz ; adopter un composant utile après correspondance des tokens et tests des états |
-| Activer `genie()` et reprendre les exemples de chat | Utiliser le plugin programmatique via le service Genie ; garder le client de compatibilité et suivre [le parcours Genie](genie.md) |
-| Ajouter une route d'identité ou un fallback service principal | Réutiliser `/api/genie/:alias/session` et le résolveur d'identité ; aucun fallback sans OBO |
 | Choisir Lakebase pour tout état persistant | Garder l'état personnel Delta optionnel ; évaluer Lakebase pour un besoin transactionnel distinct |
-| Laisser Genie One chercher parmi toutes les données visibles | Respecter le périmètre autorisé ; une restriction dans un prompt ne remplace pas un contrôle d'accès |
+| Explorer les données accessibles | Respecter le périmètre autorisé ; une restriction dans un prompt ne remplace pas un contrôle d’accès |
 | Donner tous les outils disponibles à un agent | Déclarer les outils nécessaires et leur identité ; tester les refus et l'approbation des mutations |
 
 Ces adaptations portent sur les contrats du template, pas sur les signatures des APIs amont.
@@ -74,7 +72,6 @@ Vérifier les signatures dans le package installé. Ne pas recopier les manuels 
 ## Livrer une preuve utile
 
 - KPI : fixture synthétique, source déclarée, calcul et limites vérifiés.
-- Genie : contexte, OBO, erreurs, interruption et aucune double soumission.
 - Fichiers : contrat d'import, tailles, chemins et droits vérifiés.
 - Modèle : entrées/sorties validées et coût borné.
 - Job : paramètres autorisés, exécution unique et suivi explicite.

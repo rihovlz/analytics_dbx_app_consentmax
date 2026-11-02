@@ -1,6 +1,24 @@
 # Avancement — ConsentMax Analytics
 
-Dernière mise à jour : 2026-10-21
+Dernière mise à jour : 2026-11-02
+
+## Intégration avec main — 2026-11-02
+
+- Fusion de `main` 3.0.0 sans Genie dans `feat/consent-overview`. Les trois features métier et la langue FR/EN
+  sont conservées sans modification de leur code ; `/` ouvre Self stats.
+- `/visualizations` reste accessible directement pour les composants et comparaisons du template.
+- `.valiuz-template.yml` déclare la migration `2.1.0-to-3.0.0`. Le nom applicatif et les paramètres ConsentMax
+  restent conservés ; le package reste en version 3.0.0.
+- Le contrat `last-consent-event` utilise désormais `prd-consent`, comme le runtime et les accès déclarés.
+- Validation locale : `npm run check` réussi avec 176 tests, lint, types et build ; compatibilité du bundle
+  vérifiée contre un workspace simulé avec le CLI 1.12.1.
+- Les tests navigateur couvrent Self stats, les filtres, la navigation et FR/EN. Alliance et Missings utilisent
+  des réponses synthétiques interceptées. Leur exécution est confiée à la CI ; aucun test sur données réelles
+  ni déploiement ne fait partie de cette fusion.
+- Avant un déploiement, rapprocher toutes les sources SQL des bindings déclarés : les sources d'Alliance,
+  de Missings et des purges ne sont pas toutes présentes dans `config/data-access.json`.
+
+Les résultats et décisions ci-dessous décrivent le travail antérieur de Richard ; cette fusion ne les recertifie pas.
 
 ## État
 

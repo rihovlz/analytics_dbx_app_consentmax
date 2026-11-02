@@ -44,15 +44,28 @@ async function migrateFixture(baseline: { version: string; revision: string }) {
     assert.equal(plan.readOnly, true);
     assert.equal(plan.app.from, baseline.version);
     assert.deepEqual(plan.upgrades.map((step: { id: string }) => step.id), baseline.version === "1.4.0"
-      ? ["1.4.0-to-1.5.0", "1.5.0-to-2.0.0", "2.0.0-to-2.0.1", "2.0.1-to-2.1.0"]
-      : ["1.5.0-to-2.0.0", "2.0.0-to-2.0.1", "2.0.1-to-2.1.0"]);
+      ? ["1.4.0-to-1.5.0", "1.5.0-to-2.0.0", "2.0.0-to-2.0.1", "2.0.1-to-2.1.0", "2.1.0-to-3.0.0"]
+      : ["1.5.0-to-2.0.0", "2.0.0-to-2.0.1", "2.0.1-to-2.1.0", "2.1.0-to-3.0.0"]);
     assert.ok(plan.inventory.pages.includes("src/app/sales-kpi/page.tsx"));
     assert.ok(plan.inventory.apiHandlers.includes("src/app/api/sales-kpi/route.ts"));
     const preservedPaths = [
       "src/features/sales-kpi/server/queries.ts", "src/features/sales-kpi/server/repository.ts", "src/features/sales-kpi/server/service.ts",
-      "config/data-access.json", "config/genie-spaces.json", "config/app-spec.yml", "app.yaml", ".env.example",
+      "config/data-access.json", "config/app-spec.yml", "app.yaml", ".env.example",
       "public/valiuz-logo-icon.svg", "public/favicon.svg",
     ];
+    for (const file of ["src/features/genie", "config/genie-spaces.json", "tests/fixtures/genie-appkit.ts", "tests/fixtures/genie-client-contract.ts"]) {
+      await rm(join(fixture, file), { recursive: true, force: true });
+    }
+    for (const file of await readdir(join(fixture, "tests"))) {
+      if (file.startsWith("genie-")) await rm(join(fixture, "tests", file));
+    }
+    for (const file of ["app.yaml", ".env.example"]) {
+      const text = await readFile(join(fixture, file), "utf8");
+      await writeFile(join(fixture, file), file === "app.yaml"
+        ? text.replace(/ {2}- name: (?:DATABRICKS_GENIE|GENIE_)[^\n]*\n {4}[^\n]*\n/g, "")
+        : text.split("\n").filter((line) => !/GENIE_|Genie/.test(line)).join("\n"));
+    }
+    oldState.capabilities = oldState.capabilities.filter((id: string) => !id.includes("genie"));
     const before = await Promise.all(preservedPaths.map((file) => readFile(join(fixture, file), "utf8")));
     const customCss = "\n/* Business brand customization */\n.business-panel { border-radius: 19px; }\n";
     await writeFile(join(fixture, "src/app/globals.css"), (await readFile(join(fixture, "src/app/globals.css"), "utf8")) + customCss);
@@ -139,6 +152,7 @@ test("migrated business endpoint serves its preserved demo through Express", asy
     await writeFile(join(fixture, "src/client/globals.css"), oldCss);
     await writeFile(join(fixture, "src/components/app-shell/app-nav.tsx"), oldNav
       .replace('import { usePathname } from "next/navigation";', 'import { Link, useLocation } from "react-router-dom";')
+      .replace(/^.*href: "\/genie".*\n/gm, "")
       .replace("const pathname = usePathname();", "const { pathname } = useLocation();")
       .replace("<a\n", "<Link\n").replace("href={link.href}", "to={link.href}").replace("</a>", "</Link>"));
     await mkdir(join(fixture, "src/client/pages/sales-kpi"), { recursive: true });
@@ -167,10 +181,10 @@ test("migrated business endpoint serves its preserved demo through Express", asy
     lock.name = pkg.name; lock.packages[""].name = pkg.name;
     await writeFile(join(fixture, "package-lock.json"), JSON.stringify(lock, null, 2) + "\n");
     run(process.execPath, ["scripts/render-data-access.mjs"]);
-    run(process.execPath, ["scripts/template-status.mjs", "--check", "--to", "2.1.0"]);
-    oldState.template.version = "2.1.0";
-    oldState.capabilities.push("appkit-native-runtime", "upstream-compatibility", "guided-appkit-capabilities", "period-comparison", "appkit-genie-integration", "comparison-sharing", "databricks-workspace-file-delivery");
-    oldState.appliedUpgrades.push("1.5.0-to-2.0.0", "2.0.0-to-2.0.1", "2.0.1-to-2.1.0");
+    run(process.execPath, ["scripts/template-status.mjs", "--check", "--to", "3.0.0"]);
+    oldState.template.version = "3.0.0";
+    oldState.capabilities.push("appkit-native-runtime", "upstream-compatibility", "guided-appkit-capabilities", "period-comparison", "comparison-sharing", "databricks-workspace-file-delivery");
+    oldState.appliedUpgrades.push("1.5.0-to-2.0.0", "2.0.0-to-2.0.1", "2.0.1-to-2.1.0", "2.1.0-to-3.0.0");
     await writeFile(join(fixture, ".valiuz-template.yml"), stringify(oldState));
     const after = await Promise.all(preservedPaths.map((file) => readFile(join(fixture, file), "utf8")));
     assert.deepEqual(after, before.map((original, index) => businessPorts.get(preservedPaths[index]) ?? original),
@@ -201,7 +215,7 @@ test("migrated business endpoint serves its preserved demo through Express", asy
     assert.ok(builtCss.includes(".bg-business-highlight"), "The build must preserve the custom theme and its separate content directory");
     assert.ok(builtCss.includes(".bg-black\\/50"), "The build must include the AppKit Dialog overlay background class");
     process.stdout.write(run(process.execPath, ["--import", "tsx", "--test", "tests/sales-kpi.test.ts"]));
-    process.stdout.write(`Initialized ${baseline.version} business fixture migrated to 2.0 with contracts and customizations preserved.\n`);
+    process.stdout.write(`Initialized ${baseline.version} business fixture migrated to 3.0 with contracts and customizations preserved.\n`);
   } finally { await rm(fixture, { recursive: true, force: true }); }
 }
 

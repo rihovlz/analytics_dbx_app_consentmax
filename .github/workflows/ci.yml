@@ -73,7 +73,7 @@ jobs:
       - name: Validate opt-in migration from 1.5
         run: npm run template:migration
 
-  genie-e2e:
+  app-e2e:
     name: AppKit demo journeys
     needs: check
     runs-on: ubuntu-latest

@@ -2,8 +2,8 @@ version: 1
 name: last-consent-event
 mode: direct
 appSource: last-consent-event
-source: dev-consent.analytics.last_consent_event
-output: dev-consent.analytics.last_consent_event
+source: prd-consent.analytics.last_consent_event
+output: prd-consent.analytics.last_consent_event
 columns: []
 owner: Analytics
 purpose: Alimenter last-consent-event

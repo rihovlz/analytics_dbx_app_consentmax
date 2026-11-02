@@ -77,7 +77,7 @@ Relire le calcul généré. Un zéro est une valeur ; une absence de valeur affi
 Avant les données réelles, remplacer la source fictive et vérifier grain, droits et contrat avec un profil OAuth nommé.
 Les commandes `dev` et `check` exécutent respectivement le serveur et les validations de la configuration courante.
 
-Pour Genie, des fichiers ou une autre intégration, commencer par `guide` et `capabilities`.
+Pour des fichiers ou une autre intégration, commencer par `guide` et `capabilities`.
 Les étapes `data` et `feature` ne sont nécessaires que pour une tranche KPI. Le générateur reste limité à `count`, `sum` et `avg`.
 Si la comparaison temporelle aide à décider, ajouter `--date-column <colonne_DATE>` à `app feature`.
 `--breakdown-column <dimension>` ajoute un filtre commun et un waterfall pour les mesures additives.

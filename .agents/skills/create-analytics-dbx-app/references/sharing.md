@@ -26,7 +26,7 @@ Si une vue possède d'autres filtres, étendre explicitement le contrat avant d'
 Vérifier que le lien reprend les deux périodes résolues et le filtre réellement appliqué.
 Refuser les définitions invalides et les segments non autorisés sans afficher une autre comparaison par défaut.
 Conserver les réserves du résultat dans la synthèse. Vérifier aussi le mode démo et la copie manuelle.
-Le partage ne conserve ni résultat, SQL, réponse Genie, ni identifiant d'analyse personnelle dans son lien.
+Le partage ne conserve ni résultat, SQL, ni identifiant d'analyse personnelle dans son lien.
 Les tables d'état personnel restent privées et inchangées.
 
 L'utilisateur choisit le destinataire et colle le contenu. Cette option n'autorise aucun envoi automatique vers Slack ou une autre application.

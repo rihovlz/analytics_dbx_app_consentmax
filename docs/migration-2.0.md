@@ -1,5 +1,7 @@
 # Migration volontaire de 1.4.0 ou 1.5.0 vers 2.0.0
 
+> Document historique de la version 2.0. Pour la version actuelle sans Genie, appliquer ensuite le guide 2.1.0 → 3.0.0 dans [template-upgrades.md](template-upgrades.md).
+
 La version 2.0.0 remplace le runtime Next.js par AppKit/Express, Vite et React Router. React reste la bibliothèque UI.
 Les applications 1.4.0 et 1.5.0 continuent de fonctionner sans migration automatique.
 Les requêtes métier, déclarations d’accès, tables personnelles et personnalisations Valiuz restent propres à chaque application.
@@ -189,6 +191,6 @@ le type d’événement. L’ancienne enveloppe `{ type, data: ... }` n’est pl
 résultats ; attendre la fin du flux et toutes les pièces jointes attendues avant de permettre une nouvelle question.
 Le lecteur `connectSSE` est configuré avec `maxRetries: 0` ; ne pas adopter les reprises de POST du hook amont par défaut.
 La prop `genie` de `PeriodComparison` est également facultative. La renseigner seulement après validation du Space,
-des sources, des définitions et des périodes. Voir [le parcours](genie.md).
+des sources, des définitions et des périodes. Voir [le parcours](https://github.com/rihovlz/analytics_dbx_app_consentmax/blob/e0416fe67dfea512aefa6781b045cf931f3fbf83/docs/genie.md).
 Les tables d’état personnel restent inchangées ; le contexte enrichi et les résultats ne sont pas persistés.
 Tester OBO, interruption, refus, troncature et absence de double envoi avant la recette distante autorisée.

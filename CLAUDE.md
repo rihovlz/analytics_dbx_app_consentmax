@@ -43,10 +43,6 @@ Maintenir `config/app-spec.yml` avec `npm run app:guide`. Laisser « À confirme
 - Conserver l'accessibilité clavier, les thèmes clair/sombre et le mouvement réduit.
 - Utiliser des fixtures synthétiques en mode démo avant de dépendre d'un accès distant.
 
-## Genie
-
-Évaluer si Genie apporte une vraie valeur métier — ne pas le forcer dans le MVP. Si utilisé : déclarer le Space, les alias, les utilisateurs. Conserver l'identité OBO. Ne jamais partager un instantané d'un autre utilisateur.
-
 ## Première tranche
 
 Utiliser `npm run feature:new -- <slug>`, relire et adapter systématiquement le SQL généré. Respecter la séparation `page → route → service → repository → SqlExecutor`.

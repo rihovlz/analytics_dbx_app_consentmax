@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { GenieError } from "../src/features/genie/server/errors";
 import { withApiRoute } from "../src/lib/http/with-api-route";
 import { requestHandler, withHttpApp } from "./fixtures/http";
 
@@ -26,25 +25,13 @@ test("native path parameters, query parameters and headers keep the JSON contrac
     cursor: request.query.cursor,
     source: request.get("x-source"),
   }));
-  const response = await requestHandler(route, new Request("http://localhost/api/genie/sales?cursor=next", {
+  const response = await requestHandler(route, new Request("http://localhost/api/example/sales?cursor=next", {
     headers: { "x-source": "test" },
-  }), "/api/genie/:alias");
+  }), "/api/example/:alias");
   assert.deepEqual(await response.json(), { alias: "sales", cursor: "next", source: "test" });
   assert.ok(response.headers.get("x-request-id"));
 });
 
-test("preserves safe retry metadata for a pre-stream concurrency rejection", async () => {
-  const route = withApiRoute(() => {
-    throw new GenieError("limit reached", "GENIE_UNAVAILABLE", 429, true, { retryAfterMs: 5_000 });
-  });
-  const response = await requestHandler(route, new Request("http://localhost/api/genie/sales/messages"));
-  const payload = await response.json();
-  assert.equal(response.status, 429);
-  assert.equal(response.headers.get("retry-after"), "5");
-  assert.equal(payload.error.retryable, true);
-  assert.equal(payload.error.code, "GENIE_UNAVAILABLE");
-  assert.ok(payload.error.requestId);
-});
 
 test("closing a live response aborts request work", { timeout: 5_000 }, async () => {
   let observedAbort!: () => void;
