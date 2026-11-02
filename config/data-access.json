@@ -23,7 +23,7 @@
       "purpose": "Contacts opt-in absents des bases membres pour la page Missings"
     },
     {
-      "name": "optin-missing-contacts-histo",
+      "name": "missing-contacts-histo",
       "project": "prd-dtm-core-enrichment",
       "fullName": "prd-dtm-core-enrichment.analytics.optin_missing_contacts_histo",
       "purpose": "Historique des contacts manquants et évolutions à 30, 60 et 90 jours"
