@@ -10,6 +10,23 @@
       "name": "consent-event-w-flags",
       "fullName": "prd-consent.analytics.consent_event_w_flags",
       "purpose": "Historique des événements avec flags de premier consentement, pour compter les emails distincts par période"
+    },
+    {
+      "name": "stat-consent-members",
+      "fullName": "prd-consent.analytics.stat_consent_members",
+      "purpose": "Matrice des consentements et contribution des membres de l’alliance"
+    },
+    {
+      "name": "optin-missing-contacts",
+      "project": "prd-dtm-core-enrichment",
+      "fullName": "prd-dtm-core-enrichment.analytics.optin_missing_contacts",
+      "purpose": "Contacts opt-in absents des bases membres pour la page Missings"
+    },
+    {
+      "name": "optin-missing-contacts-histo",
+      "project": "prd-dtm-core-enrichment",
+      "fullName": "prd-dtm-core-enrichment.analytics.optin_missing_contacts_histo",
+      "purpose": "Historique des contacts manquants et évolutions à 30, 60 et 90 jours"
     }
   ]
 }

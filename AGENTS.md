@@ -51,6 +51,8 @@ Avoid speculative abstractions. Extract a generic helper only when two real feat
 - The data project is the Unity Catalog catalog and must be declared in `config/data-projects.json`. The initial Valiuz
   allowlist is `dev-dtm-operating`, `dev-dtm-media-pm`, `dev-dtm-myvaliuz` and `dev-dtm-insight-sharing`.
 - Register every table or view in `config/data-access.json`; its qualified name must start with the selected project.
+  A read-only source in another approved catalog must explicitly declare its own `project`, matching its full name.
+  Personal state and data preparation remain in the application's primary project.
   Run `npm run data:access:render` and review the generated `SELECT` bindings before deployment.
   Optional personal state is declared separately in `personalState`; only its two dedicated tables may receive
   `MODIFY` bindings (including `SELECT`). Follow `docs/user-state.md` before activation.

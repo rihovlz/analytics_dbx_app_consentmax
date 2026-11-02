@@ -67,13 +67,17 @@ export function validateDataAccessManifest(value, { allowPlaceholder = false, re
     if (names.has(name)) throw new Error(`Source name '${name}' is duplicated.`);
     names.add(name);
     if (typeof fullName !== "string") throw new Error(`Source '${name}' fullName must be a string.`);
-    validateFullName(fullName, project);
+    const sourceProject = source.project ?? project;
+    if (source.project !== undefined && (typeof source.project !== "string" || !dataProjects.allowed.includes(source.project))) {
+      throw new Error(`Source '${name}' project must be an approved data project.`);
+    }
+    validateFullName(fullName, sourceProject);
     if (fullNames.has(fullName)) throw new Error(`Source '${fullName}' is duplicated.`);
     fullNames.add(fullName);
     if (typeof purpose !== "string" || purpose.trim().length < 3 || purpose.length > 200) {
       throw new Error(`Source '${name}' purpose must contain between 3 and 200 characters.`);
     }
-    return { name, fullName, purpose: purpose.trim() };
+    return { name, fullName, purpose: purpose.trim(), ...(source.project !== undefined ? { project: source.project } : {}) };
   });
 
   let personalState;

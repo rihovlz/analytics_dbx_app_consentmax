@@ -9,6 +9,7 @@ const sourceSchema = z.object({
   name: z.string().regex(/^[a-z0-9][a-z0-9-]*$/),
   fullName: z.string().trim().min(1),
   purpose: z.string().trim().min(3).max(200),
+  project: z.string().refine(isAllowedDataProject, "unknown data project").optional(),
 });
 
 const dataAccessSchema = z
@@ -28,11 +29,11 @@ const dataAccessSchema = z
           path: ["sources", index, "fullName"],
           message: "must use the project.schema.object format",
         });
-      } else if (parts[0] !== manifest.project) {
+      } else if (parts[0] !== (source.project ?? manifest.project)) {
         context.addIssue({
           code: "custom",
           path: ["sources", index, "fullName"],
-          message: `must belong to ${manifest.project}`,
+          message: `must belong to ${source.project ?? manifest.project}`,
         });
       }
       if (names.has(source.name)) {

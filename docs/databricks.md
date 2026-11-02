@@ -57,6 +57,14 @@ déclare séparément ses deux tables et leurs bindings `MODIFY`, qui incluent `
 Le manifeste et `resources/data-access.generated.yml` sont versionnés ensemble. Le fichier généré contient la seule
 définition complète de `resources.apps.app`. Les targets de `databricks.yml` ajoutent seulement leur source de code.
 La CI exécute `npm run data:access:check` pour détecter une source hors projet, un doublon ou un fichier obsolète.
+Pour une lecture dans un autre catalogue, déclarer explicitement `project` sur la source. Ce catalogue doit figurer
+dans `config/data-projects.json` et correspondre au premier segment de `fullName`. Sans cette déclaration,
+une source hors du projet principal reste refusée. Les tables personnelles et la préparation de données restent
+limitées au projet principal.
+
+ConsentMax déclare ainsi les trois sources de `prd-consent.analytics` et les deux sources Missings de
+`prd-dtm-core-enrichment.analytics`. Le générateur conserve des bindings `SELECT` sur ces cinq objets ;
+`/api/readiness` vérifie chacun d'eux sans lire de lignes métier.
 
 ## Choisir entre direct, notebook et pipeline
 

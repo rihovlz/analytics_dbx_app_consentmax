@@ -25,3 +25,18 @@ resources:
             securable_full_name: "prd-consent.analytics.consent_event_w_flags"
             securable_type: TABLE
             permission: SELECT
+        - name: "data-stat-consent-members"
+          uc_securable:
+            securable_full_name: "prd-consent.analytics.stat_consent_members"
+            securable_type: TABLE
+            permission: SELECT
+        - name: "data-optin-missing-contacts"
+          uc_securable:
+            securable_full_name: "prd-dtm-core-enrichment.analytics.optin_missing_contacts"
+            securable_type: TABLE
+            permission: SELECT
+        - name: "data-optin-missing-contacts-histo"
+          uc_securable:
+            securable_full_name: "prd-dtm-core-enrichment.analytics.optin_missing_contacts_histo"
+            securable_type: TABLE
+            permission: SELECT

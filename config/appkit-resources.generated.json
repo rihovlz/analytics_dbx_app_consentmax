@@ -15,6 +15,18 @@
     {
       "fullName": "prd-consent.analytics.consent_event_w_flags",
       "permission": "SELECT"
+    },
+    {
+      "fullName": "prd-consent.analytics.stat_consent_members",
+      "permission": "SELECT"
+    },
+    {
+      "fullName": "prd-dtm-core-enrichment.analytics.optin_missing_contacts",
+      "permission": "SELECT"
+    },
+    {
+      "fullName": "prd-dtm-core-enrichment.analytics.optin_missing_contacts_histo",
+      "permission": "SELECT"
     }
   ],
   "personalState": []

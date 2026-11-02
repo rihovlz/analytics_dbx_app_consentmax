@@ -10,10 +10,13 @@ La page d’accueil ouvre `/consent-overview` (Self stats). La navigation donne 
 Les visualisations et comparaisons du template restent accessibles directement sur `/visualizations` ;
 les analyses enregistrées restent disponibles lorsqu’elles sont activées.
 
-Les sources déclarées sont `prd-consent.analytics.last_consent_event` et
-`prd-consent.analytics.consent_event_w_flags`. Self stats propose une démo sans accès au workspace.
+Les cinq sources SQL sont déclarées dans `config/data-access.json` avec des bindings `SELECT` :
+`last_consent_event`, `consent_event_w_flags` et `stat_consent_members` dans `prd-consent.analytics`,
+ainsi que `optin_missing_contacts` et `optin_missing_contacts_histo` dans `prd-dtm-core-enrichment.analytics`.
+Le contrôle `/api/readiness` vérifie l'accès runtime aux cinq sources sans retourner leurs lignes.
+Self stats propose une démo sans accès au workspace.
 Alliance et Missings conservent leurs services SQL réels ; les tests de navigation utilisent des réponses
-synthétiques. Leurs sources supplémentaires et permissions restent à vérifier avant déploiement.
+synthétiques.
 
 ## Quick Start
 
