@@ -96,5 +96,5 @@ fixture, contrat validé et test. Choisir la plus petite tranche qui réduit un 
 KPI prioritaire avec une seule source et un seul filtre. Réutiliser les critères déjà donnés ; demander une précision
 seulement si leur ambiguïté peut changer le résultat. Poursuivre l'implémentation locale autorisée.
 
-Le KPI est un exemple, pas un passage obligatoire. Une app Genie peut commencer par une question avec contexte de dashboard.
+Le KPI est un exemple, pas un passage obligatoire. Une app fichiers peut commencer par un import.
 Une app Files peut commencer par un import validé en démo. Le critère de succès de la spec sert de première preuve.

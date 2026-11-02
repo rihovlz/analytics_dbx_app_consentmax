@@ -11,17 +11,17 @@
 Exemple pour une app conversationnelle :
 
 ```bash
-npm run app:guide -- --non-interactive --type assistant \
+npm run app:guide -- --non-interactive --type workflow \
   --audience "Équipe commerciale" \
-  --decision "Comprendre une variation de ventes" \
-  --success "Une question fournit une réponse sourcée ou explique son absence" \
-  --capabilities genie
+  --decision "Importer un fichier de suivi commercial" \
+  --success "Un fichier valide est importé et les erreurs sont expliquées" \
+  --capabilities files
 npm run app:capabilities
 npm run app:skills
 npm run app:doctor
 ```
 
-Pour combiner plusieurs usages, passer `--capabilities analytics,genie,personal-state`.
+Pour combiner plusieurs usages, passer `--capabilities analytics,personal-state`.
 `--capabilities none` laisse le choix ouvert. Sans option, le mode non interactif conserve le choix existant.
 Les anciennes specs sans champ `capabilities` conservent le parcours `analytics`.
 Les types `assistant` et `workflow` complètent `dashboard`, `cockpit` et `suivi`.
@@ -41,7 +41,6 @@ Afficher toutes les options avec `npm run app:capabilities -- --all` ou ajouter 
 | Capacité | Usage | État dans le template |
 | --- | --- | --- |
 | `analytics` | KPI, filtres, agrégations | Intégrée via `SqlExecutor` ; lectures supportées par AppKit |
-| `genie` | Questions sur les données | Plugin programmatique actif ; client de compatibilité et chat Valiuz |
 | `personal-state` | Analyses et préférences | Fonction Valiuz optionnelle, sans nouveau plugin |
 | `files` | Fichiers dans des Volumes UC | Plugin GA disponible ; intégration de feature à réaliser |
 | `serving` | Prédiction ou génération | Plugin GA disponible ; intégration de feature à réaliser |
@@ -78,7 +77,7 @@ Les intégrations programmatiques ne doivent pas exposer de routes génériques 
 Lorsque le package ne permet pas ce contrat, conserver un adaptateur et documenter son critère de retrait.
 Le cache reste désactivé sans contrat explicite de fraîcheur et d'identité.
 
-Les déclarations actuelles couvrent tables/vues, Genie et état personnel.
+Les déclarations actuelles couvrent tables/vues et état personnel.
 Pour un Volume, un endpoint, un Job ou Lakebase, étendre le contrat de ressources et son rendu avec des tests.
 Ne pas ajouter une ressource uniquement dans un fichier généré : la prochaine génération la supprimerait.
 Conserver un seul `app.yaml` et les privilèges minimaux. Les commandes de cadrage ne font pas ces extensions.
@@ -125,7 +124,7 @@ Consulter `databricks-vector-search` et la [documentation AI Search](https://dev
 ## Agents
 
 Le plugin `agents` héberge des agents dans l'application. Les skills de développement installés sur le poste sont distincts.
-Choisir cette capacité lorsqu'une action demande plusieurs outils ; Genie ou Serving peuvent suffire pour un besoin plus simple.
+Choisir cette capacité lorsqu'une action demande plusieurs outils ; Serving peut suffire pour un besoin plus simple.
 Consigner l'acceptation de la bêta et une liste explicite d'outils, d'identités, de budgets et d'approbations.
 Ne pas hériter automatiquement de tous les outils ou skills disponibles.
 
@@ -137,9 +136,3 @@ Un outil personnalisé ne garantit pas l'OBO. Tester son identité réelle avant
 Tester les demandes hors périmètre, les instructions contenues dans des documents, l'isolation et l'interruption.
 Les mutations nécessitent une approbation adaptée et ne doivent pas être rejouées après un résultat ambigu.
 Lire la [documentation Agents](https://developers.databricks.com/docs/appkit/v0/plugins/agents) et les [niveaux de stabilité](https://developers.databricks.com/docs/appkit/v0/plugins/stability).
-
-## Genie
-
-Suivre [le parcours Genie](genie.md) pour cadrer le Space, préparer les définitions et vérifier les réponses.
-`app next` rappelle cette revue lorsque Genie est sélectionné. Le plugin runtime et les skills de développement sont distincts.
-Les mises à jour AppKit doivent préserver OBO, envoi unique, annulation, erreurs sûres et résultats bornés.

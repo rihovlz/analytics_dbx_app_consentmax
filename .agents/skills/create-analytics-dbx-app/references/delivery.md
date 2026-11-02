@@ -21,7 +21,7 @@ Pour la première tranche KPI simple, préférer `npm run feature:new -- <slug>`
 crée page, carte KPI, route, service, repository, requête, fixture et tests, puis synchronise la spec et le brief. Il ne
 génère que `count`, `sum` ou `avg` ; relire et adapter le SQL avant tout accès réel.
 
-Pour Genie, réutiliser la feature existante. Pour Files, Serving, Jobs ou Lakebase, construire la tranche autour du
+Pour Files, Serving, Jobs ou Lakebase, construire la tranche autour du
 contrat d'action et d'un faux adaptateur déterministe. Ne pas créer une table ou un KPI artificiel pour utiliser le générateur.
 Le choix dans `config/app-spec.yml` ne prouve pas que le plugin est monté ou que ses ressources existent.
 

@@ -43,12 +43,6 @@
   },
   "exceptions": [
     {
-      "id": "genie-transport",
-      "implementation": "src/features/genie/server/appkit-client.ts",
-      "reason": "AppKit Genie 0.76.1 orchestrates the conversation through sendMessage. A request-scoped client retains single POST, abortable HTTP, bounded read retries, safe errors and exact result types; upstream omits signals on those calls and logs raw SDK errors. Attachments without statement IDs retain their read path.",
-      "removeWhen": "Programmatic Genie with its default client proves mandatory OBO, cancellation on every call, no submission replay, safe logs, bounded reads, all attachments and the 500-row contract. Replace the compatibility client only after these tests pass."
-    },
-    {
       "id": "driver-semantics",
       "implementation": "src/lib/databricks/sql.ts",
       "reason": "Private personal-state writes, null bindings, native scalar types, explicit driver transport and standalone CLI diagnostics retain @databricks/sql. AppKit leaves JSON_ARRAY scalar values as strings and parses JSON-looking STRING cells.",

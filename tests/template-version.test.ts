@@ -6,9 +6,9 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 import { parse } from "yaml";
 
-test("declares the historical baselines and the current 2.1.0 template", async () => {
+test("declares the historical baselines and the current 3.0.0 template", async () => {
   const manifest = parse(await readFile("template/manifest.yml", "utf8"));
-  assert.equal(manifest.template.currentVersion, "2.1.0");
+  assert.equal(manifest.template.currentVersion, "3.0.0");
   assert.equal(manifest.versions["1.0.0"].sourceCommit, "05d914c6863c92304b1bc662e40c17e0f97b2c29");
   assert.equal(manifest.versions["1.1.0"].sourceCommit, "5df063bd0dc7b3664f1bf2cbe624119ddf5568ac");
   assert.equal(manifest.versions["1.1.0"].extends, "1.0.0");
@@ -59,7 +59,7 @@ test("declares the historical baselines and the current 2.1.0 template", async (
 test("verifies the source capabilities and exposes the latest upgrade by default", () => {
   const status = JSON.parse(execFileSync(process.execPath, ["scripts/template-status.mjs", "--json"], { encoding: "utf8" }));
   assert.notEqual(status.instance.kind, "legacy");
-  assert.equal(status.instance.effectiveVersion, "2.1.0");
+  assert.equal(status.instance.effectiveVersion, "3.0.0");
   assert.equal(status.capabilities.every((capability: { ok: boolean }) => capability.ok), true);
 
   const upgrade = JSON.parse(execFileSync(
@@ -70,14 +70,17 @@ test("verifies the source capabilities and exposes the latest upgrade by default
   assert.deepEqual(
     upgrade.changes.map((change: { id: string }) => change.id),
     [
-      "databricks-files-sync-workflow",
-      "databricks-files-environments",
+      "remove-genie-runtime",
+      "remove-genie-resources",
+      "update-template-state",
     ],
   );
   assert.deepEqual(upgrade.validation, [
     "npm run template:status",
-    "npm run template:check -- --to 2.1.0",
-    "npm run template:release:check -- --base origin/main",
+    "npm run template:check -- --to 3.0.0",
+    "npm run check",
+    "npm run test:e2e",
+    "npm run bundle:compatibility",
   ]);
 });
 

@@ -8,16 +8,5 @@
   },
   "project": "__DATABRICKS_CATALOG__",
   "sources": [],
-  "personalState": [],
-  "genie": [
-    {
-      "key": "fraim-sales",
-      "aliases": [
-        "fraim-sales",
-        "sales"
-      ],
-      "environmentVariable": "DATABRICKS_GENIE_SPACE_ID_FRAIM_SALES",
-      "permission": "CAN_RUN"
-    }
-  ]
+  "personalState": []
 }

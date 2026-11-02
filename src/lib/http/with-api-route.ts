@@ -1,5 +1,5 @@
 import type { ErrorRequestHandler, Request, RequestHandler, Response } from "express";
-import { normalizeError, RequestValidationError, type AppError } from "@/lib/errors/app-error";
+import { normalizeError, RequestValidationError } from "@/lib/errors/app-error";
 import { createRequestContext, type RequestContext } from "@/lib/logging/request-context";
 
 export type ApiContext = RequestContext & { signal: AbortSignal };
@@ -15,13 +15,8 @@ function sendError(error: unknown, request: Request, response: Response, context
   const normalized = normalizeError(error);
   context.log.error({ errorName: normalized.name, code: normalized.code,
     method: request.method, path: request.path }, "request failed");
-  const metadata = normalized as AppError & { retryable?: unknown; retryAfterMs?: unknown };
-  if (typeof metadata.retryAfterMs === "number" && Number.isFinite(metadata.retryAfterMs)) {
-    response.set("retry-after", String(Math.ceil(Math.max(0, metadata.retryAfterMs) / 1_000)));
-  }
   response.status(normalized.status).json({ error: {
     code: normalized.code, message: normalized.userMessage, requestId: context.requestId,
-    ...(typeof metadata.retryable === "boolean" ? { retryable: metadata.retryable } : {}),
   } });
 }
 

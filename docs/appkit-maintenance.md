@@ -29,7 +29,6 @@ Les APIs des features gardent les limites de corps, l’identité et leurs valid
 
 | Exception | Motif dans 0.76.1 | Critère de retrait |
 | --- | --- | --- |
-| Client de compatibilité Genie derrière le plugin actif | Signal absent sur plusieurs appels, reprises SDK, erreurs brutes et pièces jointes sans statementId ignorées | Même contrat avec le client amont par défaut : OBO, soumission unique, annulation, lectures bornées, erreurs sûres et 500 lignes |
 | Driver SQL conservé | Écritures privées, paramètres nuls, types natifs, chaînes JSON exactes et diagnostics CLI | Parité explicite de ces contrats dans l’API programmatique |
 | Client de démo | AppKit lit l’identité workspace dès son démarrage | Serveur upstream utilisable sans identité distante |
 | Fournisseur OAuth CLI | AppKit ignore le profil lorsque le host est fourni | Profil nommé, host validé et renouvellement natifs |
@@ -47,14 +46,6 @@ Le serveur ne promet pas l’annulation effective du compute.
 Les erreurs du client SQL sont neutralisées avant les logs AppKit.
 Les logs applicatifs gardent seulement le nom de requête, sa durée, son identifiant et le nombre de lignes.
 
-Le plugin Genie utilise `sendMessage` via le service Valiuz. Le client lié à la requête conserve les garanties
-manquantes et les types exacts des cellules. Les routes génériques restent désactivées et aucun fallback ne suit une soumission.
-Le chat Valiuz garde son contexte et ses callbacks ; le bouton d’exploration utilise AppKit UI.
-Le lecteur de flux utilise `connectSSE` d’AppKit UI avec `maxRetries: 0`. Les événements suivent les champs et l’ordre
-AppKit ; il n’existe plus de parseur SSE local ni de deuxième format d’événements accepté.
-Le hook complet amont n’est pas utilisé : ses reprises de POST et ses limites de contexte/interruption ne conviennent pas.
-Avant le flux, son lecteur ne fournit au client que le statut HTTP ; l’API conserve son enveloppe sûre et son identifiant.
-Voir [le contrat Genie](genie.md) pour la recette avant retrait de l’adaptateur.
 
 ## Skills et plugins d’agents
 

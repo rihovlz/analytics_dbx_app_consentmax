@@ -2,7 +2,7 @@ schemaVersion: 1
 template:
   id: valiuz/analytics_dbx_app_template
   repository: https://github.com/valiuz/analytics_dbx_app_template
-  currentVersion: 2.1.0
+  currentVersion: 3.0.0
 requirements:
   node: ">=22.16 <23"
   databricksCli: ">=0.295.0"
@@ -70,6 +70,28 @@ versions:
     summary: Publication à la demande d'une copie consultable du dépôt dans le workspace Databricks.
     extends: 2.0.1
     capabilities:
+      - databricks-workspace-file-delivery
+  3.0.0:
+    sourceCommit: e0416fe67dfea512aefa6781b045cf931f3fbf83
+    summary: Template analytics sans intégration Genie ni Space obligatoire.
+    capabilities:
+      - guided-app-workflow
+      - declared-data-access
+      - optional-data-preparation
+      - valiuz-app-shell
+      - databricks-app-bundle
+      - databricks-deployment-compatibility
+      - clean-template-consumer-journey
+      - template-version-tracking
+      - cost-aware-data-history
+      - feature-release-governance
+      - reusable-analytics-visualizations
+      - personal-user-state
+      - appkit-native-runtime
+      - upstream-compatibility
+      - guided-appkit-capabilities
+      - period-comparison
+      - comparison-sharing
       - databricks-workspace-file-delivery
 capabilities:
   guided-app-workflow:
@@ -485,3 +507,6 @@ upgrades:
   - from: 2.0.1
     to: 2.1.0
     path: template/upgrades/2.0.1-to-2.1.0.yml
+  - from: 2.1.0
+    to: 3.0.0
+    path: template/upgrades/2.1.0-to-3.0.0.yml

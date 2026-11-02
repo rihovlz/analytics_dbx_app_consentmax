@@ -80,15 +80,6 @@ le skill `validate-analytics-kpis`. Les fixtures prouvent les calculs locaux et 
 l'exécution du SQL sur votre source. Effectuer ensuite une lecture bornée sur la cible convenue et comparer à un calcul indépendant.
 Les changements de déploiement suivent [le runbook existant](deployment.md).
 
-## Explorer la comparaison avec Genie
-
-La prop facultative `genie={{ alias: "sales" }}` ajoute une entrée vers un Space configuré.
-Elle utilise la comparaison affichée, avec ses deux périodes, ses filtres, ses valeurs et ses réserves.
-Une sélection non appliquée désactive le bouton. La question est préremplie, modifiable et envoyée explicitement.
-Le Space doit couvrir les mêmes sources et définitions. Les observations du navigateur restent à vérifier.
-Les cartes épinglées restent en mémoire ; elles ne rejoignent pas les tables d’état personnel.
-Voir [le contrat et la recette Genie](genie.md). La démo `/visualizations` active ce lien uniquement en mode démo.
-
 ## Partager une comparaison
 
 Cette option ajoute « Partager cette analyse » à une comparaison. Elle reste désactivée par défaut.
@@ -134,7 +125,7 @@ Un lien invalide, incompatible avec la vue ou incohérent affiche une explicatio
 Le lecteur peut reprendre le formulaire pour choisir une nouvelle comparaison.
 
 L'ouverture recalcule les données avec les accès habituels de l'app. Le lien ne donne aucun droit supplémentaire.
-Les chiffres peuvent donc changer entre deux consultations. Aucun résultat, SQL, identifiant d'analyse personnelle ou contenu Genie n'entre dans le lien.
+Les chiffres peuvent donc changer entre deux consultations. Aucun résultat, SQL ou identifiant d'analyse personnelle n'entre dans le lien.
 
 La synthèse décrit le résultat réellement affiché : KPI, unité, source ou démo, périodes, filtre, valeurs, écarts et réserves.
 Elle ajoute la date de consultation et le lien de reprise. Cette date ne prouve pas la fraîcheur des données.

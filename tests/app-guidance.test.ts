@@ -202,7 +202,7 @@ test("app guide and feature generator create one complete vertical slice", async
       "scripts/app-guide.mjs",
       "--non-interactive",
       "--type", "cockpit",
-      "--capabilities", "genie",
+      "--capabilities", "files",
       "--audience", "Responsable commercial",
       "--decision", "Suivre les ventes",
       "--success", "Le KPI est revu chaque semaine",
@@ -233,7 +233,7 @@ test("app guide and feature generator create one complete vertical slice", async
   const repository = await readFile(join(root, "src/features/daily-sales/server/repository.ts"), "utf8");
   const navigation = await readFile(join(root, "src/components/app-shell/app-nav.tsx"), "utf8");
   assert.match(spec, /slug: daily-sales/);
-  assert.deepEqual(parse(spec).capabilities, ["genie", "analytics"]);
+  assert.deepEqual(parse(spec).capabilities, ["files", "analytics"]);
   assert.match(query, /SUM\(`revenue`\)/);
   assert.match(repository, /parameters: \{ source: quoteQualifiedIdentifier\(source\) \}/);
   assert.match(
@@ -242,26 +242,26 @@ test("app guide and feature generator create one complete vertical slice", async
   );
   assert.match(navigation, /Ventes quotidiennes/);
   assert.match(await readFile(join(root, "tests/daily-sales.test.ts"), "utf8"), /deterministic demo value/);
-  const removeAnalytics = spawnSync(process.execPath, ["scripts/app-guide.mjs", "--non-interactive", "--capabilities", "genie"], { cwd: root, encoding: "utf8" });
+  const removeAnalytics = spawnSync(process.execPath, ["scripts/app-guide.mjs", "--non-interactive", "--capabilities", "files"], { cwd: root, encoding: "utf8" });
   assert.notEqual(removeAnalytics.status, 0);
   assert.match(removeAnalytics.stderr, /Existing KPI features require the analytics capability/);
   assert.equal(await readFile(join(root, "config/app-spec.yml"), "utf8"), spec);
 });
 
-test("a Genie-only app keeps its capabilities across guide runs without changing runtime resources", async () => {
+test("a Files-only app keeps its capabilities across guide runs without changing runtime resources", async () => {
   const root = await prepareFixture();
   const before = await readFile(join(root, "config/data-access.json"), "utf8");
   const run = (args: string[]) => execFileSync(process.execPath, ["scripts/app-guide.mjs", "--non-interactive", ...args], { cwd: root, encoding: "utf8" });
-  const output = run(["--type", "assistant", "--capabilities", "genie"]);
+  const output = run(["--type", "assistant", "--capabilities", "files"]);
   assert.doesNotMatch(output, /feature:new/);
   run(["--audience", "Équipe commerciale"]);
   const plan = JSON.parse(execFileSync(process.execPath, ["scripts/app-capabilities.mjs", "--json"], { cwd: root, encoding: "utf8" }));
-  assert.deepEqual(plan.capabilities.map((item: { id: string }) => item.id), ["genie"]);
+  assert.deepEqual(plan.capabilities.map((item: { id: string }) => item.id), ["files"]);
   assert.equal(plan.activatesPlugins, false);
-  assert.equal(plan.capabilities[0].availability, "integrated");
+  assert.equal(plan.capabilities[0].availability, "optional");
   assert.equal(await readFile(join(root, "config/data-access.json"), "utf8"), before);
   const brief = await readFile(join(root, "docs/product-brief.md"), "utf8");
-  assert.match(brief, /\*\*genie\*\*/);
+  assert.match(brief, /\*\*files\*\*/);
   assert.match(brief, /Équipe commerciale/);
   execFileSync(process.execPath, ["scripts/app-guide.mjs", "--check"], { cwd: root });
 });
@@ -270,7 +270,7 @@ test("invalid capability choices fail before changing the spec or brief", async 
   const root = await prepareFixture();
   const paths = ["config/app-spec.yml", "docs/product-brief.md"];
   const before = await Promise.all(paths.map((file) => readFile(join(root, file), "utf8")));
-  for (const choice of ["unknown", "genie,genie", "analytics,,files", "analytics;echo secret"]) {
+  for (const choice of ["unknown", "genie", "files,files", "analytics,,files", "analytics;echo secret"]) {
     const result = spawnSync(process.execPath, ["scripts/app-guide.mjs", "--non-interactive", "--capabilities", choice], { cwd: root, encoding: "utf8" });
     assert.notEqual(result.status, 0);
   }

@@ -24,6 +24,7 @@ ni credential, ni configuration du workspace, ni donnée métier.
 | `2.0.0` | `8b779bcb363a7c57bdea12342964601d0acdfef4` | Runtime AppKit, routes React, adaptateurs bornés, parcours de capacités et skills amont |
 | `2.0.1` | `ba98c16999674181c76a65a5efd5a4e7bdf7cd7e` | Résultats SQL JSON vides confirmés, sans nouvelle capability |
 | `2.1.0` | `87f82f6fd297029c7b73768ed801e5a7bb7de6cb` | Copie consultable du dépôt dans le workspace Databricks, à la demande |
+| `3.0.0` | `e0416fe67dfea512aefa6781b045cf931f3fbf83` | Retrait de Genie du runtime, des ressources et du parcours de création |
 
 Le point historique est le SHA complet de la branche de base examinée pour préparer la version. Il sert à borner le
 diff, pas à reproduire seul le checkout final. Le manifeste et ses sondes définissent le contrat réel de la version.
@@ -39,7 +40,7 @@ npm run template:status
 npm run template:check
 ```
 
-Une nouvelle app reçoit la version `2.0.1`. `npm run check` inclut `template:check` et
+Une nouvelle app reçoit la version `3.0.0`. `npm run check` inclut `template:check` et
 `template:release:check`. Le second reconnaît une app initialisée et n'exige aucun bump pour ses features métier.
 
 La release 2.0.0 inclut le parcours de capacités, de skills et l'orchestration de la création ou de la reprise.
@@ -302,7 +303,7 @@ Le rollback conserve les tables et redéploie la révision précédente.
 
 La 2.0.0 inclut aussi `appkit-genie-integration` : plugin Genie programmatique, compatibilité OBO et
 annulation, identité visible et exploration facultative des comparaisons. Les contrats et limites sont décrits dans
-[Genie](genie.md). Cette addition reste dans la migration major 1.5 → 2.0 ; les tables personnelles sont préservées.
+[Genie](https://github.com/rihovlz/analytics_dbx_app_consentmax/blob/e0416fe67dfea512aefa6781b045cf931f3fbf83/docs/genie.md). Cette addition reste dans la migration major 1.5 → 2.0 ; les tables personnelles sont préservées.
 
 La capability `comparison-sharing` ajoute le partage facultatif à la même migration 1.5 → 2.0.
 Fusionner ses modules, ses options de génération et la référence de skill indiqués dans le guide YAML.
@@ -372,3 +373,21 @@ npm run template:check -- --to 2.1.0
 
 Après validation, remplacer la version dans `.valiuz-template.yml`, ajouter `databricks-workspace-file-delivery` aux
 capabilities et `2.0.1-to-2.1.0` à `appliedUpgrades`. Exécuter `npm run check`.
+
+## Passage de 2.1.0 à 3.0.0
+
+Cette version majeure retire le chat Genie, ses APIs et types, la prop `genie` des comparaisons et les bindings associés.
+Les visualisations, comparaisons, liens de partage et analyses personnelles restent disponibles.
+
+```bash
+npm run template:diff -- --from 2.1.0 --to 3.0.0
+npm run template:check -- --to 3.0.0
+```
+
+Suivre le guide sans réinitialiser l’application. Préserver ses sources, droits, variables et adaptations métier.
+Supprimer uniquement le scope `genie` et les bindings Genie. Aucun Space distant n’est supprimé par cette mise à niveau.
+Les anciens liens `/genie` et appels `/api/genie/*` ne sont plus disponibles.
+Après validation, remplacer les capacités de `.valiuz-template.yml` par la liste explicite de 3.0.0 et ajouter
+`2.1.0-to-3.0.0` à `appliedUpgrades`. Les anciennes versions restent décrites dans le manifeste.
+Une version majeure peut déclarer toutes ses capacités sans `extends` pour retirer un contrat hérité.
+Exécuter `npm run check`, les parcours E2E et les contrôles de bundle avant adoption.

@@ -131,7 +131,7 @@ async function initializeApp(fixtureRoot: string, environment: NodeJS.ProcessEnv
       "--audience", "Responsable analytics",
       "--decision", "Suivre la qualité du parcours template",
       "--success", "Le parcours local passe en CI",
-      "--capabilities", "analytics,genie",
+      "--capabilities", "analytics",
     ],
     fixtureRoot,
     environment,
@@ -253,7 +253,7 @@ async function inspectGeneratedApp(fixtureRoot: string, environment: NodeJS.Proc
     cwd: fixtureRoot, env: environment, encoding: "utf8",
   })).stdout);
   assert.equal(capabilityPlan.activatesPlugins, false);
-  assert.deepEqual(capabilityPlan.capabilities.map((item: { id: string }) => item.id), ["analytics", "genie"]);
+  assert.deepEqual(capabilityPlan.capabilities.map((item: { id: string }) => item.id), ["analytics"]);
   const skillPlan = JSON.parse((await execFileAsync(process.execPath, ["scripts/app.mjs", "skills", "--json"], {
     cwd: fixtureRoot, env: environment, encoding: "utf8",
   })).stdout);
@@ -292,7 +292,7 @@ export async function validateTemplateJourney(): Promise<void> {
 
   try {
     process.stdout.write(`Creating a clean template checkout in ${fixtureRoot}.\n`);
-    await copyTrackedFiles(sourceRoot, fixtureRoot, ["config/genie-spaces.json"]);
+    await copyTrackedFiles(sourceRoot, fixtureRoot);
     await initializeCleanGitCheckout(fixtureRoot, environment);
     await runCommand("npm", ["ci", "--no-audit", "--no-fund"], fixtureRoot, environment);
     await initializeApp(fixtureRoot, environment);

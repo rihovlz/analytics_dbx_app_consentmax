@@ -1,0 +1,73 @@
+schemaVersion: 1
+id: 2.1.0-to-3.0.0
+from: 2.1.0
+to: 3.0.0
+summary: Retire Genie du runtime, des ressources et du parcours de création.
+changes:
+  - id: remove-genie-runtime
+    mode: guided
+    title: Retirer le chat et son intégration
+    description: Les APIs, composants et types Genie sont supprimés. Les comparaisons et analyses personnelles
+      restent disponibles.
+    paths:
+      - src/features/genie
+      - src/client/pages/genie
+      - src/server/routes/genie
+      - src/server/index.ts
+      - src/server/routes.ts
+      - src/client/routes.tsx
+      - src/components/app-shell/app-nav.tsx
+      - src/features/period-comparison
+      - package.json
+    instructions:
+      - Conserver la révision précédente pour le rollback. Retirer les imports, routes, liens et appels Genie
+        des adaptations métier avant de supprimer ses modules et son plugin.
+      - Retirer la prop genie de PeriodComparison ; conserver les périodes, filtres et options de partage.
+      - Supprimer uniquement les erreurs et métadonnées de reprise propres à Genie ; conserver les contrôles
+        HTTP communs.
+      - Désinstaller react-markdown et remark-gfm avec npm seulement si aucune adaptation métier ne les
+        utilise. Conserver les versions AppKit épinglées.
+  - id: remove-genie-resources
+    mode: guided
+    title: Retirer les ressources et la configuration
+    description: Le déploiement conserve le warehouse et les bindings Unity Catalog utiles.
+    paths:
+      - app.yaml
+      - .env.example
+      - config/genie-spaces.json
+      - config/app-spec.yml
+      - scripts/data-access.mjs
+      - scripts/deploy.mjs
+      - config/appkit-capabilities.json
+      - config/appkit-compatibility.json
+    instructions:
+      - Retirer les variables DATABRICKS_GENIE_SPACE_ID_* et GENIE_* puis supprimer config/genie-spaces.json.
+        Préserver les autres variables, identités, sources et permissions.
+      - Fusionner le générateur et le préflight sans Genie puis exécuter npm run data:access:render. Vérifier
+        l’absence de genie_space et du scope genie ; préserver tout autre scope propre à l’app.
+      - Retirer genie des capacités choisies et synchroniser le brief avec app:guide. Ne pas réinitialiser une
+        app existante.
+      - Le code ne supprime aucun Space distant. Un futur déploiement retire seulement le binding applicatif
+        et le scope Genie.
+  - id: update-template-state
+    mode: guided
+    title: Vérifier et déclarer la version 3.0.0
+    description: Les anciennes versions restent décrites ; la nouvelle version liste explicitement les capacités
+      conservées.
+    paths:
+      - template/manifest.yml
+      - .valiuz-template.yml
+      - docs/template-upgrades.md
+    instructions:
+      - Après validation, définir la version de template 3.0.0 et remplacer la liste des capacités par celle
+        de la version cible, sans genie-natural-language-analytics ni appkit-genie-integration.
+      - Ajouter 2.1.0-to-3.0.0 à appliedUpgrades. Conserver les adaptations métier, le branding et les tables
+        personnelles.
+      - Les anciens liens /genie et appels /api/genie/* ne sont plus disponibles. Vérifier les liens entrants
+        et clients avant adoption.
+validation:
+  - npm run template:status
+  - npm run template:check -- --to 3.0.0
+  - npm run check
+  - npm run test:e2e
+  - npm run bundle:compatibility

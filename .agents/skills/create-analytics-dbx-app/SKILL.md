@@ -45,8 +45,6 @@ Pour une migration explicitement demandée, suivre le parcours ci-dessous avant 
   Ne pas lancer `init-app` sur l'ancienne app. Porter et tester ses adaptations avant de déclarer sa nouvelle version.
 - Pour choisir les capacités AppKit et consulter les bons skills amont, lire
   [references/appkit-capabilities.md](references/appkit-capabilities.md). Le faire pendant le cadrage, puis lors d'un nouveau besoin.
-- Pour ajouter Genie ou explorer un écart depuis un dashboard, lire [le parcours Genie](references/genie.md).
-  Il couvre sources, Space, définitions, intégration AppKit, questions de référence et recette avec les droits réels.
 - Pour diffuser une comparaison avec son contexte, lire [le partage facultatif](references/sharing.md).
   L'activer seulement pour un besoin de diffusion, après revue des filtres partageables.
 - Pour créer le repository Valiuz, attribuer l'équipe, préparer le dossier local et initialiser le template, lire
@@ -81,7 +79,7 @@ l'app avec un dashboard géré avant de créer un repository.
 - Ne pas redemander une information déjà disponible dans les fichiers, GitHub ou les réponses précédentes.
 - Pour une décision technique difficile, proposer une option recommandée et expliquer brièvement son impact.
 - Présenter les capacités en termes d'usage. Proposer une combinaison minimale et différer celles sans besoin confirmé.
-- Ne pas imposer un premier KPI à une app Genie ou fichiers. `feature:new` couvre les KPI count/sum/avg.
+- Ne pas imposer un premier KPI à une app fichiers. `feature:new` couvre les KPI count/sum/avg.
   Proposer `--date-column` seulement pour une comparaison utile ; `--breakdown-column` ajoute les contributions additives.
   Suivre `docs/period-comparison.md` et valider le calendrier, la complétude et le grain avant un waterfall.
 - Donner des nouvelles aux étapes utiles, puis poursuivre le travail autorisé. Une proposition de commande ne termine pas une demande d'implémentation.

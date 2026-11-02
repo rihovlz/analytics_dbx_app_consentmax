@@ -13,7 +13,6 @@ test("setup produces two simple Delta tables and limits write bindings to declar
     await mkdir(dirname(join(root, file)), { recursive: true });
     await copyFile(file, join(root, file));
   }
-  await copyFile("config/genie-spaces.json", join(root, "config/genie-spaces.json"));
   await mkdir(join(root, "resources"));
   await writeFile(join(root, "config/data-access.json"), JSON.stringify({
     project: "dev-dtm-media-pm",

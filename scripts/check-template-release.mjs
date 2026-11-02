@@ -150,7 +150,7 @@ export function assessTemplateRelease({
     if (!currentRelease) {
       errors.push(`versions.${currentVersion} is missing from template/manifest.yml.`);
     } else {
-      if (currentRelease.extends !== baseVersion) {
+      if (currentRelease.extends !== baseVersion && !(bump === "major" && currentRelease.extends === undefined)) {
         errors.push(`Version ${currentVersion} must extend the base version ${baseVersion}.`);
       }
       if (currentRelease.sourceCommit !== baseCommit) {

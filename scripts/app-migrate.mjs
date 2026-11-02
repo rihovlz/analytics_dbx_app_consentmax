@@ -95,10 +95,11 @@ export async function planMigration(appRoot, { from, to, sourceRoot = templateRo
     status: steps.length ? "review-required" : "already-declared",
     upgrades,
     inventory: await inventoryApp(root),
-    preserve: ["src/features (requêtes, contrats et logique métier)", "config/data-access.json", "config/genie-spaces.json", "config/app-spec.yml", "data/", "app.yaml et variables métier", "tables personnelles et namespaces existants", "branding et URLs publiques"],
+    preserve: ["src/features (requêtes, contrats et logique métier)", "config/data-access.json", "config/app-spec.yml", "data/", "app.yaml et variables métier", "tables personnelles et namespaces existants", "branding et URLs publiques"],
     notes: [
       "React reste présent. Porter le runtime Next.js, le routage et les chargements serveur vers AppKit/Express, Vite et React Router.",
       "Depuis 1.4 : intégrer les contrats 1.5 avant le portage 2.0. L'état personnel peut rester désactivé ; aucune table ni permission à créer pour migrer.",
+      "La version 3.0 retire Genie : suivre le guide 2.1.0 → 3.0.0 pour enlever les modules, variables et bindings sans supprimer de Space distant.",
       "Les guides proviennent du template cible ; une ancienne copie du manifeste ne connaît pas les releases futures.",
       "Cet inventaire statique n'est pas exhaustif : examiner aussi middleware, authentification, URLs dynamiques, rewrites et loaders personnalisés.",
       "Aucun fichier, package, état de version ou ressource n'est modifié. Aucun test n'est exécuté.",

@@ -4,15 +4,8 @@ import { join } from "node:path";
 import dataProjects from "../config/data-projects.json" with { type: "json" };
 
 const PROJECT_PLACEHOLDER = "__DATABRICKS_CATALOG__";
-const GENIE_MANIFEST_VERSION = 1;
-const MAX_GENIE_SPACES = 20;
-const MAX_ALIASES_PER_GENIE_SPACE = 10;
-const MAX_GENIE_ENVIRONMENT_VARIABLE_LENGTH = 128;
 const identifierPattern = /^[A-Za-z0-9_-]+$/;
 const sourceNamePattern = /^[a-z0-9][a-z0-9-]*$/;
-const genieKeyPattern = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/;
-const genieEnvironmentVariablePattern = /^DATABRICKS_GENIE_SPACE_ID_[A-Z0-9](?:[A-Z0-9_]*[A-Z0-9])?$/;
-const genieSpaceIdPattern = /^[0-9a-f]{32}$/;
 
 function yamlString(value) {
   return JSON.stringify(value);
@@ -37,10 +30,6 @@ function readJson(text, path) {
   } catch (error) {
     throw new Error(`Unable to parse ${path} as JSON.`, { cause: error });
   }
-}
-
-function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function validateFullName(fullName, project) {
@@ -120,167 +109,7 @@ export async function loadDataAccessManifest(root, options) {
   return validateDataAccessManifest(parsed, options);
 }
 
-export function validateGenieSpacesManifest(value) {
-  assertObject(value, "Genie spaces manifest");
-  assertKnownKeys(value, ["version", "spaces"], "Genie spaces manifest");
-  if (value.version !== GENIE_MANIFEST_VERSION) {
-    throw new Error(`Genie spaces manifest version must be ${GENIE_MANIFEST_VERSION}.`);
-  }
-  if (!Array.isArray(value.spaces)) throw new Error("Genie spaces must be an array.");
-  if (value.spaces.length === 0) throw new Error("Declare at least one Genie space.");
-  if (value.spaces.length > MAX_GENIE_SPACES) {
-    throw new Error(`Genie spaces are limited to ${MAX_GENIE_SPACES} entries.`);
-  }
-
-  const keys = new Set();
-  const displayNames = new Set();
-  const aliases = new Set();
-  const environmentVariables = new Set();
-  const spaceIds = new Set();
-  const spaces = value.spaces.map((space, index) => {
-    const label = `Genie space ${index + 1}`;
-    assertObject(space, label);
-    assertKnownKeys(
-      space,
-      ["key", "displayName", "aliases", "environmentVariable", "spaceId"],
-      label,
-    );
-    const { key, displayName, environmentVariable, spaceId } = space;
-    if (typeof key !== "string" || !genieKeyPattern.test(key)) {
-      throw new Error(`${label} key must contain 1 to 64 lowercase letters, numbers or hyphens.`);
-    }
-    if (keys.has(key)) throw new Error(`Genie resource key '${key}' is duplicated.`);
-    keys.add(key);
-
-    if (typeof displayName !== "string" || displayName.trim().length < 3 || displayName.trim().length > 120) {
-      throw new Error(`Genie space '${key}' displayName must contain between 3 and 120 characters.`);
-    }
-    const normalizedDisplayName = displayName.trim();
-    const comparableDisplayName = normalizedDisplayName.toLocaleLowerCase("en-US");
-    if (displayNames.has(comparableDisplayName)) {
-      throw new Error(`Genie display name '${normalizedDisplayName}' is duplicated.`);
-    }
-    displayNames.add(comparableDisplayName);
-
-    if (!Array.isArray(space.aliases) || space.aliases.length === 0) {
-      throw new Error(`Genie space '${key}' must declare at least one alias.`);
-    }
-    if (space.aliases.length > MAX_ALIASES_PER_GENIE_SPACE) {
-      throw new Error(`Genie space '${key}' is limited to ${MAX_ALIASES_PER_GENIE_SPACE} aliases.`);
-    }
-    const normalizedAliases = space.aliases.map((alias, aliasIndex) => {
-      if (typeof alias !== "string" || !genieKeyPattern.test(alias)) {
-        throw new Error(
-          `Genie space '${key}' alias ${aliasIndex + 1} must contain 1 to 64 lowercase letters, numbers or hyphens.`,
-        );
-      }
-      if (aliases.has(alias)) throw new Error(`Genie alias '${alias}' is duplicated.`);
-      aliases.add(alias);
-      return alias;
-    });
-    if (!normalizedAliases.includes(key)) {
-      throw new Error(`Genie space '${key}' aliases must include its stable key.`);
-    }
-
-    if (
-      typeof environmentVariable !== "string"
-      || environmentVariable.length > MAX_GENIE_ENVIRONMENT_VARIABLE_LENGTH
-      || !genieEnvironmentVariablePattern.test(environmentVariable)
-    ) {
-      throw new Error(
-        `Genie space '${key}' environmentVariable must contain at most ${MAX_GENIE_ENVIRONMENT_VARIABLE_LENGTH} characters, start with DATABRICKS_GENIE_SPACE_ID_ and use uppercase letters, numbers or underscores.`,
-      );
-    }
-    if (environmentVariables.has(environmentVariable)) {
-      throw new Error(`Genie environment variable '${environmentVariable}' is duplicated.`);
-    }
-    environmentVariables.add(environmentVariable);
-
-    if (typeof spaceId !== "string" || !genieSpaceIdPattern.test(spaceId)) {
-      throw new Error(`Genie space '${key}' spaceId must contain exactly 32 lowercase hexadecimal characters.`);
-    }
-    const normalizedSpaceId = spaceId.toLowerCase();
-    if (spaceIds.has(normalizedSpaceId)) throw new Error(`Genie space ID '${spaceId}' is duplicated.`);
-    spaceIds.add(normalizedSpaceId);
-
-    return {
-      key,
-      displayName: normalizedDisplayName,
-      aliases: normalizedAliases,
-      environmentVariable,
-      spaceId: normalizedSpaceId,
-    };
-  });
-
-  return { version: GENIE_MANIFEST_VERSION, spaces };
-}
-
-export async function loadGenieSpacesManifest(root) {
-  const manifestPath = join(root, "config/genie-spaces.json");
-  let content;
-  try {
-    content = await readFile(manifestPath, "utf8");
-  } catch (error) {
-    throw new Error(`Unable to read ${manifestPath}.`, { cause: error });
-  }
-  return validateGenieSpacesManifest(readJson(content, manifestPath));
-}
-
-function validateResourceNames(dataAccessManifest, genieSpacesManifest) {
-  const resourceNames = new Set(["sql-warehouse"]);
-  for (const source of dataAccessManifest.sources) resourceNames.add(`data-${source.name}`);
-  for (const kind of Object.keys(dataAccessManifest.personalState ?? {})) {
-    resourceNames.add(`user-state-${kind}`);
-  }
-  for (const space of genieSpacesManifest.spaces) {
-    if (resourceNames.has(space.key)) {
-      throw new Error(`Genie resource key '${space.key}' conflicts with another app resource.`);
-    }
-    resourceNames.add(space.key);
-  }
-}
-
-async function readOptional(root, file) {
-  try {
-    return await readFile(join(root, file), "utf8");
-  } catch (error) {
-    if (error && typeof error === "object" && error.code === "ENOENT") return undefined;
-    throw error;
-  }
-}
-
-async function validateGenieEnvironmentReferences(root, genieSpacesManifest) {
-  const appManifest = await readOptional(root, "app.yaml");
-  if (appManifest !== undefined) {
-    for (const space of genieSpacesManifest.spaces) {
-      const reference = new RegExp(
-        `-\\s+name:\\s*["']?${escapeRegExp(space.environmentVariable)}["']?\\s*\\n\\s*valueFrom:\\s*["']?${escapeRegExp(space.key)}["']?(?:\\s|$)`,
-      );
-      if (!reference.test(appManifest)) {
-        throw new Error(
-          `app.yaml must bind ${space.environmentVariable} with valueFrom: ${space.key}.`,
-        );
-      }
-    }
-  }
-
-  const localEnvironment = await readOptional(root, ".env.example");
-  if (localEnvironment !== undefined) {
-    for (const space of genieSpacesManifest.spaces) {
-      const reference = new RegExp(
-        `^${escapeRegExp(space.environmentVariable)}=["']?${escapeRegExp(space.spaceId)}["']?\\s*$`,
-        "m",
-      );
-      if (!reference.test(localEnvironment)) {
-        throw new Error(
-          `.env.example must set ${space.environmentVariable} to the configured non-secret Genie space ID.`,
-        );
-      }
-    }
-  }
-}
-
-export function renderDataAccessBundle(manifest, genieSpacesManifest = { version: 1, spaces: [] }) {
+export function renderDataAccessBundle(manifest) {
   const lines = [
     "# Generated by npm run data:access:render. Do not edit directly.",
     "resources:",
@@ -289,8 +118,6 @@ export function renderDataAccessBundle(manifest, genieSpacesManifest = { version
     "      name: ${var.app_name}",
     "      description: ${var.app_description}",
     "      compute_size: MEDIUM",
-    "      user_api_scopes:",
-    "        - genie",
     "      permissions:",
     "        - group_name: ${var.can_manage_group}",
     "          level: CAN_MANAGE",
@@ -302,16 +129,6 @@ export function renderDataAccessBundle(manifest, genieSpacesManifest = { version
     "            id: ${var.sql_warehouse_id}",
     "            permission: CAN_USE",
   ];
-
-  for (const space of genieSpacesManifest.spaces) {
-    lines.push(
-      `        - name: ${yamlString(space.key)}`,
-      "          genie_space:",
-      `            name: ${yamlString(space.displayName)}`,
-      `            space_id: ${yamlString(space.spaceId)}`,
-      "            permission: CAN_RUN",
-    );
-  }
 
   for (const source of manifest.sources) {
     lines.push(
@@ -352,9 +169,6 @@ async function validateProjectReference(root, file, pattern, project) {
 
 export async function renderDataAccess({ root, check = false, allowPlaceholder = false }) {
   const manifest = await loadDataAccessManifest(root, { allowPlaceholder });
-  const genieSpacesManifest = await loadGenieSpacesManifest(root);
-  validateResourceNames(manifest, genieSpacesManifest);
-  await validateGenieEnvironmentReferences(root, genieSpacesManifest);
   await validateProjectReference(
     root,
     "app.yaml",
@@ -374,14 +188,13 @@ export async function renderDataAccess({ root, check = false, allowPlaceholder =
     project: manifest.project,
     sources: manifest.sources.map((source) => ({ fullName: source.fullName, permission: "SELECT" })),
     personalState: Object.entries(manifest.personalState ?? {}).map(([kind, fullName]) => ({ kind, fullName, permission: "MODIFY" })),
-    genie: genieSpacesManifest.spaces.map((space) => ({ key: space.key, aliases: space.aliases, environmentVariable: space.environmentVariable, permission: "CAN_RUN" })),
   }, null, 2) + "\n";
   if (check) {
     const existing = await readFile(metadataPath, "utf8").catch(() => "");
     if (existing !== metadata) throw new Error("AppKit resource metadata is stale. Run npm run data:access:render.");
   } else await writeFile(metadataPath, metadata, "utf8");
   const outputPath = join(root, "resources/data-access.generated.yml");
-  const rendered = renderDataAccessBundle(manifest, genieSpacesManifest);
+  const rendered = renderDataAccessBundle(manifest);
   if (check) {
     let existing;
     try {

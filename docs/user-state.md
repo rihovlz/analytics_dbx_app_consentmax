@@ -5,7 +5,7 @@ Elle reste désactivée par défaut. L’activer ajoute « Mes analyses » à la
 
 Une analyse contient un nom, une note et une définition de filtres versionnée. L’ouverture relit la sauvegarde
 du propriétaire et reconstruit un lien vers une vue connue. Cette vue doit recalculer ses données avec les droits
-actuels du lecteur. Le template ne conserve aucun résultat SQL, instantané Genie, jeton ou email.
+actuels du lecteur. Le template ne conserve aucun résultat SQL, jeton ou email.
 
 ## Origine et choix de généralisation
 
@@ -154,8 +154,7 @@ import { SaveAnalysisButton } from "@/features/user-state";
 />
 ```
 
-Les métadonnées de propriété restent exclusivement côté serveur. Ne pas brancher directement `GenieChat.onSave`
-ou `onPin` sur ces tables : ces callbacks peuvent contenir des résultats OBO. Construire une définition validée
+Les métadonnées de propriété restent exclusivement côté serveur. Enregistrer uniquement une définition validée
 qui pourra être réexécutée avec les droits du lecteur.
 
 ## API
