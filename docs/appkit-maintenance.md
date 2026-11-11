@@ -108,3 +108,9 @@ Les permissions GitHub restent en lecture seule.
 Après revue, avancer les révisions dans le registre par une PR.
 Exécuter les tests de compatibilité, les parcours consommateur et migration, le build et Playwright.
 Toute nouvelle version du template reste une migration guidée pour les applications existantes.
+
+## Correctifs de sécurité des dépendances
+
+Les overrides de `package.json` imposent les versions corrigées de DOMPurify, ECharts, js-yaml, YAML, Zod et qs.
+AppKit et AppKit UI restent en 0.76.1. Les versions forcées conservent les mêmes versions majeures.
+Retirer un override lorsque toutes les dépendances parentes acceptent une version corrigée, puis relancer les tests et le build.
